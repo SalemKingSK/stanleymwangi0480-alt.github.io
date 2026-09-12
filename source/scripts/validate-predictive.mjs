@@ -134,6 +134,16 @@ if (!synthesis.includes("buildWovenSynthesis")) fail("woven synthesis builder mi
 else ok("buildWovenSynthesis present");
 if (!synthesis.includes("Its clearest precedent is")) fail("woven synthesis lacks real-life precedent phrasing");
 else ok("woven synthesis cites real precedents");
+if (!synthesis.includes("ONE SENTENCE, TWO ALTITUDES")) fail("woven synthesis lacks the fused one-sentence thesis");
+else ok("woven synthesis carries the fused thesis");
+if (!synthesis.includes("on the surface, ${what}; underneath, the blueprint paid it out")) fail("woven synthesis does not show both essences inside each real-life precedent");
+else ok("each precedent shows both essences at work");
+if (!synthesis.includes("your exact pair")) fail("woven synthesis does not mark exact-pair precedents");
+else ok("precedents marked when they carry the user's exact pair");
+if (!synthesis.includes("How to live it")) fail("woven synthesis lacks the fused strategic instruction");
+else ok("the two strategic moves are woven into one instruction");
+if (!synthesis.includes("married to itself, redoubled")) fail("same-pair doubling handling missing");
+else ok("same-pair years are read as a redoubled vibration");
 if (!synthesis.includes("the essences set the stage, but conduct decides")) fail("woven synthesis lacks the honesty clause (triumph + reversal)");
 else ok("woven synthesis carries the honesty clause");
 if (!synthesis.includes("isEntity")) fail("famous-mirror entity filter missing");

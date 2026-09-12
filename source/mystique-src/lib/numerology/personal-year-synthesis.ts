@@ -652,13 +652,23 @@ function buildWovenSynthesis(
 ): string {
   const directLabel = label(args.directRaw, args.directYear, args.directCompound);
   const classicLabel = label(args.classicRaw, args.classicYear, args.classicCompound);
-
-  // ── the two partners, in their own words ──
   const directThesis = directIntel.thesis.replace(/\.+$/, '');
   const classicThesis = classicIntel.thesis.replace(/\.+$/, '');
-  const partners = `In ${args.targetYear}, two essences are married in your chart. ${directLabel} is the Surface Journey — what happens TO you: ${directThesis}. ${classicLabel} is the Destiny Blueprint — what it MEANS: ${classicThesis}.`;
+  const samePair = args.directRaw === args.classicRaw;
 
-  // ── where they agree: the union ──
+  // ── 0. THE MARRIAGE IN ONE SENTENCE ────────────────────────────────────────
+  // The fused thesis: not "two readings side by side" but one statement in
+  // which the visible happening and the hidden meaning are the same year.
+  const fused = samePair
+    ? `ONE SENTENCE, TWO ALTITUDES: In ${args.targetYear}, ${directLabel} governs BOTH levels — what happens on the surface IS the meaning, and the meaning IS the surface event. This doubling is historically the most direct reading the system can give: one vibration, two altitudes, no translation required.`
+    : `ONE SENTENCE, TWO ALTITUDES: In ${args.targetYear}, ${directThesis.toLowerCase()} — and that is not a separate story from ${classicThesis.toLowerCase()}. It is the same year: the visible happening and its hidden meaning, two altitudes of one climb.`;
+
+  // ── 1. THE TWO PARTNERS, IN THEIR OWN WORDS ───────────────────────────────
+  const partners = samePair
+    ? `${directLabel} and ${classicLabel} are one and the same essence this year — married to itself, redoubled. Its single voice speaks twice: as the event (what happens TO you: ${directThesis}) and as the meaning (what it MEANS: ${classicThesis}).`
+    : `In ${args.targetYear}, two essences are married in your chart. ${directLabel} is the Surface Journey — what happens TO you: ${directThesis}. ${classicLabel} is the Destiny Blueprint — what it MEANS: ${classicThesis}.`;
+
+  // ── 2. WHERE THEY AGREE: THE UNION ────────────────────────────────────────
   const unionDomains = reinforcements.length
     ? reinforcements.slice(0, 3).join(', ')
     : ranked.slice(0, 2).map(r => DOMAIN_LABELS[r.domain]).join(' and ');
@@ -666,12 +676,16 @@ function buildWovenSynthesis(
     ? `Where the two agree — ${unionDomains} — the marriage is consummated: these are not possible themes but the year's likely stage, the ground where the surface event and the hidden meaning become the same thing.`
     : `They do not loudly agree on any single stage; their union is adaptive — the surface journey decides what triggers the year, and the blueprint decides how it is judged.`;
 
-  // ── where they differ: the tension (honored, not averaged) ──
+  // ── 3. WHERE THEY DIFFER: THE TENSION (honored, not averaged) ─────────────
   const tension = conflicts.length
     ? `Where they differ — ${conflicts[0]} — do not average them. The tension is the year's honesty: what others name from the outside may not be what you experience from the inside. Both are true at their own altitude.`
     : `They carry no major tension this year — the two essences point the same direction, which historically makes the reading unusually direct.`;
 
-  // ── the proof: real lives that carried this pair ──
+  // ── 4. THE PROOF: real lives, with BOTH essences visible in each ──────────
+  // Each precedent shows its own compound pair and marks the surface journey
+  // (the direct essence at work) and the destiny blueprint (the classic
+  // essence at work) inside the SAME real year — the intermarriage
+  // demonstrated, not merely asserted.
   const precedents: string[] = [];
   const strong = cluster.filter(c => c.similarity >= 0.8).slice(0, 3);
   const ordinal = ['Its clearest precedent is', 'A second precedent:', 'A third:'];
@@ -679,10 +693,10 @@ function buildWovenSynthesis(
     const what = shortEvent(c);
     const outcomeWord = c.outcome === 'triumph' ? 'a triumph' : c.outcome === 'loss' ? 'a reversal' : c.outcome === 'legacy' ? 'a legacy' : 'a turning point';
     const lesson = c.protectiveLesson.replace(/\.+$/, '');
-    precedents.push(`${ordinal[i]} ${c.person}'s ${c.year} — ${what} — the surface played out literally while underneath it became ${outcomeWord} (${lesson})`);
+    const casePair = `${c.direct}/${c.directReduced} × ${c.classic}/${c.classicReduced}`;
+    const pairTag = (c.direct === args.directRaw && c.classic === args.classicRaw) ? ' — your exact pair' : '';
+    precedents.push(`${ordinal[i]} ${c.person}'s ${c.year} (${casePair}${pairTag}): on the surface, ${what}; underneath, the blueprint paid it out as ${outcomeWord} — ${lesson}`);
   });
-  // Honesty clause: the same pair has produced both light and shadow in real
-  // lives. The essence sets the stage; conduct decides which ending you get.
   const strongOutcomes = new Set(strong.map(c => c.outcome));
   const hasPositive = ['triumph', 'legacy'].some(o => strongOutcomes.has(o));
   const hasNegative = ['loss', 'mixed'].some(o => strongOutcomes.has(o));
@@ -702,7 +716,16 @@ function buildWovenSynthesis(
     proof = `No historical case or famous birthday in the current bank crosses the display threshold for this exact pair — the engine keeps using the nearest cases internally for weighting, but refuses to present weak examples as evidence.`;
   }
 
-  // ── the verdict: polarity + the one protected weak point ──
+  // ── 5. HOW TO LIVE THE MARRIAGE ───────────────────────────────────────────
+  // The two essences each carry a strategic move; woven together they become
+  // one instruction — the surface move executed with the blueprint's motive.
+  const directMove = directIntel.strategicMove.replace(/\.+$/, '');
+  const classicMove = classicIntel.strategicMove.replace(/\.+$/, '');
+  const howToLive = samePair
+    ? `How to live it: the one instruction of the year is ${directMove}.`
+    : `How to live it: on the surface, ${directMove}; underneath, ${classicMove}. Do the first with the second as your motive — that is the marriage, practiced.`;
+
+  // ── 6. THE VERDICT ────────────────────────────────────────────────────────
   const verdictByPolarity: Record<string, string> = {
     'predominantly constructive': 'Read as one story, the year is constructive: the danger is not absence of luck but scattered attention diluting the main opportunity.',
     'predominantly cautionary': 'Read as one story, the year is cautionary: smaller, safer wins beat dramatic moves with hidden downside. Preservation and correction are the year\'s real work.',
@@ -711,7 +734,7 @@ function buildWovenSynthesis(
   };
   const verdict = `${verdictByPolarity[polarity] || verdictByPolarity['threshold / transition']} Guard the marriage at its weakest seam: ${protection}`;
 
-  return `THE SYNTHESIS — HOW YOUR TWO ESSENCES MARRY INTO ONE YEAR\n\n${partners}\n\n${union}\n\n${tension}\n\n${proof}\n\n${verdict}`;
+  return `THE SYNTHESIS — HOW YOUR TWO ESSENCES MARRY INTO ONE YEAR\n\n${fused}\n\n${partners}\n\n${union}\n\n${tension}\n\n${proof}\n\n${howToLive}\n\n${verdict}`;
 }
 
 function famousBirthdayPersonalYearMirrors(args: BuildArgs): string {
