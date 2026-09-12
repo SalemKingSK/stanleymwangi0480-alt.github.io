@@ -128,7 +128,20 @@ else ok("yearDiveOracle present");
 if (!oracleData.includes("yearDescription")) fail("yearDescription resolver missing");
 else ok("yearDescription present");
 
-// ── 9. Master-year interpretation in personal-year-full ────────────────────
+// ── 9. Woven synthesis (the intermarriage) present and grounded in real cases ──
+const synthesis = read("numerology/personal-year-synthesis.ts");
+if (!synthesis.includes("buildWovenSynthesis")) fail("woven synthesis builder missing");
+else ok("buildWovenSynthesis present");
+if (!synthesis.includes("Its clearest precedent is")) fail("woven synthesis lacks real-life precedent phrasing");
+else ok("woven synthesis cites real precedents");
+if (!synthesis.includes("the essences set the stage, but conduct decides")) fail("woven synthesis lacks the honesty clause (triumph + reversal)");
+else ok("woven synthesis carries the honesty clause");
+if (!synthesis.includes("isEntity")) fail("famous-mirror entity filter missing");
+else ok("famous mirrors filter non-people entities");
+if (!synthesis.includes("wovenSynthesis: string")) fail("wovenSynthesis not exposed in the interface");
+else ok("wovenSynthesis exposed for UI");
+
+// ── 10. Master-year interpretation in personal-year-full ───────────────────
 if (!pyFull.includes("MASTER_YEAR_NOTES")) fail("master-year notes missing in personal-year-full");
 else ok("master-year interpretation present");
 

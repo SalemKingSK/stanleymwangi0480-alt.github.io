@@ -17,6 +17,10 @@ import { HISTORICAL_CASES_EXPANSION_300_MORE } from '@/lib/numerology/personal-y
  
 export interface PersonalYearDualEssenceSynthesis {
   title: string;
+  /** The intermarriage: one woven narrative where the Direct (Surface Journey)
+   * and Classic (Destiny Blueprint) essences are read as a single story,
+   * proven against real historical cases that carried the same pair. */
+  wovenSynthesis: string;
   subtitle: string;
   synthesisText: string;
   directEssenceRole: string;
@@ -602,6 +606,114 @@ function rawDirectLocal(day: number, month: number, year: number): number {
 function rawClassicLocal(day: number, month: number, year: number): number {
   return digitSumLocal(day) + digitSumLocal(month) + reduceSingleLocal(year);
 }
+function famousMirrorRows(args: BuildArgs): Array<{ name: string; score: number }> {
+  const direct = args.directRaw;
+  const classic = args.classicRaw;
+  const directRoot = args.directYear;
+  const classicRoot = args.classicYear;
+  return famousBirthdays.map(p => {
+    const fd = rawDirectLocal(p.day, p.month, args.targetYear);
+    const fc = rawClassicLocal(p.day, p.month, args.targetYear);
+    const frd = reduceMasterLocal(fd);
+    const frc = reduceMasterLocal(fc);
+    let score = 0;
+    if (fd === direct) score += 36;
+    if (fc === classic) score += 36;
+    if (frd === directRoot) score += 8;
+    if (frc === classicRoot) score += 8;
+    if (p.day === args.birthDay && p.month === args.birthMonth) score += 8;
+    if (p.month === args.birthMonth) score += 4;
+    return { name: p.name, score: Math.min(100, score), isEntity: (p.tags || []).includes('Entity') };
+  }).filter(r => r.score >= 80 && !r.isEntity).sort((a, b) => b.score - a.score || a.name.localeCompare(b.name)).slice(0, 3);
+}
+
+/** One short, factual description of a historical case, for inline weaving. */
+function shortEvent(c: HistoricalCase): string {
+  const raw = c.eventDetails || c.narrative || c.eventCategory;
+  const flat = raw.replace(/\s+/g, ' ').trim().replace(/\.+$/, '');
+  if (flat.length <= 150) return flat;
+  const cut = flat.slice(0, 147);
+  const lastSpace = cut.lastIndexOf(' ');
+  return cut.slice(0, lastSpace > 90 ? lastSpace : 147) + '…';
+}
+
+/** The intermarriage itself: Direct × Classic read as ONE story, proven by
+ * the real lives that carried the same compound pair. */
+function buildWovenSynthesis(
+  args: BuildArgs,
+  directIntel: CompoundIntelligence,
+  classicIntel: CompoundIntelligence,
+  ranked: Array<{ domain: Domain; score: number }>,
+  conflicts: string[],
+  reinforcements: string[],
+  cluster: ReturnType<typeof nearestCluster>,
+  protection: string,
+  polarity: PersonalYearDualEssenceSynthesis['polarity'],
+): string {
+  const directLabel = label(args.directRaw, args.directYear, args.directCompound);
+  const classicLabel = label(args.classicRaw, args.classicYear, args.classicCompound);
+
+  // ── the two partners, in their own words ──
+  const directThesis = directIntel.thesis.replace(/\.+$/, '');
+  const classicThesis = classicIntel.thesis.replace(/\.+$/, '');
+  const partners = `In ${args.targetYear}, two essences are married in your chart. ${directLabel} is the Surface Journey — what happens TO you: ${directThesis}. ${classicLabel} is the Destiny Blueprint — what it MEANS: ${classicThesis}.`;
+
+  // ── where they agree: the union ──
+  const unionDomains = reinforcements.length
+    ? reinforcements.slice(0, 3).join(', ')
+    : ranked.slice(0, 2).map(r => DOMAIN_LABELS[r.domain]).join(' and ');
+  const union = reinforcements.length
+    ? `Where the two agree — ${unionDomains} — the marriage is consummated: these are not possible themes but the year's likely stage, the ground where the surface event and the hidden meaning become the same thing.`
+    : `They do not loudly agree on any single stage; their union is adaptive — the surface journey decides what triggers the year, and the blueprint decides how it is judged.`;
+
+  // ── where they differ: the tension (honored, not averaged) ──
+  const tension = conflicts.length
+    ? `Where they differ — ${conflicts[0]} — do not average them. The tension is the year's honesty: what others name from the outside may not be what you experience from the inside. Both are true at their own altitude.`
+    : `They carry no major tension this year — the two essences point the same direction, which historically makes the reading unusually direct.`;
+
+  // ── the proof: real lives that carried this pair ──
+  const precedents: string[] = [];
+  const strong = cluster.filter(c => c.similarity >= 0.8).slice(0, 3);
+  const ordinal = ['Its clearest precedent is', 'A second precedent:', 'A third:'];
+  strong.forEach((c, i) => {
+    const what = shortEvent(c);
+    const outcomeWord = c.outcome === 'triumph' ? 'a triumph' : c.outcome === 'loss' ? 'a reversal' : c.outcome === 'legacy' ? 'a legacy' : 'a turning point';
+    const lesson = c.protectiveLesson.replace(/\.+$/, '');
+    precedents.push(`${ordinal[i]} ${c.person}'s ${c.year} — ${what} — the surface played out literally while underneath it became ${outcomeWord} (${lesson})`);
+  });
+  // Honesty clause: the same pair has produced both light and shadow in real
+  // lives. The essence sets the stage; conduct decides which ending you get.
+  const strongOutcomes = new Set(strong.map(c => c.outcome));
+  const hasPositive = ['triumph', 'legacy'].some(o => strongOutcomes.has(o));
+  const hasNegative = ['loss', 'mixed'].some(o => strongOutcomes.has(o));
+  const bothSides = hasPositive && hasNegative
+    ? ` Note the honesty of the record: the same pair has produced both a triumph and a reversal in real lives — the essences set the stage, but conduct decides which ending you get.`
+    : '';
+  const mirrors = famousMirrorRows(args);
+  let proof = '';
+  if (precedents.length) {
+    proof = `The proof is in real lives. ${precedents.join('. ')}.${bothSides}`;
+    if (mirrors.length) {
+      proof += ` In the famous-birthday bank, ${mirrors.map(m => `${m.name} (${m.score}% mirror)`).join(', ')} carry the same pair in ${args.targetYear} — the same two essences, walking with you.`;
+    }
+  } else if (mirrors.length) {
+    proof = `No curated historical case crossed the 80% threshold for this pair, but the famous-birthday bank shows ${mirrors.map(m => `${m.name} (${m.score}% mirror)`).join(', ')} carrying the same two essences in ${args.targetYear}.`;
+  } else {
+    proof = `No historical case or famous birthday in the current bank crosses the display threshold for this exact pair — the engine keeps using the nearest cases internally for weighting, but refuses to present weak examples as evidence.`;
+  }
+
+  // ── the verdict: polarity + the one protected weak point ──
+  const verdictByPolarity: Record<string, string> = {
+    'predominantly constructive': 'Read as one story, the year is constructive: the danger is not absence of luck but scattered attention diluting the main opportunity.',
+    'predominantly cautionary': 'Read as one story, the year is cautionary: smaller, safer wins beat dramatic moves with hidden downside. Preservation and correction are the year\'s real work.',
+    'mixed ordeal-and-reward': 'Read as one story, the year pays through contrast: pressure first, reward later; exposure first, clarity later. The difficult part is the price of accuracy, not proof the year is failing.',
+    'threshold / transition': 'Read as one story, the year is a threshold: something changes form, status, duty, or definition — and the year succeeds only if the new structure is stronger than the one it replaces.',
+  };
+  const verdict = `${verdictByPolarity[polarity] || verdictByPolarity['threshold / transition']} Guard the marriage at its weakest seam: ${protection}`;
+
+  return `THE SYNTHESIS — HOW YOUR TWO ESSENCES MARRY INTO ONE YEAR\n\n${partners}\n\n${union}\n\n${tension}\n\n${proof}\n\n${verdict}`;
+}
+
 function famousBirthdayPersonalYearMirrors(args: BuildArgs): string {
   const direct = args.directRaw;
   const classic = args.classicRaw;
@@ -760,7 +872,7 @@ ${reinforceLine}
 CONSULTANT'S PRINCIPLE: Do not ask “Which system is right?” Ask “What story do both systems tell together?” The Surface Journey without the Destiny Blueprint is a weather report without a forecast. The Destiny Blueprint without the Surface Journey is a prophecy without a landscape. Only together do they become a navigable prediction. The master numerologist does not choose between the two — he reads the bridge.`;
 }
  
-function fullSynthesisText(args: BuildArgs, title: string, subtitle: string, diagnosis: string, ranked: Array<{domain: Domain; score: number}>, clusterText: string, conflicts: string[], reinforcements: string[], decisions: string[], personality: string, outcome: string, protection: string, ageText: string, master: string | null, karmic: string | null, intensity: number, directIntel: CompoundIntelligence, classicIntel: CompoundIntelligence): string {
+function fullSynthesisText(args: BuildArgs, title: string, subtitle: string, diagnosis: string, ranked: Array<{domain: Domain; score: number}>, clusterText: string, conflicts: string[], reinforcements: string[], decisions: string[], personality: string, outcome: string, protection: string, ageText: string, master: string | null, karmic: string | null, intensity: number, directIntel: CompoundIntelligence, classicIntel: CompoundIntelligence, woven: string): string {
   const conflictParagraph = conflicts.length
     ? `The complementary tension is not a problem to average out; it is the mechanism of the year. ${conflicts.map(c => `The pattern shows ${c}`).join('; ')}. In practice, this means the Surface Journey and the Destiny Blueprint may not match on the surface. Others may call it expansion while you experience subtraction, or they may see victory while you are busy managing risk — both readings are true at their own altitude.`
     : 'There is no major complementary tension requiring a forced compromise. The two essences mostly point in the same direction, so the correct reading is amplification rather than balance.';
@@ -771,7 +883,7 @@ function fullSynthesisText(args: BuildArgs, title: string, subtitle: string, dia
   const bridgeText = buildComplementaryBridgeText(args, directIntel, classicIntel, diagnosis, reinforcements, conflicts);
  
   return [
-    `FORENSIC PERSONAL YEAR SYNTHESIS\n${title}\n${subtitle}\n\nThe strongest question is not “what does each compound mean?” The stronger question is: if these two essences are trying to tell one coherent story about ${args.targetYear}, what is that story? ${diagnosis}`,
+    `FORENSIC PERSONAL YEAR SYNTHESIS\n${title}\n${subtitle}\n\n${woven}\n\nThe strongest question is not “what does each compound mean?” The stronger question is: if these two essences are trying to tell one coherent story about ${args.targetYear}, what is that story? ${diagnosis}`,
     `\n1. THE COMPLEMENTARY BRIDGE\n${bridgeText}`,
     `\n2. HISTORICAL PATTERN DETECTION\n${clusterText}`,
     `\n3. DOMINANT ESSENCE AND COMPLEMENTARY TENSION\n${conflictParagraph}\n\n${reinforcementParagraph}`,
@@ -809,7 +921,8 @@ export function buildPersonalYearDualEssenceSynthesis(args: BuildArgs): Personal
   const protection = buildProtectiveStrategy(archetype, ranked);
   const ageText = [ageInfo.text, ...resonance].join('\n\n');
   const intensity = intensityScore(args, ageInfo.multiplier, domainScores, cluster, directIntel, classicIntel);
-  const synthesisText = fullSynthesisText(args, title, subtitle, diagnosis, ranked, clusterText, conflicts, reinforcements, decisions, personality, outcome, protection, ageText, master, karmic, intensity, directIntel, classicIntel);
+  const woven = buildWovenSynthesis(args, directIntel, classicIntel, ranked, conflicts, reinforcements, cluster, protection, polarity);
+  const synthesisText = fullSynthesisText(args, title, subtitle, diagnosis, ranked, clusterText, conflicts, reinforcements, decisions, personality, outcome, protection, ageText, master, karmic, intensity, directIntel, classicIntel, woven);
   const directTopDomains = Object.entries(directIntel.domains).sort((a,b)=>(b[1]??0)-(a[1]??0)).slice(0,4).map(([k]) => DOMAIN_LABELS[k as Domain]);
   const classicTopDomains = Object.entries(classicIntel.domains).sort((a,b)=>(b[1]??0)-(a[1]??0)).slice(0,4).map(([k]) => DOMAIN_LABELS[k as Domain]);
   const directEssenceRole = `THE SURFACE JOURNEY (Direct Essence): ${label(args.directRaw,args.directYear,args.directCompound)} describes the visible terrain — the external events, public drama, literal circumstances, and surface-level challenges that will shape your year. It is what happens TO you. This essence manifests most strongly through: ${directTopDomains.join(', ')}.\n\nConsultant reading: ${directIntel.thesis}\n\nSurface-level mistake to avoid: ${directIntel.likelyMistake}\n\nSurface-level strategic move: ${directIntel.strategicMove}`;
@@ -818,6 +931,7 @@ export function buildPersonalYearDualEssenceSynthesis(args: BuildArgs): Personal
   return {
     title,
     subtitle,
+    wovenSynthesis: woven,
     synthesisText,
     directEssenceRole,
     classicEssenceRole,
