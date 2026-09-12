@@ -552,39 +552,168 @@ export function analyzePYInteraction(a: SoulVitals, b: SoulVitals, targetYear = 
 // whether a partner's actual Western sign and Chinese animal appear in
 // the positive (appreciation) or negative (dissatisfaction/avoidance)
 // portion of the text.
-// ---------------------------------------------------------------------
-// ── Suzanne White compat codification ────────────────────────────────────
 //
-// Three-phase sentence-level analysis:
-//   Phase 1 — POSITIVE OVERRIDE: if a sentence contains an unmistakable
-//     recommendation phrase ("can't go wrong with", "particularly happy",
-//     "best bet", etc.) it is classified as appreciation regardless of
-//     any negation words that also appear in it.
-//   Phase 2 — CLEAR AVOIDANCE: if a sentence does NOT have a positive
-//     override but DOES contain an unmistakable caution/avoidance phrase
-//     — either an imperative command ("Don't pick", "Stay away from",
-//     "Avoid", "Steer clear") or a descriptive disdain characterization
-//     ("too cool to keep you fascinated", "exasperate you", "unnerve",
-//     "annoy you", "frustrate you", "you hate", "polarized outlooks",
-//     "disappointments aplenty", etc.) — it is classified as dissatisfaction.
-//   Phase 3 — NEUTRAL: sentences matching neither phase are classified as
-//     mild appreciation (the sign was mentioned without explicit caution).
+// Classification model (single source of truth for every Suzanne White
+// indicator in the app — the Compatibility Outlook badges AND the
+// suzanneWhiteScore lens in engagement-tools.tsx must both go through
+// classifySuzanneWhiteMentions so they can never contradict each other):
 //
-// This avoids the two previous bugs:
-//   1. Curly apostrophe mismatch — U+2019 (`'`) vs U+0027 (`'`)
-//   2. Misclassifying "can't go wrong with X" as avoidance because
-//      `can't` was blindly flagged as a negative keyword.
-//   3. Missing descriptive disdain ("Rabbits are too cool to keep you
-//      fascinated forever") because only imperative-verb patterns were
-//      checked for avoidance.
+//   1. Split the paragraph into sentences.
+//   2. Find every positive-marker and avoid-marker position in the
+//      sentence (POSITIVE_OVERRIDE_PATTERN / CLEAR_AVOID_PATTERN).
+//   3. For each sign mention in the sentence, the verdict is decided by
+//      the NEAREST marker (by character distance; ties prefer positive).
+//      This correctly handles sentences that mix both verdicts, e.g.
+//      "Erase Horses from your mind altogether, and prefer the solid
+//      Aries/Ox", and list sentences like
+//      "No Virgo/Rats or Virgo/Roosters for you." where the only marker
+//      ("No …") is at the start of the sentence.
+//   4. Aggregate across sentences: positive-only => positive,
+//      avoid-only => avoid, both => mixed, neither => unstated.
+//
+// The pattern sets below were validated against all 144 combined-sign
+// compatibilities paragraphs in lib/new-astrology (see the regression
+// script in the project notes: validate-compat). Do not edit the text
+// data or these patterns without re-running that validation.
 
 // Phase 1 — unmistakably POSITIVE phrases (override any negation words)
-const POSITIVE_OVERRIDE_PATTERN = /can\u2019t go wrong|can't go wrong|won\u2019t be disappointed|won't be disappointed|won\u2019t regret|won't regret|won\u2019t have any trouble|won't have any trouble|particularly happy|you\u2019ll find a good|you'll find a good|best bet|ideal match|great couple|perfect mate|blissfully|harmonious|recommended match|advised to seek|i see you with|you get on with|good match|fine mate|happy alliance|harmony incarnate|sound love|durable|solid relationship|enduring love|great passion|not to be excluded|can\u2019t resist|can't resist|you\u2019ll be particularly|you'll be particularly|won\u2019t have any trouble cohabiting|won't have any trouble cohabiting|excellent|will be happy/gi;
+const POSITIVE_OVERRIDE_PATTERN = /can\u2019t go wrong|can't go wrong|won\u2019t be disappointed|won't be disappointed|won\u2019t regret|won't regret|won\u2019t have any trouble|won't have any trouble|particularly happy|you\u2019ll find a good|you'll find a good|you\u2019ll find happiness|you'll find happiness|best bet|ideal match|great couple|perfect mate|blissfully|harmonious|recommended match|advised to seek|i see you with|you get on with|you get on especially well|you get along with|normally you get along with|should be compatible|good match|fine mate|happy alliance|harmony incarnate|sound love|durable|solid relationship|enduring love|great passion|not to be excluded|can\u2019t resist|can't resist|you\u2019ll be particularly|you'll be particularly|won\u2019t have any trouble cohabiting|won't have any trouble cohabiting|excellent|will be happy|in your future|make sure you choose|prefer the solid|why not invite|will enhance your existence|crushes on|will make you laugh|pep up your|stay close to|don\u2019t hesitate to choose|don't hesitate to choose|don\u2019t forget that|don't forget that|who adore you|don\u2019t be surprised if|don't be surprised if|you\u2019re fond of|you're fond of|fond of|you\u2019ll fall for|you'll fall for|fall for|work well|winner mates|swell bedfellows|bedfellows|are cute|cute, too|excite you|attract you|stand by you|please you|confront well|for your pleasure|advise you to look into|bring you joy|bring you their|make you happy, too|a wide choice/gi;
 
 // Phase 2 — unmistakably NEGATIVE phrases: imperative commands AND
-// descriptive disdain characterizations. Only checked if Phase 1 failed.
+// descriptive disdain characterizations, including the corpus structures
+// the old classifier missed ("No X or Y for you.", "Nor do I suggest X",
+// "Erase X from your mind", "give up on", "nix on", "don't hang around
+// with", "less compatible are", "too X for you/to your/to ...", etc.).
 // Includes both curly (U+2019) and straight (U+0027) apostrophe variants.
-const CLEAR_AVOID_PATTERN = /stay away|avoid|shun|steer clear|give wide berth|flee|poison|disastrous|don\u2019t pick|don't pick|don\u2019t marry|don't marry|don\u2019t go getting|don't go getting|don\u2019t bother with|don't bother with|don\u2019t go getting yourself involved|don't go getting yourself involved|refrain|leave.*alone|leave.*if you can|too like you.*too.*different|worse than.*bark|bite is worse|won\u2019t last|won't last|won\u2019t work|won't work|won\u2019t work for|won't work for|never work|dissonance|ugly duo|no marriage|not for you|not really suited|ill-suited|don\u2019t see eye to eye|don't see eye to eye|polarized outlooks|too cool to keep.*fascinated|exasperate you|unnerve you|unnerve.*the most|annoy you|frustrate you|irritat|you.*hate|they.*hate|hate inertia|disappointments aplenty|disappointment.*await|too.*different.*other|not much love|boredom|stodgy|gloomy|killjoy|beware|watch out for/gi;
+const CLEAR_AVOID_PATTERN = /stay away|avoid|shun|steer clear|steer around|give wide berth|wide berth|flee|poison|disastrous|don\u2019t pick|don't pick|don\u2019t marry|don't marry|don\u2019t go getting|don't go getting|don\u2019t bother with|don't bother with|don\u2019t go getting yourself involved|don't go getting yourself involved|refrain|leave.*alone|leave.*if you can|too like you.*too.*different|worse than.*bark|bite is worse|won\u2019t last|won't last|won\u2019t work|won't work|won\u2019t work for|won't work for|don\u2019t work for|don't work for|never work|dissonance|ugly duo|no marriage|not for you|not really suited|ill-suited|don\u2019t see eye to eye|don't see eye to eye|polarized outlooks|too cool to keep.*fascinated|exasperate you|unnerve you|unnerve.*the most|annoy you|frustrate you|irritat|you.*hate|they.*hate|hate inertia|disappointments aplenty|disappointment.*await|too.*different.*other|not much love|boredom|stodgy|gloomy|killjoy|beware|watch out for|^no\b|^nor\b|^not so\b|nix\b|except,? perhaps|erase .* from your mind|forget about|give up on|get on your nerves|never get on with|never ideal|don\u2019t make it for you|don't make it for you|don\u2019t get along with|don't get along with|do not get along|don\u2019t get on with|don't get on with|don\u2019t get much out of|don't get much out of|don\u2019t have much affinity|don't have much affinity|don\u2019t hang around with|don't hang around with|don\u2019t be led down the aisle by|don't be led down the aisle by|don\u2019t be flattered by|don't be flattered by|don\u2019t trifle with|don't trifle with|don\u2019t set your heart on|don't set your heart on|don\u2019t try coupling with|don't try coupling with|don\u2019t take up with|don't take up with|don\u2019t be in a hurry to marry|don't be in a hurry to marry|don\u2019t promote any long-standing relationships with|don't promote any long-standing relationships with|don\u2019t even think about marrying|don't even think about marrying|don\u2019t even entertain the thought|don't even entertain the thought|don\u2019t get caught up in|don't get caught up in|don\u2019t get involved with|don't get involved with|don\u2019t get mixed up with|don't get mixed up with|don\u2019t chase after|don't chase after|don\u2019t go getting involved with|don't go getting involved with|don\u2019t get tangled up in|don't get tangled up in|don\u2019t bank on|don't bank on|i don\u2019t advise|i don't advise|i don\u2019t vote for|i don't vote for|i don\u2019t see you taking up with|i don't see you taking up with|i don\u2019t believe you can be happy forever with|i don't believe you can be happy forever with|i\u2019d leave|i'd leave|i would leave|you are advised to forget|incompatible signs|don\u2019t always have .* best interests|don't always have .* best interests|stay clear|stay out of the way of|you clash with|clash with your own|you don\u2019t seem to think alike|you don't seem to think alike|less compatible|i warn you|make yourself scarce|give you trouble|overpower you|drive you mad|drive you crazy|demand too much|demand far too much|far too much stability|too much of a challenge|too tightly|for the pig\u2019s own good|not funky enough|too harsh|too\s+[a-z-]+(?:\s+(?:and|or)\s+[a-z-]+)?\s*(?:for you|for your|for the|to\b|[,.!]|$)/gi;
+
+export type SuzanneWhiteVerdict = "positive" | "avoid" | "mixed" | "unstated";
+
+export interface SuzanneWhiteMentionVerdicts {
+  combined: SuzanneWhiteVerdict;
+  western: SuzanneWhiteVerdict;
+  animal: SuzanneWhiteVerdict;
+  details: {
+    combined: string;
+    western: string;
+    animal: string;
+  };
+}
+
+function markerIndices(re: RegExp, sentence: string): number[] {
+  re.lastIndex = 0;
+  const out: number[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(sentence)) !== null) {
+    out.push(m.index);
+    if (m.index === re.lastIndex) re.lastIndex++;
+  }
+  return out;
+}
+
+/** Verdict for one token mention in one sentence: nearest marker wins; ties prefer positive. */
+function sentenceMentionVerdict(sentence: string, token: string): "positive" | "avoid" | null {
+  const first = sentence.indexOf(token);
+  if (first === -1) return null;
+  const posIdx = markerIndices(POSITIVE_OVERRIDE_PATTERN, sentence);
+  const avoidIdx = markerIndices(CLEAR_AVOID_PATTERN, sentence);
+  let verdict: "positive" | "avoid" | null = null;
+  let bestD = Number.POSITIVE_INFINITY;
+  for (const p of posIdx) {
+    const d = Math.abs(p - first);
+    if (d < bestD) {
+      bestD = d;
+      verdict = "positive";
+    }
+  }
+  for (const av of avoidIdx) {
+    const d = Math.abs(av - first);
+    if (d < bestD || (d === bestD && verdict === "avoid")) {
+      bestD = d;
+      verdict = "avoid";
+    }
+  }
+  return verdict;
+}
+
+/**
+ * Single source of truth for Suzanne White (New Astrology) compatibility
+ * classification. Returns per-dimension verdicts (combined sign, Western
+ * sign alone, Chinese animal alone) plus human-readable evidence details.
+ */
+export function classifySuzanneWhiteMentions(
+  sourceText: string,
+  partnerCombinedSign: string,
+  partnerWestern: string,
+  partnerAnimal: string,
+): SuzanneWhiteMentionVerdicts {
+  const lower = sourceText.toLowerCase();
+  const lowerCombined = partnerCombinedSign.toLowerCase();
+  const lowerWestern = partnerWestern.toLowerCase();
+  const lowerAnimal = partnerAnimal.toLowerCase();
+  const sentences = (lower.match(/[^.!?]+[.!?]+/g) || [lower]).map((s) => s.trim());
+
+  let cPos = false;
+  let cAvoid = false;
+  let wPos = false;
+  let wAvoid = false;
+  let aPos = false;
+  let aAvoid = false;
+  const cPositive: string[] = [];
+  const cNegative: string[] = [];
+  const wPositive: string[] = [];
+  const wNegative: string[] = [];
+  const aPositive: string[] = [];
+  const aNegative: string[] = [];
+
+  for (const s of sentences) {
+    const jc = sentenceMentionVerdict(s, lowerCombined);
+    const jw = sentenceMentionVerdict(s, lowerWestern);
+    const ja = sentenceMentionVerdict(s, lowerAnimal);
+
+    if (jc === "positive") {
+      cPos = true;
+      cPositive.push(`${partnerCombinedSign} is recommended (\"${s.slice(0, 80)}…\")`);
+    } else if (jc === "avoid") {
+      cAvoid = true;
+      cNegative.push(`${partnerCombinedSign} is cautioned against (\"${s.slice(0, 80)}…\")`);
+    }
+    if (jw === "positive") {
+      wPos = true;
+      wPositive.push(`${partnerWestern} appears in a recommendation (\"${s.slice(0, 80)}…\")`);
+    } else if (jw === "avoid") {
+      wAvoid = true;
+      wNegative.push(`${partnerWestern} appears in a caution (\"${s.slice(0, 80)}…\")`);
+    }
+    if (ja === "positive") {
+      aPos = true;
+      aPositive.push(`${partnerAnimal} appears in a recommendation (\"${s.slice(0, 80)}…\")`);
+    } else if (ja === "avoid") {
+      aAvoid = true;
+      aNegative.push(`${partnerAnimal} appears in a caution (\"${s.slice(0, 80)}…\")`);
+    }
+  }
+
+  const reduce = (pos: boolean, avoid: boolean): SuzanneWhiteVerdict =>
+    pos && avoid ? "mixed" : pos ? "positive" : avoid ? "avoid" : "unstated";
+
+  return {
+    combined: reduce(cPos, cAvoid),
+    western: reduce(wPos, wAvoid),
+    animal: reduce(aPos, aAvoid),
+    details: {
+      combined:
+        cPositive.concat(cNegative).join("; ") ||
+        `No explicit mention of ${partnerCombinedSign} found`,
+      western:
+        wPositive.concat(wNegative).join("; ") ||
+        `No explicit mention of ${partnerWestern} found`,
+      animal:
+        aPositive.concat(aNegative).join("; ") ||
+        `No explicit mention of ${partnerAnimal} found`,
+    },
+  };
+}
 
 function codifySuzanneWhite(
   sourceText: string,
@@ -595,110 +724,25 @@ function codifySuzanneWhite(
   appreciation: { westernSignMatch: boolean; chineseAnimalMatch: boolean; combinedSignMatch: boolean; details: string };
   dissatisfaction: { westernSignMatch: boolean; chineseAnimalMatch: boolean; combinedSignMatch: boolean; details: string };
 } {
-  const lower = sourceText.toLowerCase();
-  const lowerCombined = partnerCombinedSign.toLowerCase();
-  const lowerWestern = partnerWestern.toLowerCase();
-  const lowerAnimal = partnerAnimal.toLowerCase();
+  const v = classifySuzanneWhiteMentions(sourceText, partnerCombinedSign, partnerWestern, partnerAnimal);
 
-  // Split text into sentences for per-sentence classification.
-  const sentences = lower.match(/[^.!?]+[.!?]+/g) || [lower];
-
-  let appreciationWestern = false;
-  let appreciationAnimal = false;
-  let appreciationCombined = false;
-  let dissatisfactionWestern = false;
-  let dissatisfactionAnimal = false;
-  let dissatisfactionCombined = false;
-  const appreciationDetails: string[] = [];
-  const dissatisfactionDetails: string[] = [];
-
-  for (const sentence of sentences) {
-    const hasCombined = sentence.includes(lowerCombined);
-    const hasWestern = sentence.includes(lowerWestern);
-    const hasAnimal = sentence.includes(lowerAnimal);
-
-    if (!hasWestern && !hasAnimal && !hasCombined) continue;
-
-    // Phase 1: Check for positive override FIRST.
-    // "Can't go wrong with Capricorn/Ox" is a recommendation,
-    // not a caution, so it must override the `can't` negation word.
-    POSITIVE_OVERRIDE_PATTERN.lastIndex = 0;
-    const hasPositiveOverride = POSITIVE_OVERRIDE_PATTERN.test(sentence);
-
-    if (hasPositiveOverride) {
-      if (hasCombined) {
-        appreciationCombined = true;
-        appreciationDetails.push(`${partnerCombinedSign} is recommended ("${sentence.trim().slice(0, 80)}…")`);
-      } else {
-        if (hasWestern) {
-          appreciationWestern = true;
-          appreciationDetails.push(`${partnerWestern} appears in a recommendation ("${sentence.trim().slice(0, 80)}…")`);
-        }
-        if (hasAnimal) {
-          appreciationAnimal = true;
-          appreciationDetails.push(`${partnerAnimal} appears in a recommendation ("${sentence.trim().slice(0, 80)}…")`);
-        }
-      }
-      continue; // Positive override wins — skip Phase 2 for this sentence
-    }
-
-    // Phase 2: Check for clear avoidance/caution phrases.
-    CLEAR_AVOID_PATTERN.lastIndex = 0;
-    const hasAvoid = CLEAR_AVOID_PATTERN.test(sentence);
-
-    if (hasAvoid) {
-      if (hasCombined) {
-        dissatisfactionCombined = true;
-        dissatisfactionDetails.push(`${partnerCombinedSign} is cautioned against ("${sentence.trim().slice(0, 80)}…")`);
-      } else {
-        if (hasWestern) {
-          dissatisfactionWestern = true;
-          dissatisfactionDetails.push(`${partnerWestern} appears in a caution ("${sentence.trim().slice(0, 80)}…")`);
-        }
-        if (hasAnimal) {
-          dissatisfactionAnimal = true;
-          dissatisfactionDetails.push(`${partnerAnimal} appears in a caution ("${sentence.trim().slice(0, 80)}…")`);
-        }
-      }
-      continue;
-    }
-
-    // Neither positive override nor clear avoidance — the sentence is
-    // neutral (e.g. "Ox gives you competition but you don't mind that").
-    // We still classify a sign mention as mild appreciation because it
-    // appears in a sentence that is NOT explicitly cautioning against it.
-    if (hasCombined) {
-      appreciationCombined = true;
-      appreciationDetails.push(`${partnerCombinedSign} mentioned favourably ("${sentence.trim().slice(0, 80)}…")`);
-    } else {
-      if (hasWestern) {
-        appreciationWestern = true;
-        appreciationDetails.push(`${partnerWestern} mentioned favourably ("${sentence.trim().slice(0, 80)}…")`);
-      }
-      if (hasAnimal) {
-        appreciationAnimal = true;
-        appreciationDetails.push(`${partnerAnimal} mentioned favourably ("${sentence.trim().slice(0, 80)}…")`);
-      }
-    }
-  }
-
-  if (appreciationDetails.length === 0)
-    appreciationDetails.push(`No explicit recommendation found for ${partnerCombinedSign}`);
-  if (dissatisfactionDetails.length === 0)
-    dissatisfactionDetails.push(`No explicit caution found for ${partnerCombinedSign}`);
+  const isAppreciated = (verdict: SuzanneWhiteVerdict) =>
+    verdict === "positive" || verdict === "mixed";
+  const isCautioned = (verdict: SuzanneWhiteVerdict) =>
+    verdict === "avoid" || verdict === "mixed";
 
   return {
     appreciation: {
-      westernSignMatch: appreciationWestern,
-      chineseAnimalMatch: appreciationAnimal,
-      combinedSignMatch: appreciationCombined,
-      details: appreciationDetails.join("; "),
+      westernSignMatch: isAppreciated(v.western),
+      chineseAnimalMatch: isAppreciated(v.animal),
+      combinedSignMatch: isAppreciated(v.combined),
+      details: [v.details.western, v.details.animal, v.details.combined].join("; "),
     },
     dissatisfaction: {
-      westernSignMatch: dissatisfactionWestern,
-      chineseAnimalMatch: dissatisfactionAnimal,
-      combinedSignMatch: dissatisfactionCombined,
-      details: dissatisfactionDetails.join("; "),
+      westernSignMatch: isCautioned(v.western),
+      chineseAnimalMatch: isCautioned(v.animal),
+      combinedSignMatch: isCautioned(v.combined),
+      details: [v.details.western, v.details.animal, v.details.combined].join("; "),
     },
   };
 }

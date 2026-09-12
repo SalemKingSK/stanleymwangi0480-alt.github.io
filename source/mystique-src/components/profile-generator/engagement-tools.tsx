@@ -43,6 +43,7 @@ import {
   getFamousSoulBank,
   getFamousSoulWeather,
   getCosmicTwinsForSoul,
+  classifySuzanneWhiteMentions,
   type SoulResonanceReport,
   type ResonanceLayer,
   type DomainScore,
@@ -338,44 +339,38 @@ function suzanneWhiteScore(
 ): { score: number; label: string; note: string } {
   const aSign = combinedSign(a);
   const bSign = combinedSign(b);
-  const reverseSign = combinedSign(b);
-  const text = (NEW_ASTROLOGY_DATA[aSign]?.compatibilities || "").toLowerCase();
-  const reverseText = (
-    NEW_ASTROLOGY_DATA[reverseSign]?.compatibilities || ""
-  ).toLowerCase();
-  const bWestern = westernSign(b.day, b.month).toLowerCase();
-  const bAnimal = zodiacAnimal(b.year).toLowerCase();
-  const aWestern = westernSign(a.day, a.month).toLowerCase();
-  const aAnimal = zodiacAnimal(a.year).toLowerCase();
-  const evaluate = (
+  const text = NEW_ASTROLOGY_DATA[aSign]?.compatibilities || "";
+  const reverseText = NEW_ASTROLOGY_DATA[bSign]?.compatibilities || "";
+  const bWestern = westernSign(b.day, b.month);
+  const bAnimal = zodiacAnimal(b.year);
+  const aWestern = westernSign(a.day, a.month);
+  const aAnimal = zodiacAnimal(a.year);
+
+  // Same classifier as the Compatibility Outlook badges — the two views can
+  // never disagree about whether a pairing is recommended or cautioned.
+  const contribute = (
     source: string,
     targetCombined: string,
     targetWestern: string,
     targetAnimal: string,
   ) => {
-    const lowerCombined = targetCombined.toLowerCase();
-    const avoidIndex = source.search(
-      /stay away|avoid|leave|wide berth|poison|don’t|don't/,
-    );
-    const positive = avoidIndex >= 0 ? source.slice(0, avoidIndex) : source;
-    const negative = avoidIndex >= 0 ? source.slice(avoidIndex) : "";
-    if (
-      negative.includes(lowerCombined) ||
-      (negative.includes(targetWestern) && negative.includes(targetAnimal))
-    )
-      return -38;
-    if (positive.includes(lowerCombined)) return 46;
+    const v = classifySuzanneWhiteMentions(source, targetCombined, targetWestern, targetAnimal);
     let points = 0;
-    if (positive.includes(targetWestern)) points += 18;
-    if (positive.includes(targetAnimal)) points += 18;
-    if (negative.includes(targetWestern) || negative.includes(targetAnimal))
-      points -= 12;
+    if (v.combined === "positive") points += 46;
+    else if (v.combined === "avoid") points -= 38;
+    else if (v.combined === "mixed") points += 8;
+    if (v.western === "positive") points += 18;
+    else if (v.western === "avoid") points -= 12;
+    else if (v.western === "mixed") points += 6;
+    if (v.animal === "positive") points += 18;
+    else if (v.animal === "avoid") points -= 12;
+    else if (v.animal === "mixed") points += 6;
     return points;
   };
   const raw =
     50 +
-    evaluate(text, bSign, bWestern, bAnimal) +
-    evaluate(reverseText, aSign, aWestern, aAnimal) / 2;
+    contribute(text, bSign, bWestern, bAnimal) +
+    contribute(reverseText, aSign, aWestern, aAnimal) / 2;
   const score = Math.max(15, Math.min(98, Math.round(raw)));
   const label =
     score >= 86
@@ -2980,6 +2975,16 @@ function NewAstrologyCompatCard({ report }: { report: SoulResonanceReport }) {
             <span style={indicatorStyle(na.aDissatisfactionWithB.chineseAnimalMatch, "dissatisfaction")}>
               ⚡ {na.aDissatisfactionWithB.chineseAnimalMatch ? `${report.soulB.zodiacAnimal} cautioned` : `${report.soulB.zodiacAnimal} no caution`}
             </span>
+            {na.aAppreciationOfB.combinedSignMatch && (
+              <span style={{ ...indicatorStyle(true, "appreciation"), fontWeight: 800, border: "1px solid rgba(134,239,172,0.55)" }}>
+                ★ {report.soulB.westernSign}/{report.soulB.zodiacAnimal} exact pairing recommended
+              </span>
+            )}
+            {na.aDissatisfactionWithB.combinedSignMatch && (
+              <span style={{ ...indicatorStyle(true, "dissatisfaction"), fontWeight: 800, border: "1px solid rgba(251,113,133,0.55)" }}>
+                ★ {report.soulB.westernSign}/{report.soulB.zodiacAnimal} exact pairing cautioned
+              </span>
+            )}
           </div>
 
           {/* Detailed explanation */}
@@ -3067,6 +3072,16 @@ function NewAstrologyCompatCard({ report }: { report: SoulResonanceReport }) {
             <span style={indicatorStyle(na.bDissatisfactionWithA.chineseAnimalMatch, "dissatisfaction")}>
               ⚡ {na.bDissatisfactionWithA.chineseAnimalMatch ? `${report.soulA.zodiacAnimal} cautioned` : `${report.soulA.zodiacAnimal} no caution`}
             </span>
+            {na.bAppreciationOfA.combinedSignMatch && (
+              <span style={{ ...indicatorStyle(true, "appreciation"), fontWeight: 800, border: "1px solid rgba(134,239,172,0.55)" }}>
+                ★ {report.soulA.westernSign}/{report.soulA.zodiacAnimal} exact pairing recommended
+              </span>
+            )}
+            {na.bDissatisfactionWithA.combinedSignMatch && (
+              <span style={{ ...indicatorStyle(true, "dissatisfaction"), fontWeight: 800, border: "1px solid rgba(251,113,133,0.55)" }}>
+                ★ {report.soulA.westernSign}/{report.soulA.zodiacAnimal} exact pairing cautioned
+              </span>
+            )}
           </div>
 
           {/* Detailed explanation */}
