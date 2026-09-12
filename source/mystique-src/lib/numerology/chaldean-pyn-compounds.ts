@@ -112,7 +112,7 @@ const COMPOUND_LIST: ChaldeanPYNCompound[] = [
   {
     compound: 46,
     reduced: 1,
-    name: "The Magnetic Foundation",
+    name: "The Magnetic Partnership",
     isKarmicDebt: false,
     isMasterNumber: false,
     symbolism:
@@ -243,13 +243,13 @@ const COMPOUND_LIST: ChaldeanPYNCompound[] = [
   {
     compound: 38,
     reduced: 2,
-    name: "The Visionary Trial",
+    name: "The Vision Under Judgment",
     isKarmicDebt: false,
     isMasterNumber: false,
     symbolism:
       "The 3 of expression joined to the 8 of power, secretly reducing through 11 — creative authority under trial, where a vision may become revelation or collapse through betrayal, overreach, or misread allies.",
     vibrationalEssence:
-      "The 38/2 must be read more sharply than a simple partnership number. Its visible digits are 3 and 8: expression, message, art, performance, argument, or public narrative joined to material power, office, money, command, law, and consequence. But 3 + 8 = 11, so beneath the 2 lies a Master-11 field. This makes 38/2 a year of visionary relationship: the person is not merely dealing with partners; they are dealing with people, institutions, crowds, courts, armies, audiences, or collaborators who decide whether the vision is carried into the world or shattered.\n\nHistorically, this number performs best when read as professional and visionary trial. If the person’s vision is disciplined, 38/2 can produce magnetic public communication and surprising influence. If the vision has outrun logistics, loyalty, health, military reality, legal reality, or organizational structure, the same number can produce a Waterloo-type collapse: not a random defeat, but the fall of a vision that could no longer command the field around it.\n\nThe hidden 11 also gives omen-like intensity. Events feel symbolic. The person may sense destiny, but destiny is not the same as invulnerability. The year asks whether inspiration can survive practical contact with allies, enemies, contracts, judges, voters, patrons, rivals, and the stubbornness of the material world.",
+      "Cheiro's canon assigns 38 the same meaning as 29: 'uncertainties, treachery, and deception of others; trials, tribulation, and unexpected dangers, unreliable friends, and grief and deception caused by members of the opposite sex.' That warning remains the 38's karmic core. The 38/2 must be read more sharply than a simple partnership number. Its visible digits are 3 and 8: expression, message, art, performance, argument, or public narrative joined to material power, office, money, command, law, and consequence. But 3 + 8 = 11, so beneath the 2 lies a Master-11 field. This makes 38/2 a year of visionary relationship: the person is not merely dealing with partners; they are dealing with people, institutions, crowds, courts, armies, audiences, or collaborators who decide whether the vision is carried into the world or shattered.\n\nHistorically, this number performs best when read as professional and visionary trial. If the person’s vision is disciplined, 38/2 can produce magnetic public communication and surprising influence. If the vision has outrun logistics, loyalty, health, military reality, legal reality, or organizational structure, the same number can produce a Waterloo-type collapse: not a random defeat, but the fall of a vision that could no longer command the field around it.\n\nThe hidden 11 also gives omen-like intensity. Events feel symbolic. The person may sense destiny, but destiny is not the same as invulnerability. The year asks whether inspiration can survive practical contact with allies, enemies, contracts, judges, voters, patrons, rivals, and the stubbornness of the material world.",
     karmicDynamics:
       "The karmic lesson of 38/2 is discernment in the use of influence. The person may have the voice, charisma, strategy, or imagination to move others, but must learn that every powerful vision requires trustworthy carriers. Past patterns of trusting applause, assuming loyalty, or confusing intensity with truth return as tests. The soul must distinguish genuine co-workers from fascinated spectators, flatterers, opportunists, and frightened followers.",
     manifestationPatterns:
@@ -258,13 +258,13 @@ const COMPOUND_LIST: ChaldeanPYNCompound[] = [
   {
     compound: 47,
     reduced: 2,
-    name: "The Analytical Perception",
+    name: "The Veiled Trial",
     isKarmicDebt: false,
     isMasterNumber: false,
     symbolism:
       "Same essence as 29/2, with the 4's structured analysis and 7's spiritual depth modifying the trial pattern.",
     vibrationalEssence:
-      "The 47/2 reduces to 11 (4+7=11), carrying the Master Number foundation with the 4's methodical discipline and the 7's analytical introspection. This compound produces a period where the 2's relationship challenges are met through intellectual rigor and spiritual investigation. The period's trials become puzzles to be solved, mysteries to be unraveled, opportunities for deepening understanding rather than merely enduring suffering.",
+      "Cheiro's canon assigns 47 the same meaning as 29: 'uncertainties, treachery, and deception of others... unreliable friends... grave warning if it comes out in anything concerning future events.' The veil over others' intentions is the 47's defining test. The 47/2 reduces to 11 (4+7=11), carrying the Master Number foundation with the 4's methodical discipline and the 7's analytical introspection. This compound produces a period where the 2's relationship challenges are met through intellectual rigor and spiritual investigation. The period's trials become puzzles to be solved, mysteries to be unraveled, opportunities for deepening understanding rather than merely enduring suffering.",
     manifestationPatterns:
       "The 47/2 produces relationship challenges that yield to analytical investigation. The individual who applies careful attention to partnership dynamics, who studies the patterns in their relational experiences, who uses the period's difficulties as material for self-knowledge, emerges with significantly developed capacity for wise relationship. The period's trials become the raw material for expertise in human dynamics.",
   },
@@ -541,13 +541,13 @@ const COMPOUND_LIST: ChaldeanPYNCompound[] = [
   {
     compound: 49,
     reduced: 4,
-    name: "The Humanitarian Builder",
+    name: "The Solitary Builder",
     isKarmicDebt: false,
     isMasterNumber: false,
     symbolism:
       "Same essence as 31/4, the practical humanitarian who is uncomfortable with travel and dislikes changes.",
     vibrationalEssence:
-      "The 49/4 reduces to 13 (4+9=13), then to 4, carrying the karmic rebirth energy of 13/4 through a higher octave. The 4's structural discipline combines with the 9's completion and humanitarian breadth, producing a period where foundation-building serves collective welfare rather than merely individual security.",
+      "Cheiro's canon assigns 49 the same meaning as 31: 'self-contained, lonely, and isolated from his fellows... not a fortunate number from a worldly or material standpoint.' The 49 builds, but often alone, and rarely for applause. The 49/4 reduces to 13 (4+9=13), then to 4, carrying the karmic rebirth energy of 13/4 through a higher octave. The 4's structural discipline combines with the 9's completion and humanitarian breadth, producing a period where foundation-building serves collective welfare rather than merely individual security.",
     manifestationPatterns:
       "The 49/4 produces practical achievements with humanitarian impact. The individual's systematic efforts create structures that serve collective needs — community organizations, educational programs, social services, or infrastructure that benefits broad populations. The period's foundation-building carries a quality of legacy, creating systems that continue serving their purpose long after the individual's direct involvement ends.",
   },
@@ -680,13 +680,13 @@ const COMPOUND_LIST: ChaldeanPYNCompound[] = [
   {
     compound: 50,
     reduced: 5,
-    name: "The Debater at Home",
+    name: "The Independent Force",
     isKarmicDebt: false,
     isMasterNumber: false,
     symbolism:
       "Same essence as 32/5, at home in verbal debate; drawn to technical disciplines.",
     vibrationalEssence:
-      "The 50/5 reduces to 5 (5+0=5), carrying the 5's dynamic energy amplified by the 0's mystical potential. This compound produces a period of intensified change and movement, where the individual's adaptability operates at peak capacity.",
+      "Cheiro's canon assigns 50 the same meaning as 32: 'magical power... fortunate if the person it represents holds to his own judgment and opinions; if not, his plans are likely to become wrecked by the stubbornness and stupidity of others.' The 50/5 reduces to 5 (5+0=5), carrying the 5's dynamic energy amplified by the 0's mystical potential. This compound produces a period of intensified change and movement, where the individual's adaptability operates at peak capacity.",
     manifestationPatterns:
       "The 50/5 produces abundant opportunities for movement, travel, and new experience. The individual's adaptability is the period's greatest asset; they can enter unfamiliar situations and rapidly orient themselves, finding advantage where others see only confusion. Rigidity or resistance to change produces the period's only significant difficulties.",
   },
@@ -809,19 +809,19 @@ const COMPOUND_LIST: ChaldeanPYNCompound[] = [
   {
     compound: 42,
     reduced: 6,
-    name: "The Steady Foundation",
+    name: "The Magnetism of Duty",
     isKarmicDebt: false,
     isMasterNumber: false,
     symbolism: "Same essence as 24/6, steady and assured; slow and steady.",
     vibrationalEssence:
-      "The 42/6 reduces to 6 (4+2=6), carrying the 24/6's magnetic attraction energy with the 4's structural discipline emphasized. This compound produces a period where nurturing and service are expressed through methodical, systematic effort rather than spontaneous charm.",
+      "Cheiro's canon assigns 42 the same meaning as 24: 'gain through love and the opposite sex, and the assistance and association of those of rank and position with one's plans.' The 42/6 reduces to 6 (4+2=6), carrying the 24/6's magnetic attraction energy with the 4's structural discipline emphasized. This compound produces a period where nurturing and service are expressed through methodical, systematic effort rather than spontaneous charm.",
     manifestationPatterns:
       "The 42/6 produces solid, enduring relationships built through patient effort. The individual's care for others is demonstrated through daily actions rather than occasional grand displays. Partnerships formed during this period tend to be characterized by mutual reliability and shared commitment to practical responsibilities. The period's service-oriented efforts yield results that accumulate slowly but prove durable over time.",
   },
   {
     compound: 51,
     reduced: 6,
-    name: "The Warrior's Sacrifice",
+    name: "The Warrior's Advance",
     isKarmicDebt: false,
     isMasterNumber: false,
     symbolism:
@@ -937,13 +937,13 @@ const COMPOUND_LIST: ChaldeanPYNCompound[] = [
   {
     compound: 34,
     reduced: 7,
-    name: "The Well-Regarded Balance",
+    name: "The Striver's Balance",
     isKarmicDebt: false,
     isMasterNumber: false,
     symbolism:
       "Same essence as 25/7, well-regarded and generous with a good work-life balance.",
     vibrationalEssence:
-      "The 34/7 reduces to 7 (3+4=7), carrying the Wheel of Fortune's karmic momentum with the 3's creative expression and the 4's structural discipline. This compound produces a period where introspective development is balanced with creative productivity and systematic effort.\n\nThe Chaldean source describes 34 as 'well-regarded and generous, with a good work-life balance.'",
+      "Cheiro's canon assigns 34 the same meaning as 25: 'strength gained through experience, and benefits obtained through observation of people and things... success is given through strife and trials in the earlier life.' The 34 carries that earned strength on a higher octave. The 34/7 reduces to 7 (3+4=7), carrying the Wheel of Fortune's karmic momentum with the 3's creative expression and the 4's structural discipline. This compound produces a period where introspective development is balanced with creative productivity and systematic effort.\n\nThe Chaldean source describes 34 as 'well-regarded and generous, with a good work-life balance.'",
     manifestationPatterns:
       "The 34/7 produces harmonious integration of inner and outer life. The individual's analytical and spiritual pursuits proceed alongside creative and professional endeavors, with each dimension supporting the others. The period's introspection yields insights that enhance practical performance; the period's practical achievements create resources that support spiritual exploration.",
   },
@@ -1077,7 +1077,7 @@ const COMPOUND_LIST: ChaldeanPYNCompound[] = [
   {
     compound: 35,
     reduced: 8,
-    name: "The Same Disastrous Warning",
+    name: "The Warning of Dangerous Alliances",
     isKarmicDebt: false,
     isMasterNumber: false,
     symbolism:
@@ -1090,7 +1090,7 @@ const COMPOUND_LIST: ChaldeanPYNCompound[] = [
   {
     compound: 44,
     reduced: 8,
-    name: "The Master Business Number",
+    name: "The Master Builder's Trial",
     isKarmicDebt: false,
     isMasterNumber: false,
     symbolism:
@@ -1230,12 +1230,12 @@ const COMPOUND_LIST: ChaldeanPYNCompound[] = [
   {
     compound: 45,
     reduced: 9,
-    name: "The Ambitious Business Success",
+    name: "The Scepter's Harvest",
     isKarmicDebt: false,
     isMasterNumber: false,
     symbolism: "Same essence as 27/9, ambition and success in business.",
     vibrationalEssence:
-      "The 45/9 reduces to 9 (4+5=9), carrying the 27/9's scepter energy with the 4's structural discipline and the 5's dynamic change. This compound produces a period where completion and authority are achieved through systematic business achievement and adaptive professional development.",
+      "Cheiro's canon assigns 45 the same meaning as 27 (the Sceptre): 'a promise of authority, power, and command... reward will come from the productive intellect.' Authority here is earned through craft, not claimed by ambition alone. The 45/9 reduces to 9 (4+5=9), carrying the 27/9's scepter energy with the 4's structural discipline and the 5's dynamic change. This compound produces a period where completion and authority are achieved through systematic business achievement and adaptive professional development.",
     manifestationPatterns:
       "The 45/9 produces business and professional success that culminates in positions of authority. The individual's methodical approach to career development, combined with their adaptability to changing conditions, yields advancement to leadership roles. The period's completion theme operates through the achievement of professional goals that have been pursued through disciplined effort.",
   },

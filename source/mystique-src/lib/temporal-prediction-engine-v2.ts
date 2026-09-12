@@ -161,6 +161,16 @@ export interface TemporalPredictionV2 {
   todayForecast: DailyForecast;
 }
 
+// The dual-essence synthesis (direct + classic compound pair, polarity, and
+// historical calibration) is the app's meaning layer. The temporal engine
+// imports it so the numeric scores can never contradict the texts they are
+// displayed next to: a 'predominantly cautionary' year cannot advertise
+// high career momentum, and a 'predominantly constructive' year cannot
+// score as a retreat.
+import { buildPersonalYearDualEssenceSynthesis } from "@/lib/numerology/personal-year-synthesis";
+import { lookupCompound } from "@/lib/numerology/chaldean-pyn-compounds";
+import { computeRawPersonalYear, computeRawPersonalYearClassic } from "@/lib/numerology/personal-year-full";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -212,8 +222,18 @@ function calcPinnacles(d: number, m: number, y: number): PinData {
   const p1 = reduceNum(mm + md), p2 = reduceNum(md + my);
   const p3 = reduceNum(p1 + p2), p4 = reduceNum(mm + my);
   const p1end = 36 - lp;
-  const c1 = Math.abs(mm - md), c2 = Math.abs(md - my);
-  const c3 = Math.abs(c1 - c2), c4 = Math.abs(mm - my);
+  // Challenges reduce FULLY (no master numbers) in the tradition, so a value
+  // like |3 - 22| = 19 becomes 1+9 -> 10 -> 1. This keeps every challenge in
+  // the 0-9 range the challenge texts are written for (previously a master
+  // birth-year digit sum could produce 10, 11, 13, 19, 22... and render as
+  // "(no text)" in the UI).
+  const reduceChallenge = (n: number) => {
+    let v = Math.abs(n);
+    while (v > 9) v = String(v).split('').reduce((a, d) => a + +d, 0);
+    return v;
+  };
+  const c1 = reduceChallenge(mm - md), c2 = reduceChallenge(md - my);
+  const c3 = reduceChallenge(c1 - c2), c4 = reduceChallenge(mm - my);
   return { p1, p2, p3, p4, p1end, p2end: p1end + 9, p3end: p1end + 18, c1, c2, c3, c4, lp };
 }
 
@@ -248,6 +268,7 @@ const PY_TITLES: Record<number, string> = {
   1:'Year of Beginnings', 2:'Year of Patience', 3:'Year of Expression',
   4:'Year of Foundation', 5:'Year of Change', 6:'Year of the Heart',
   7:'Year of the Soul', 8:'Year of Power', 9:'Year of Completion',
+  11:'Year of Illumination', 22:'Year of the Master Builder', 33:'Year of the Master Teacher',
 };
 const PY_ONE_LINERS: Record<number, string> = {
   1:'Launch, begin, and seize your independent initiative.',
@@ -259,6 +280,9 @@ const PY_ONE_LINERS: Record<number, string> = {
   7:'Retreat, study deeply, and trust your inner guidance.',
   8:'Harvest what you have earned and claim rightful authority.',
   9:'Complete, release, forgive, and clear the decks.',
+  11:'Serve as a channel — intuition peaks; guard the nervous system.',
+  22:'Build at scale, but only on foundations you have verified.',
+  33:'Teach from overflow, not depletion; care must include yourself.',
 };
 
 // Cheiro psychic number → { luckyDays, luckyDates (own number dates), compatibleNumbers, strongPeriod }
@@ -294,7 +318,7 @@ const MONTH_NAMES_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'
 
 const CLIMACTERIC_AGES = [7, 14, 21, 28, 35, 42, 49, 56, 63, 70, 77, 84];
 
-function getClimatericNote(age: number, py: number, lp: number, pinnacle: number): { isClimateric: boolean; note: string | null } {
+function getClimatericNote(age: number, py: number, lp: number, pinnacle: number, targetYear: number): { isClimateric: boolean; note: string | null } {
   const isMultOf7 = CLIMACTERIC_AGES.includes(age);
   const isGrandConjunction = py === lp && lp === pinnacle;
   const isSaturnReturn = age === 29 || age === 30 || age === 58 || age === 59;
@@ -304,7 +328,7 @@ function getClimatericNote(age: number, py: number, lp: number, pinnacle: number
     return { isClimateric: true, note: `⚡ GRAND CLIMACTERIC CONJUNCTION: Age ${age} is both a Climacteric Year AND your Personal Year, Life Path, and Pinnacle all share the same vibration (${py}). Cheiro considered this a once-in-a-lifetime convergence — decisions made this year have extraordinary consequence and will echo for decades. Act with unusual deliberation.` };
   }
   if (isGrandConjunction) {
-    return { isClimateric: true, note: `⚡ TRIPLE CONJUNCTION: Your Personal Year (${py}), Life Path (${lp}), and Pinnacle (${pinnacle}) all resonate at the same number this year — a rare alignment Cheiro associated with destiny-defining moments. What you initiate or complete in ${new Date().getFullYear()} has disproportionate long-term consequence.` };
+    return { isClimateric: true, note: `⚡ TRIPLE CONJUNCTION: Your Personal Year (${py}), Life Path (${lp}), and Pinnacle (${pinnacle}) all resonate at the same number this year — a rare alignment Cheiro associated with destiny-defining moments. What you initiate or complete in ${targetYear} has disproportionate long-term consequence.` };
   }
   if (isMultOf7 && isPY48) {
     return { isClimateric: true, note: `⚡ CHEIRO CLIMACTERIC: Age ${age} is one of Cheiro's critical climacteric years (multiples of 7), and this is also a Personal Year ${py} — a heavy-duty combination. Cheiro wrote that climacteric years under a 4 or 8 vibration often mark the definitive turning of a long arc. Be prepared for significant structural change.` };
@@ -394,7 +418,8 @@ const LO_SHU_ARROWS: Record<string, { numbers: number[]; name: string; meaning: 
 function getLoShuActivation(
   py: number,
   numberCounts: Record<number, number>,
-  psychicNum: number
+  psychicNum: number,
+  targetYear: number
 ): LoShuActivation {
   // Numbers the PY resonates with: the PY number itself, numbers ±1, and numbers
   // in the same Lo Shu row/column as PY
@@ -435,7 +460,7 @@ function getLoShuActivation(
     .map(([n]) => n)
     .join(', ');
 
-  let narrative = `In ${new Date().getFullYear()}, Personal Year ${py} resonates through your grid's ${py > 0 ? `position ${py}` : 'field'}. `;
+  let narrative = `In ${targetYear}, Personal Year ${py} resonates through your grid's ${py > 0 ? `position ${py}` : 'field'}. `;
 
   if (strengthenedArrows.length > 0) {
     narrative += `The following Lo Shu lines gain unusual activation this year: ${strengthenedArrows[0].split('—')[0].trim()}${strengthenedArrows.length > 1 ? ` and ${strengthenedArrows.length - 1} more` : ''}. `;
@@ -529,12 +554,9 @@ function getRepeatedNumberAmplifier(py: number, numberCounts: Record<number, num
 // A debt is triggered when the PY matches its root number
 
 function detectKarmicTrigger(
-  compoundBirthSum: number,
-  psychicNum: number,
-  lifePath: number,
+  birthDay: number,
   py: number
 ): KarmicTrigger {
-  const DEBT_TO_ROOT: Record<number, number> = { 13: 4, 14: 5, 16: 7, 19: 1 };
   const DEBT_TO_PY_TRIGGER: Record<number, number[]> = {
     13: [4, 8],    // discipline debts triggered in foundation/power years
     14: [5, 1],    // freedom debt triggered in change/initiation years
@@ -542,10 +564,16 @@ function detectKarmicTrigger(
     19: [1, 8],    // power-misuse debt triggered in pioneer/harvest years
   };
 
-  // Detect which debt is present (simplified: check if compound or life path carries debt)
+  // Detect which debt is present. The canonical rule: karmic debts 13, 14,
+  // 16 and 19 are carried by the RAW birth day (born on the 13th, 14th, 16th
+  // or 19th of the month) — the traditional debt location in the chart.
+  // The REDUCED roots (4, 5, 7, 1) are NOT debts: a Life Path 4 does not
+  // carry "Debt 13", and a year digit-sum like 1990 -> 19 is arithmetic, not
+  // karma. This matches detectKarmicDebts() in karmic-life-path.ts, so the
+  // two screens of the app can never disagree about the user's karma again.
   let foundDebt: number | null = null;
   for (const debt of [13, 14, 16, 19]) {
-    if (compoundBirthSum === debt || lifePath === DEBT_TO_ROOT[debt]) {
+    if (birthDay === debt) {
       foundDebt = debt;
       break;
     }
@@ -596,41 +624,54 @@ function detectKarmicTrigger(
 // ─────────────────────────────────────────────────────────────────────────────
 
 function getPinnacleTransitionRadar(
-  age: number, birthMonth: number, pins: PinData, targetYear: number
+  age: number, birthMonth: number, pins: PinData, targetYear: number, readMonth: number
 ): PinnacleTransitionRadar {
-  // Transition ages: p1end, p2end, p3end
-  const transitions = [pins.p1end, pins.p2end, pins.p3end];
-  const nextPinnacleNums = [pins.p2, pins.p3, pins.p4];
+  // Transition boundaries are birthdays: the shift from Pinnacle N to N+1
+  // happens at the birthday marking boundary age X (birth year + X, birth
+  // month). Months-until is measured from the requested read date, so a
+  // January baby and a December baby of the same age get different answers,
+  // and the exact transition year itself reports 'in transition' instead of
+  // skipping past it (the old code used '>' and skipped the real boundary).
+  const boundaries = [
+    { age: pins.p1end, num: pins.p2 },
+    { age: pins.p2end, num: pins.p3 },
+    { age: pins.p3end, num: pins.p4 },
+  ];
 
-  let closestTransitionAge: number | null = null;
-  let nextPinnacle: number | null = null;
-  for (let i = 0; i < transitions.length; i++) {
-    if (transitions[i] > age) {
-      closestTransitionAge = transitions[i];
-      nextPinnacle = nextPinnacleNums[i];
-      break;
+  let nearest: { age: number; num: number; months: number } | null = null;
+  for (const b of boundaries) {
+    let months = (b.age - age) * 12 + (birthMonth - readMonth);
+    // When the read month precedes the birth month, `age` has not yet had
+    // this year's birthday, so (boundaryAge - age) counts a full year that
+    // is really only the remaining months of the current one.
+    if (readMonth < birthMonth) months -= 12;
+    if (months < 0) continue; // boundary already passed
+    if (nearest === null || months < nearest.months) {
+      nearest = { age: b.age, num: b.num, months };
     }
   }
 
-  if (closestTransitionAge === null) {
+  if (nearest === null) {
     return { monthsUntilTransition: null, isInTransitionWindow: false, nextPinnacleNumber: null, transitionNarrative: 'You are in your final Pinnacle (Pinnacle 4). No further Pinnacle transitions remain. The current life-arc theme is your permanent backdrop through the remainder of this incarnation.' };
   }
 
-  const yearsUntil = closestTransitionAge - age;
-  const monthsUntil = yearsUntil * 12 - (12 - birthMonth);
-  const isInWindow = monthsUntil <= 18;
+  const currentPin = getActivePinnacle(age, pins).num;
+  const isInWindow = nearest.months <= 18;
 
   let narrative = '';
-  if (isInWindow) {
-    narrative = `⚡ PINNACLE TRANSITION IMMINENT: Approximately ${Math.max(0, monthsUntil)} months remain until your Pinnacle shifts from ${getActivePinnacle(age, pins).num} to Pinnacle ${nextPinnacle}. Transition periods are among the most turbulent and generative in numerology — the old arc's momentum is winding down while the new arc's field begins to assert itself. Both energies are simultaneously present, creating unusual creative instability. Things that seemed permanent may loosen; things that seemed impossible may suddenly become available. Do not make 10-year commitments to structures that belong to the ending Pinnacle.`;
+  if (nearest.months === 0) {
+    narrative = `⚡ PINNACLE TRANSITION NOW: The boundary falls in this very month (your birth month). Your Pinnacle is shifting from ${currentPin} to Pinnacle ${nearest.num}. Both arcs are present at once — the old arc's momentum is winding down while the new arc's field asserts itself. Things that seemed permanent may loosen; things that seemed impossible may suddenly become available. Do not make 10-year commitments to structures that belong to the ending Pinnacle.`;
+  } else if (isInWindow) {
+    narrative = `⚡ PINNACLE TRANSITION IMMINENT: Approximately ${nearest.months} month${nearest.months !== 1 ? 's' : ''} remain until your Pinnacle shifts from ${currentPin} to Pinnacle ${nearest.num} (around age ${nearest.age}). Transition periods are among the most turbulent and generative in numerology — the old arc's momentum is winding down while the new arc's field begins to assert itself. Both energies are simultaneously present, creating unusual creative instability. Things that seemed permanent may loosen; things that seemed impossible may suddenly become available. Do not make 10-year commitments to structures that belong to the ending Pinnacle.`;
   } else {
-    narrative = `Your current Pinnacle transitions in approximately ${yearsUntil} year${yearsUntil !== 1 ? 's' : ''} (around age ${closestTransitionAge}), shifting to Pinnacle ${nextPinnacle}. This year remains firmly within the current arc — no transition pressure is present.`;
+    const yearsUntil = Math.max(1, Math.round(nearest.months / 12));
+    narrative = `Your current Pinnacle transitions in approximately ${yearsUntil} year${yearsUntil !== 1 ? 's' : ''} (around age ${nearest.age}), shifting to Pinnacle ${nearest.num}. This year remains firmly within the current arc — no transition pressure is present.`;
   }
 
   return {
-    monthsUntilTransition: monthsUntil,
+    monthsUntilTransition: nearest.months,
     isInTransitionWindow: isInWindow,
-    nextPinnacleNumber: nextPinnacle,
+    nextPinnacleNumber: nearest.num,
     transitionNarrative: narrative,
   };
 }
@@ -655,11 +696,11 @@ function calcProbabilityScores(
   let career = 50, fin = 50, rel = 50, health = 50, spirit = 50;
 
   // Personal Year modifiers
-  const PY_CAREER: Record<number, number>    = {1:+18,2:-5,3:+10,4:+8,5:+5,6:+3,7:-8,8:+22,9:-5};
-  const PY_FIN: Record<number, number>       = {1:+10,2:-8,3:+5,4:+8,5:+0,6:-3,7:-10,8:+25,9:-5};
-  const PY_REL: Record<number, number>       = {1:-5,2:+20,3:+12,4:-8,5:+0,6:+18,7:-10,8:-5,9:+5};
-  const PY_HEALTH: Record<number, number>    = {1:+5,2:+0,3:+5,4:-10,5:+0,6:+8,7:+5,8:+8,9:+5};
-  const PY_SPIRIT: Record<number, number>    = {1:-5,2:+15,3:+5,4:-5,5:+0,6:+8,7:+25,8:+5,9:+20};
+  const PY_CAREER: Record<number, number>    = {1:+18,2:-5,3:+10,4:+8,5:+5,6:+3,7:-8,8:+22,9:-5,11:-4,22:+20,33:+4};
+  const PY_FIN: Record<number, number>       = {1:+10,2:-8,3:+5,4:+8,5:+0,6:-3,7:-10,8:+25,9:-5,11:-6,22:+18,33:-4};
+  const PY_REL: Record<number, number>       = {1:-5,2:+20,3:+12,4:-8,5:+0,6:+18,7:-10,8:-5,9:+5,11:+14,22:-4,33:+10};
+  const PY_HEALTH: Record<number, number>    = {1:+5,2:+0,3:+5,4:-10,5:+0,6:+8,7:+5,8:+8,9:+5,11:-4,22:+4,33:-4};
+  const PY_SPIRIT: Record<number, number>    = {1:-5,2:+15,3:+5,4:-5,5:+0,6:+8,7:+25,8:+5,9:+20,11:+18,22:+6,33:+18};
 
   career  += (PY_CAREER[py]  || 0);
   fin     += (PY_FIN[py]     || 0);
@@ -723,6 +764,9 @@ const PD_FOCUS: Record<number, string> = {
   7:'Reflect, study, trust intuition over surface information',
   8:'Handle financial decisions, claim authority, close deals',
   9:'Complete, forgive, release what has run its course',
+  11:'Serve as a channel: counsel, mediate, follow the still voice — and log what it says',
+  22:'Build deliberately: verify foundations before adding weight',
+  33:'Teach and care — from overflow, not depletion',
 };
 
 const PD_SHORT: Record<number, string> = {
@@ -735,6 +779,9 @@ const PD_SHORT: Record<number, string> = {
   7:'A day of depth. What does your gut say that your mind dismisses?',
   8:'A day of consequence. Decisions made today carry lasting weight.',
   9:'A day of release. Complete one thing before starting another.',
+  11:'A day of heightened signal. Separate insight from anxiety.',
+  22:'A day for architecture. Plan before you pour.',
+  33:'A day of service. Give from abundance, not absence.',
 };
 
 function generateDailyForecast(
@@ -896,6 +943,9 @@ const CAREER_BY_PY: Record<number, string> = {
   7:'Career progresses through deep specialization. Research, mastery, and the courage to go deep into a narrow field rather than wide across many is the winning strategy. Avoid high-profile launches.',
   8:'The harvest year. Promotions, major contracts, and authority assignments cluster here for those who have built their foundation. Step into leadership; make significant financial decisions.',
   9:'Let what is finished be finished. End ventures that have no more yield. Clear the board for the PY 1. Legacy work — books, final projects, culminating achievements — flourishes in the Year 9.',
+  11:'A master 11 year carries the 2\'s diplomacy at nervous-system voltage. Career advances through counsel, mediation, intuition, and the quality of your alliances — not loud launches. Visibility that finds you is often symbolic; guard against the 11\'s shadow of self-doubt and second-guessing decisive moments.',
+  22:'The rarest builder\'s window in the cycle: the master 22 field supports institutions, platforms, teams, and structures intended to outlast you. But the 22 punishes unverified foundations — every pillar you pour without checking the ground becomes the year\'s bill. Scale patiently; audit before expanding.',
+  33:'The master 33 year channels the 6\'s service at teacher\'s voltage. Career currency is what you give: mentoring, teaching, healing, organizing for others. The shadow is self-erasure — delegating your own platform away. Lead by lifting, but keep your name on the work.',
 };
 
 const REL_BY_PY: Record<number, string> = {
@@ -908,6 +958,9 @@ const REL_BY_PY: Record<number, string> = {
   7:'Solitude is the relationship this year. Long-term partners need to understand your need for reflection. New romantic connections tend to be slow-burning and spiritually resonant.',
   8:'Relationships are tested by power dynamics. Watch for control patterns emerging in either direction. Business partnerships are the most activated domain. Both partners pursuing ambitious goals simultaneously is the winning configuration.',
   9:'Completions in relationship are the theme. Natural endings for relationships that have genuinely run their course. Support this — trying to force these relationships past their natural ending prolongs suffering.',
+  11:'Relationships run at heightened sensitivity in an 11 year: deeper intuitive bonds are possible, and so is reading threat into neutrality. The 11\'s old Chaldean warning (hidden trial, treachery) counsels discernment — not suspicion, but testing alliances before depending on them.',
+  22:'Partnerships are tested by scale in a 22 year: joint ventures, shared structures, long-term commitments. The relationship that survives is the one with explicit terms. Beware the 22\'s classic shadow — a good person misled by the folly of others; keep your own counsel on major union decisions.',
+  33:'A year of giving that can quietly become a year of disappearing. Deep care bonds form; the shadow is martyrdom and carrying people who should be standing on their own. Give from overflow, and receive — the 33 field collapses when the vessel empties.',
 };
 
 const FIN_BY_PY: Record<number, string> = {
@@ -920,6 +973,9 @@ const FIN_BY_PY: Record<number, string> = {
   7:'A year for financial consolidation and research. Study your financial position deeply. Investment in education and specialized skills will yield powerful returns starting in the PY 8.',
   8:'The most financially powerful year for those who have built their foundation. Major financial decisions — investments, acquisitions, negotiations — are strongly supported. Claim what you have earned.',
   9:'Release financial attachments that no longer serve. Divest from ventures that have run their course. Do not make major new investments — clear the balance sheet, not load it.',
+  11:'Not a money year in the loud sense. The 11 field favors income through counsel, mediation, and quiet skill; speculation is punished. Nervous spending (retail therapy under stress) is the classic leak — audit emotional purchases.',
+  22:'The 22 field supports large-scale financial structures — property, institutions, long-term contracts — with one condition: verify. Cheiro\'s warning for the 22 line (disasters through bad partnership and illusion) applies with full force to unvetted deals. Use written terms; delay the handshake until the math is on paper.',
+  33:'Money flows through service in a 33 year. Income arrives from what you give — but generosity without boundaries turns income into outflow. Set explicit terms even (especially) with people you love.',
 };
 
 const HEALTH_BY_PY: Record<number, string> = {
@@ -932,6 +988,9 @@ const HEALTH_BY_PY: Record<number, string> = {
   7:'Mental and spiritual health are the primary health concerns. Meditation, journaling, and solitude in nature are not optional but essential. Physical health maintains best through consistent quiet routine.',
   8:'The body is a power station this year — maintain it like one. Strength, stamina, and cardiovascular health are the relevant investments.',
   9:'Release physical holding patterns accumulated across the nine-year cycle. Bodywork and emotional release practices are unusually effective this year.',
+  11:'The nervous system is the 11 year\'s barometer: sleep, stimulant intake, and emotional load govern everything downstream. Anxiety symptoms (palpitations, tension, insomnia) are the year\'s early-warning lights — treat them as signals, not fate.',
+  22:'The body is load-bearing infrastructure in a 22 year: it carries the year\'s scale. Burnout arrives through overcommitment, not illness. Schedule recovery as a structural commitment, not a reward.',
+  33:'The caregiver\'s year — other people\'s needs will outvote your own unless you schedule your own care first. The 33\'s classic failure is the exhausted healer. Food, sleep, and checkups are non-negotiable this year.',
 };
 
 const SPIRIT_BY_PY: Record<number, string> = {
@@ -944,6 +1003,9 @@ const SPIRIT_BY_PY: Record<number, string> = {
   7:'The richest spiritual year in the cycle. Protect your solitude, pursue your practice with unusual intensity. What comes through the silence this year is real.',
   8:'The spiritual work is the integration of power and ethics — discovering that genuine authority is inseparable from responsibility. Clarity of values tested against the temptations of the material field.',
   9:'The most spiritually complex year. The PY 9 asks for the deepest release: the willingness to let die what is completed. Forgiveness practice, conscious completion rituals, and ancestor work are the appropriate disciplines.',
+  11:'The most intuitively open year of the cycle: meditation, dream work, and creative insight all amplify. Ground the openings in routine or the voltage becomes anxiety. The 11 asks you to carry a message — write it down before you preach it.',
+  22:'Spirit through work: the 22 finds meaning in what it builds and whom it employs. The year\'s spiritual lesson is integrity of foundation — the unseen quality of the base determines the height of the tower.',
+  33:'The teacher\'s year: what you have lived becomes instruction for others. The spiritual risk is performing enlightenment for an audience. Teach from your scars, not your pedestal.',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -990,6 +1052,9 @@ function buildWindowOfOpportunity(py: number, birthMonth: number, cy: number): {
     7: { pms:[7,11], reason:'Personal Months 7 and 11 amplify reflective depth — decisions made in these windows are unusually clarifying.' },
     8: { pms:[8,4],  reason:'Personal Months 8 and 4 amplify material gravity — financial decisions carry exceptional leverage.' },
     9: { pms:[9,3],  reason:'Personal Months 9 and 3 amplify release and closure — endings made here are clean and leave minimal residue.' },
+    11: { pms:[2,11], reason:'Personal Months 2 and 11 double the receptive voltage — alliances and intuitive decisions carry unusual weight.' },
+    22: { pms:[4,8],  reason:'Personal Months 4 and 8 amplify the builder frequency — structural and financial commitments made here hold with unusual permanence.' },
+    33: { pms:[6,3],  reason:'Personal Months 6 and 3 amplify teaching and expression — lessons shared in these windows land with unusual reach.' },
   };
   const conf = OPP[py] || { pms:[py], reason:'Your Personal Year number months carry the strongest alignment with your annual theme.' };
   const optMonths: number[] = [];
@@ -1010,6 +1075,9 @@ function buildCautionFlag(py: number, pin: number, ch: number): { risk: string; 
     7: { risk:'Intellectual or spiritual withdrawal becoming social isolation, damaging relationships that require consistent presence to survive.', mitigation:'Designate specific "connection days" each week — times you fully emerge from interior work to be present with people who matter.' },
     8: { risk:'Allowing the PY 8 power field to activate domineering behavior, OR allowing power\'s shadow to make you shrink from authority that is genuinely yours.', mitigation:'Run a quarterly check: am I using authority to serve or to control?' },
     9: { risk:'Using "completion" and "letting go" as spiritual justification for premature endings — fleeing commitments that still have value.', mitigation:'Distinguish: (a) what is genuinely completed — let go cleanly; (b) what is merely uncomfortable — do the work.' },
+    11: { risk:'Nervous-system overwhelm: the 11 field amplifies every signal, and anxiety can be mistaken for intuition — or vice versa.', mitigation:'Separate signal from noise in writing: keep a short daily log of decisions made on "feeling" and revisit each 48 hours later.' },
+    22: { risk:'Building too large before foundations are verified — the classic 22 collapse: a good plan destroyed by one unchecked assumption.', mitigation:'For every major commitment this year, write the single assumption that would undo it, and verify that assumption first.' },
+    33: { risk:'Self-erasure through over-service: giving until the vessel that serves is empty, then resenting the people you chose to carry.', mitigation:'Schedule your own replenishment with the same rigor as your obligations — the 33 field collapses when the caregiver disappears.' },
   };
   // Pinnacle-modulated override
   if (pin === 8 && py !== 8) {
@@ -1077,13 +1145,13 @@ export function generateTemporalPrediction(
   const ch        = getActiveChallenge(age, pins);
 
   // ── Layer 5: Climacteric ────────────────────────────────────────────────────
-  const { isClimateric, note: climNote } = getClimatericNote(age, py, lp, pin);
+  const { isClimateric, note: climNote } = getClimatericNote(age, py, lp, pin, cy);
 
   // ── Layer 6: Cheiro Day Intelligence ───────────────────────────────────────
   const cheiroDayIntelligence = getCheiroDayIntelligence(psychic, cm, cy);
 
   // ── Layer 7: Lo Shu Activation ─────────────────────────────────────────────
-  const loShuActivation = getLoShuActivation(py, numberCounts, psychic);
+  const loShuActivation = getLoShuActivation(py, numberCounts, psychic, cy);
 
   // ── Layer 8: Missing Numbers ────────────────────────────────────────────────
   const missingNumberForecast = getMissingNumberForecast(py, numberCounts);
@@ -1092,16 +1160,16 @@ export function generateTemporalPrediction(
   const repeatedNumberAmplifier = getRepeatedNumberAmplifier(py, numberCounts);
 
   // ── Layer 10: Karmic Debt ───────────────────────────────────────────────────
-  const karmicTrigger = detectKarmicTrigger(compound, psychic, lp, py);
+  const karmicTrigger = detectKarmicTrigger(birthDay, py);
 
   // ── Layer 11: Pinnacle Transition ───────────────────────────────────────────
-  const pinnacleTransitionRadar = getPinnacleTransitionRadar(age, birthMonth, pins, cy);
+  const pinnacleTransitionRadar = getPinnacleTransitionRadar(age, birthMonth, pins, cy, cm);
 
   // ── Layer 14: Contradictions ────────────────────────────────────────────────
   const contradictions = detectContradictions(py, pin, ch, lp);
 
   // ── Layer 12: Probability Scores ────────────────────────────────────────────
-  const probabilityScores = calcProbabilityScores(
+  const baseProbabilityScores = calcProbabilityScores(
     py, pin, ch,
     isClimateric,
     karmicTrigger.isTriggered,
@@ -1109,6 +1177,67 @@ export function generateTemporalPrediction(
     repeatedNumberAmplifier.dominantNumber,
     missingNumberForecast.activatedMissing,
     loShuActivation.strengthenedArrows.length
+  );
+
+  // ── Layer 12b — Dual-essence polarity agreement ────────────────────────────
+  // The meaning layer (direct + classic compound pair) computes a polarity for
+  // the year. The numeric scores must agree with it: a cautionary year cannot
+  // advertise high career momentum, a constructive year cannot score as a
+  // retreat. Same shared-source principle as the compatibility fix — one
+  // truth, read twice.
+  const directRawPY = computeRawPersonalYear(birthDay, birthMonth, cy);
+  const classicRawPY = computeRawPersonalYearClassic(birthDay, birthMonth, cy);
+  const dualEssence = buildPersonalYearDualEssenceSynthesis({
+    birthDay, birthMonth, birthYear, targetYear: cy,
+    directRaw: directRawPY, directYear: reduceNum(directRawPY),
+    directCompound: lookupCompound(directRawPY),
+    classicRaw: classicRawPY, classicYear: reduceNum(classicRawPY),
+    classicCompound: lookupCompound(classicRawPY),
+  });
+  const essencePolarity = dualEssence.polarity;
+
+  const POLARITY_ADJUST: Record<string, { career: number; fin: number; rel: number; health: number; spirit: number }> = {
+    'predominantly constructive': { career: +6, fin: +5, rel: +4, health: +3, spirit: +4 },
+    'predominantly cautionary':    { career: -10, fin: -8, rel: -6, health: -9, spirit: +5 },
+    'mixed ordeal-and-reward':     { career: -2, fin: -2, rel: -2, health: -3, spirit: +2 },
+    'threshold / transition':      { career: -4, fin: -3, rel: -3, health: -4, spirit: +3 },
+  };
+  const adj = POLARITY_ADJUST[essencePolarity] || { career: 0, fin: 0, rel: 0, health: 0, spirit: 0 };
+  const clampScore = (v: number) => Math.min(97, Math.max(20, Math.round(v)));
+
+  const probabilityScores: ProbabilityScores = {
+    careerMomentum: clampScore(baseProbabilityScores.careerMomentum + adj.career),
+    financialGrowth: clampScore(baseProbabilityScores.financialGrowth + adj.fin),
+    relationshipStability: clampScore(baseProbabilityScores.relationshipStability + adj.rel),
+    healthDiscipline: clampScore(baseProbabilityScores.healthDiscipline + adj.health),
+    spiritualGrowth: clampScore(baseProbabilityScores.spiritualGrowth + adj.spirit),
+    overallYear: 0,
+  };
+  // Hard consistency rule: a cautionary year must not advertise momentum.
+  if (essencePolarity === 'predominantly cautionary') {
+    probabilityScores.careerMomentum = Math.min(probabilityScores.careerMomentum, 52);
+    probabilityScores.financialGrowth = Math.min(probabilityScores.financialGrowth, 52);
+    probabilityScores.relationshipStability = Math.min(probabilityScores.relationshipStability, 48);
+    probabilityScores.healthDiscipline = Math.min(probabilityScores.healthDiscipline, 50);
+  }
+
+  // ── Body-safety emphasis (tradition-based, framed as care, never fate) ───
+  // Certain compounds carry documented risk motifs in the classic texts:
+  // 16 the Shattered Citadel warns of 'danger of accidents'; 12 the Sacrifice
+  // of 'suffering and anxiety of mind'; 22 the Fool of one who 'awakens only
+  // when surrounded by danger'; 13 of upheaval. When such a compound governs
+  // the year AND the life-arc context is heavy (Pinnacle 4/9, age 45+, or a
+  // pinnacle transition window), the engine surfaces a body-safety emphasis
+  // — the traditional reading, stated as care rather than doom.
+  const riskCompound = [12, 16, 22, 13].includes(classicRawPY) || [12, 16, 22, 13].includes(directRawPY);
+  const heavyContext = pin === 9 || pin === 4 || age >= 45 || pinnacleTransitionRadar.isInTransitionWindow;
+  if (riskCompound && heavyContext) {
+    probabilityScores.healthDiscipline = Math.min(probabilityScores.healthDiscipline, 48);
+  }
+  probabilityScores.overallYear = clampScore(
+    (probabilityScores.careerMomentum + probabilityScores.financialGrowth +
+     probabilityScores.relationshipStability + probabilityScores.healthDiscipline +
+     probabilityScores.spiritualGrowth) / 5,
   );
 
   // ── Layer 13: Daily Forecast ────────────────────────────────────────────────
@@ -1129,6 +1258,7 @@ export function generateTemporalPrediction(
       lifePath: lp, psychicNumber: psychic, compoundBirthSum: compound,
       activePinnacleNumber: pin, activePinnacleStage: pinStage,
       activePinnacleAgeRange: ageRange, activeChallenge: ch,
+      essencePolarity,
     },
     headline,
     domains: {

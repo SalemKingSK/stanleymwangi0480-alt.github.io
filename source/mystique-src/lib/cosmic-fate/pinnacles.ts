@@ -414,71 +414,26 @@ export const PINNACLE_DESC: Record<number, string> = {
   The universe hands you the heavy backpack so you learn the difference between serving and enabling.
   When you conquer this cycle, you establish a legacy of security, deep love, and a powerful community that outlasts your own lifetime.`,
   
-    "7": `: The ==Crucible of the Void==
-  When the number 7 governs a Pinnacle, the material world dries up.
-  If the 6 Pinnacle was about being chained to the people around you, the 7 Pinnacle is the universe severing those chains and dropping you into an empty, silent room.
-  This is the vibration of the hermit, the scholar, and the void.
-  It is a period of severe psychological and spiritual introspection.
-  
-  ### **The Core Reality
-  * **The Isolation:** You will be alone.
-  Even if you are married or standing in a crowded room, you will feel a profound sense of detachment from the rest of humanity.
-  The universe is deliberately cutting off external noise so you have no choice but to listen to your own internal monologue.
-  
-  * **The Material Starvation:** This is the worst possible cycle for aggressive business expansion, superficial networking, or chasing a quick buck.
-  If you try to force material success during a 7 Pinnacle, you will meet impenetrable walls and frustrating losses.
-  The economy of the 7 is strictly intellectual and esoteric.
-  
-  * **The Deep Dive:** Your brain will demand complex problems.
-  You are required to research, study, specialize, and uncover the hidden mechanics of whatever field you are in.
-  Superficial knowledge and small talk will physically disgust you.
-  
-  ### The Demands and The Traps
-  * **The Demand for Truth:** You must strip away your own illusions.
-  You are required to confront your deepest psychological shadows, your spirituality, and your actual life's purpose.
-  It demands brutal self-analysis and specialization in a niche subject.
-  
-  * **The Trap of Paranoia:** Because you are isolated and hyperanalytical, it is incredibly easy for your mind to turn against you.
-  If you refuse to look inward, the 7 energy ferments into severe anxiety, paranoia, and a cynical belief that the world is out to get you.
-  
-  * **The Trap of the Iceberg:** You run the risk of becoming emotionally frozen.
-  You may become so detached and intellectually arrogant that you treat the people around you like lab rats or simply cut them off entirely because they are not "deep" enough or smart enough for you.
-  
-  ### **The Impact of Timing
-  The age at which you experience a Number 7 Pinnacle drastically alters its manifestation.
-  
-  * **Occurring Early (Ages 0 to late 20s/early 30s):** Indicates an incredibly lonely, introverted childhood.
-  You were the kid who felt like an alien observing the rest of the human race.
-  You likely struggled to relate to the superficial concerns of your peers, finding refuge in books, technology, or the safe confines of your own imagination.
-  
-  * **Occurring Mid-Life (2nd or 3rd Pinnacle):** The classic "Dark Night of the Soul."
-  This cycle can be devastating for marriages if the partner does not understand your sudden need for extreme solitude.
-  It is a period where you may step back from a bustling, lucrative career to return to school, dive into esoteric studies, or completely restructure your philosophical worldview.
-  
-  * **Occurring Late Life (4th Pinnacle, Ages 50s+):** You become the hermit.
-  This is a very quiet, highly contemplative conclusion to life.
-  If you have embraced your inner world, it is a peaceful period of teaching, writing, and spiritual mastery.
-  If you spent your whole life running from yourself and avoiding the mirror, this cycle brings terrifying, inescapable loneliness.
-  
-  ### The Silver Lining: The Gift of the Sage
-  The 7 starves you of the superficial so you can finally discover the profound.
-  The isolation is the necessary laboratory for genius.
-  
-  * **Elite Specialization:** Because you are cut off from external noise, you have the uninterrupted focus required to master complex systems.
-  The gift of this cycle is genius-level specialization.
-  You possess the patience to acquire knowledge that others are too distracted to grasp.
-  
-  * **Esoteric Mastery:** The 7 unlocks the veil.
-  You develop an incredibly tuned intuition and a profound understanding of the hidden mechanics of the universe, whether that is advanced coding architecture, deep psychology, or ancient spiritual systems.
-  
-  * **Unshakeable Inner Peace:** Once you stop fighting the silence and confront your internal shadows, the paranoia vanishes.
-  You are gifted with a profound, unshakeable inner peace that is no longer dependent on external circumstances, wealth, or the presence of other people.
-  
-  ### The Ultimate Harvest
-  You enter the 7 Pinnacle feeling completely alienated and starved of material progress.
-  You exit the 7 Pinnacle as the master of your own mind.
-  The universe drops you into the void so you learn that the answers were never outside of you.
-  When you conquer this Pinnacle, you emerge not as a generalist, but as the absolute elite authority in your niche — the Sage who possesses the ultimate truth.`,
+    "7": `: The ==Crucible of Depth==
+When the number 7 governs one of your four Pinnacles, the outer world quiets — not to punish you, but to make room for the inner one. This is the cycle of the scholar, the specialist, and the seeker: a long season in which mastery is won through depth rather than noise.
+
+### **The Core Reality
+* **The Inward Turn:** The traditional reading is true but incomplete. Society's demands on you thin out during a 7 Pinnacle; social appetite often fades; solitude becomes productive rather than lonely. Study, research, practice, faith, and reflection are the native work of this cycle — and for many people this pinnacle brings the deepest psychological and spiritual development of the entire life.
+
+* **The Quiet Harvest:** What the old texts overstate is the absolute. A 7 Pinnacle does not dry up the material world — it changes the terms. Outer gains still arrive, but they arrive through depth: the specialist's skill, the researcher's discovery, the quiet authority of someone who genuinely knows their craft. Work prepared in earlier pinnacles can reach its highest refinement here — the iPhone launched in a 7 Pinnacle was twenty years of preparation meeting one harvest. What fails in a 7 Pinnacle is hustle without substance: noise, imitation, and surface charm lose their market.
+
+* **The Threshold of Meaning:** This cycle confronts you with the questions achievement cannot answer — purpose, mortality, belief, what the work is FOR. Some pass through this pinnacle as hermits; others pass through it as masters who work quietly and let the work speak. Both are the 7. Neither is a failure.
+
+### The Demands and The Traps
+* **The Demand for Depth:** The 7 requires specialization — one craft, one discipline, one question pursued past the point where others stop. Breadth stops serving you here; depth becomes the only currency.
+
+* **The Trap of Withdrawal:** The dark side of the inward turn is isolation: mistaking retreat from the world for wisdom about it. The 7 who never returns — who lets relationships and practical responsibilities atrophy — emerges from this cycle with insight and nothing to apply it to.
+
+* **The Trap of Superiority:** The 7's native introspection can curdle into intellectual arrogance: the conviction that ordinary life is beneath you. The traditional texts warn of this directly — the hermit who judges the market he no longer serves.
+
+### The Impact of Timing
+A 7 Pinnacle in youth produces the quiet, observant child — the reader, the questioner, often the one who feels different without knowing why. In mid-life it produces the specialist's peak: the mastery years. In later life it produces the sage: transmission, mentorship, and the deep integration of everything earlier cycles built.`,
+
   
     "8": `: The ==Crucible of Power and Karma==
   When the number 8 governs a Pinnacle, it is time to step into the boardroom.

@@ -346,3 +346,18 @@ The 27/9 (Sceptre, wisdom recognized) promises that accumulated wisdom receives 
     ]
   }
 };
+
+// ── Master-year resolution (mirrors yearDiveOracle in oracle.ts) ─────────────
+const MASTER_BASE_YEAR: Record<number, number> = { 11: 2, 22: 4, 33: 6 };
+const MASTER_TITLE: Record<number, string> = {
+  11: "Year of Illumination",
+  22: "Year of the Master Builder",
+  33: "Year of the Master Teacher",
+};
+export function yearDescription(n: number) {
+  if (YEAR_DESCRIPTIONS[n]) return YEAR_DESCRIPTIONS[n];
+  const base = MASTER_BASE_YEAR[n];
+  if (!base || !YEAR_DESCRIPTIONS[base]) return undefined;
+  const b = YEAR_DESCRIPTIONS[base];
+  return { ...b, title: `${MASTER_TITLE[n] || b.title} (Master ${n})` };
+}

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ZOO } from '@/lib/cosmic-fate/zoo';
-import { YD } from '@/lib/cosmic-fate/oracle';
+import { YD, yearDiveOracle } from '@/lib/cosmic-fate/oracle';
 import { CONVERGENCE_CARDS } from '@/lib/cosmic-fate/convergence';
 import { PINNACLE_DESC, CHALLENGE_DESC } from '@/lib/cosmic-fate/pinnacles';
 import { INTERSECTION_SYNTHESIS } from '@/lib/cosmic-fate/intersections';
@@ -223,11 +223,11 @@ return list;
 }, [stats.birthSign, birthDay, birthMonth, birthYear, readYear]);
 
 const oracleText = useMemo(() => {
-const yr = YD[stats.py];
+const yr = yearDiveOracle(stats.py);
 const lpRelationText = (stats.py === stats.lp) ? "exceptional harmony" : (Math.abs(stats.py - stats.lp) === 4 || Math.abs(stats.py - stats.lp) === 5) ? "notable friction" : "productive dialogue — neither in obvious tension nor exceptional harmony";
 const lpInteractionText = (stats.py === stats.lp) ? "match" : (Math.abs(stats.py - stats.lp) === 4 || Math.abs(stats.py - stats.lp) === 5) ? "creates notable friction with" : "and";
 
-return `In ${readYear}, you are in a Personal Year ${stats.py} — ${yr?.title}, riding the ${yr?.phase.toLowerCase()} phase of your nine-year cycle. The Universal Year ${stats.uy} (${YD[stats.uy]?.title}) sets the collective backdrop — the shared frequency every person on earth is navigating alongside their personal arc. Your current Personal Month is ${stats.pm} (${pmNames[stats.pm]}), offering a finer-grained window into this season's immediate texture. Your ${stats.birthSign} nature meets a ${stats.yearAnimalName} year (${catLabel(stats.cat)}) — a ${stats.cat === 'neutral' ? 'neutral year where outcomes reflect pure personal effort rather than exceptional external forces' : catLabel(stats.cat).toLowerCase() + ' where trajectories are specifically influenced by Tai Sui energy'}. Your Life Path ${stats.lp} (${lpName(stats.lp)}) ${lpInteractionText} Personal Year ${stats.py} (${yr?.title}) are in ${lpRelationText} — allowing this year's work to proceed through genuine effort. Your active Pinnacle is ${stats.pNum} — the long-arc life theme operating beneath every annual cycle — while your active Challenge number ${stats.cNum} (${challengeName(stats.cNum)}) names the specific resistance pattern this life chapter asks you to develop through. Taken together, these layers describe not one story but several simultaneous ones: the year's momentum, the month's focus, the decade's theme, and the lifetime's direction — all converging in ${readYear}.`;
+return `In ${readYear}, you are in a Personal Year ${stats.py} — ${yr?.title}, riding the ${yr?.phase.toLowerCase()} phase of your nine-year cycle. The Universal Year ${stats.uy} (${yearDiveOracle(stats.uy)?.title}) sets the collective backdrop — the shared frequency every person on earth is navigating alongside their personal arc. Your current Personal Month is ${stats.pm} (${pmNames[stats.pm]}), offering a finer-grained window into this season's immediate texture. Your ${stats.birthSign} nature meets a ${stats.yearAnimalName} year (${catLabel(stats.cat)}) — a ${stats.cat === 'neutral' ? 'neutral year where outcomes reflect pure personal effort rather than exceptional external forces' : catLabel(stats.cat).toLowerCase() + ' where trajectories are specifically influenced by Tai Sui energy'}. Your Life Path ${stats.lp} (${lpName(stats.lp)}) ${lpInteractionText} Personal Year ${stats.py} (${yr?.title}) are in ${lpRelationText} — allowing this year's work to proceed through genuine effort. Your active Pinnacle is ${stats.pNum} — the long-arc life theme operating beneath every annual cycle — while your active Challenge number ${stats.cNum} (${challengeName(stats.cNum)}) names the specific resistance pattern this life chapter asks you to develop through. Taken together, these layers describe not one story but several simultaneous ones: the year's momentum, the month's focus, the decade's theme, and the lifetime's direction — all converging in ${readYear}.`;
 }, [stats, readYear]);
 
 const handleCastMap = () => {
@@ -240,7 +240,7 @@ if (e.key === 'Enter') handleCastMap();
 };
 
 const renderSynthesis = () => {
-const yr = YD[stats.py];
+const yr = yearDiveOracle(stats.py);
 return (
 <div key={readYear} className="space-y-6 relative z-10 animate-in fade-in duration-500 dash-panel active">
 <div className="core-strip">
@@ -257,7 +257,7 @@ return (
 <div className="core-chip">
 <div className="core-chip-label">Universal Year</div>
 <div className="core-chip-num" style={{ color: 'var(--cf-amethyst)' }}>{stats.uy}</div>
-<div className="core-chip-name">{YD[stats.uy]?.title}</div>
+<div className="core-chip-name">{yearDiveOracle(stats.uy)?.title}</div>
 </div>
 <div className="core-chip">
 <div className="core-chip-label">Birth Vibration</div>
@@ -275,7 +275,7 @@ return (
 };
 
 const renderDive = () => {
-const yr = YD[stats.py];
+const yr = yearDiveOracle(stats.py);
 return (
 <div key={readYear} className="year-deep-dive animate-in fade-in duration-500 relative z-10 dash-panel active">
 <div className="year-dive-header">

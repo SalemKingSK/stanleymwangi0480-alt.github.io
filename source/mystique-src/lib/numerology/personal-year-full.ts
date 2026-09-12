@@ -236,6 +236,35 @@ THE PRACTICE: Identify one thing — a belief, a grudge, a possession, a commitm
 THE SHADOW: Premature endings, avoidance of necessary grief, and the temptation to use "letting go" as an excuse to flee commitments that still have value. The Year 9 who releases everything will arrive at the next Year 1 with nothing to build upon. The art is to release what has genuinely completed while honoring what is still alive and growing.`,
   },
 };
+const MASTER_BASE_YEAR: Record<number, number> = { 11: 2, 22: 4, 33: 6 };
+const MASTER_YEAR_TITLES: Record<number, string> = {
+  11: "The Year of Illumination",
+  22: "The Year of the Master Builder",
+  33: "The Year of the Master Teacher",
+};
+const MASTER_YEAR_NOTES: Record<number, string> = {
+  11: `MASTER YEAR 11 — The Illumination Year\n\nIn the master 11 year, the 2's receptivity operates at the voltage of revelation: intuition peaks, nervous sensitivity peaks, and the boundary between signal and anxiety must be guarded daily. Cheiro's older compound reading adds the discernment warning — hidden trial and treachery are the 11's classic shadows. The year's instruction is to receive deeply and act carefully.\n\n---\nSingle-Digit Foundation (2):\n`,
+  22: `MASTER YEAR 22 — The Master Builder Year\n\nIn the master 22 year, the 4's discipline operates at the scale of legacy: institutions, platforms, and foundations intended to outlast you. Cheiro's compound reading warns of illusion, delusion, and a good person misled by the folly of others — verify every foundation before adding weight. The year's instruction is to build, and to audit what you build.\n\n---\nSingle-Digit Foundation (4):\n`,
+  33: `MASTER YEAR 33 — The Master Teacher Year\n\nIn the master 33 year, the 6's care operates at the voltage of teaching: what you have lived becomes instruction for others. The 33's shadow is the exhausted savior — giving until the vessel that serves is empty. Cheiro notes the 33 carries the 24's fortune: help and magnetism are available to the one who does not burn out. The year's instruction is to teach from overflow, not depletion.\n\n---\nSingle-Digit Foundation (6):\n`,
+};
+/** The meaning for a Personal Year, including master years 11/22/33 which
+ * carry their single-digit foundation (2/4/6) at heightened voltage. */
+function yearMeaning(py: number): { title: string; interpretation: string } {
+  const direct = PY_MEANINGS[py];
+  if (direct) return direct;
+  const base = MASTER_BASE_YEAR[py];
+  if (base && PY_MEANINGS[base]) {
+    return {
+      title: `Personal Year ${py} — ${MASTER_YEAR_TITLES[py] || "Master Year"}`,
+      interpretation: MASTER_YEAR_NOTES[py] + PY_MEANINGS[base].interpretation,
+    };
+  }
+  return {
+    title: `Personal Year ${py}`,
+    interpretation: `Personal Year ${py} carries its own unique vibration.`,
+  };
+}
+
 export function getPersonalYearAnalysis(
   birthDay: number,
   birthMonth: number,
@@ -254,10 +283,7 @@ export function getPersonalYearAnalysis(
   // one rather than collapsing straight past it.
   const py = reduceNum(rawYear);
   const compound = lookupCompound(rawYear);
-  const base = PY_MEANINGS[py] || {
-    title: `Personal Year ${py}${py === 11 || py === 22 || py === 33 ? " — Master Year" : ""}`,
-    interpretation: `Personal Year ${py} carries its own unique vibration${py === 11 ? ", operating at the heightened, intuitive register of a Master Number 11." : py === 22 ? ", operating at the heightened, builder-scale register of a Master Number 22." : py === 33 ? ", operating at the heightened, teaching-and-healing register of a Master Number 33." : "."}`,
-  };
+  const base = yearMeaning(py);
   const title = compound
     ? `Personal Year ${rawYear}/${py} — ${compound.name}`
     : base.title;
@@ -271,10 +297,7 @@ export function getPersonalYearAnalysis(
   const rawYearClassic = computeRawPersonalYearClassic(birthDay, birthMonth, y);
   const pyClassic = reduceNum(rawYearClassic);
   const compoundClassic = lookupCompound(rawYearClassic);
-  const baseClassic = PY_MEANINGS[pyClassic] || {
-    title: `Personal Year ${pyClassic}${pyClassic === 11 || pyClassic === 22 || pyClassic === 33 ? " — Master Year" : ""}`,
-    interpretation: `Personal Year ${pyClassic} carries its own unique vibration${pyClassic === 11 ? ", operating at the heightened, intuitive register of a Master Number 11." : pyClassic === 22 ? ", operating at the heightened, builder-scale register of a Master Number 22." : pyClassic === 33 ? ", operating at the heightened, teaching-and-healing register of a Master Number 33." : "."}`,
-  };
+  const baseClassic = yearMeaning(pyClassic);
   const titleClassic = compoundClassic
     ? `Personal Year ${rawYearClassic}/${pyClassic} — ${compoundClassic.name}`
     : baseClassic.title;
