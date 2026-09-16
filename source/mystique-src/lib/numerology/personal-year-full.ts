@@ -188,7 +188,9 @@ A Personal Year 4 is the most demanding year in the nine-year cycle but also the
 THE LABOR: The Year 4 often arrives with a sobering shift in energy. The lightness of the Year 3 is replaced by a sense of responsibility and the demand for concrete action. Projects that were exciting in theory must now be executed in practice, and execution requires discipline, organization, and sustained effort. Many people resist the Year 4, finding it oppressive after the Year 3's freedom — but those who embrace it build foundations that support them for years.
 CORE CURRICULUM: Discipline, structure, and the transformation of vision into form. In a Year 4, you are learning that inspiration without implementation is fantasy, that freedom requires limits, and that the patient accumulation of small, consistent efforts produces results that dramatic gestures cannot match. This is the year to build your systems — the habits, routines, and organizational structures that will carry your initiatives forward.
 THE PRACTICE: Establish one new daily discipline and maintain it for the entire year. Organize one area of your life (finances, health, workspace, schedule) that has been chaotic. Set concrete, measurable goals with deadlines, and hold yourself accountable. The Year 4 rewards consistency and punishes shortcuts.
-THE SHADOW: Workaholism, rigidity, and the temptation to sacrifice health and relationships to the demands of productivity. The Year 4 who works without rest will arrive at the Year 5 broken rather than strong. The discipline must serve the vision, not become an end in itself.`,
+THE SHADOW: Workaholism, rigidity, and the temptation to sacrifice health and relationships to the demands of productivity. The Year 4 who works without rest will arrive at the Year 5 broken rather than strong. The discipline must serve the vision, not become an end in itself.
+
+SHADOW IN THE ELEMENTS: the Year of Foundation tests whatever was built upon the ground it was built on. When the ground itself moves, the foundation is the subject of the year, and the number reads as the inventory of what held.`,
   },
   5: {
     title: "Personal Year 5 — The Year of Change",
@@ -206,7 +208,9 @@ A Personal Year 6 brings the focus home — literally and metaphorically. After 
 THE HOMECOMING: The Year 6 often brings a desire to settle, to beautify, to create environments of genuine warmth and welcome. Relationships that survived the Year 5's turbulence deepen; those that did not reveal their fragility. This is the year to tend what you love — your home, your family (chosen or biological), your community, and yourself.
 CORE CURRICULUM: Love, responsibility, and the balance between giving and receiving. In a Year 6, you are learning that genuine love is not sacrifice but service, that responsibility is not burden but privilege, and that the capacity to receive love is as important as the capacity to give it. This is the year to heal relationship wounds and to create beauty in your immediate environment.
 THE PRACTICE: Perform one act of service daily for someone you love — without announcement, without expectation of return. Beautify your home. Mend one damaged relationship (or, if mending is impossible, complete it with grace). Learn to receive — accept help, compliments, and care without immediately deflecting or reciprocating.
-THE SHADOW: Martyrdom, over-giving, and the temptation to sacrifice yourself entirely to the care of others. The Year 6 who gives without receiving will arrive at the Year 7 depleted rather than enriched. The heart that pours out endlessly without being refilled eventually runs dry. Your capacity to serve is proportional to your capacity to be nourished.`,
+THE SHADOW: Martyrdom, over-giving, and the temptation to sacrifice yourself entirely to the care of others. The Year 6 who gives without receiving will arrive at the Year 7 depleted rather than enriched. The heart that pours out endlessly without being refilled eventually runs dry. Your capacity to serve is proportional to your capacity to be nourished.
+
+COMMUNAL GRIEF: the Year of the Heart keeps the household and the neighbour; in a visitation year the heart is where a people feel their loss together. The 6 reads then as the mourning of a community and as the care survivors owe one another.`,
   },
   7: {
     title: "Personal Year 7 — The Year of the Soul",
@@ -215,7 +219,9 @@ A Personal Year 7 is the most introspective year in the nine-year cycle — a ye
 THE RETREAT: The Year 7 often brings a diminished appetite for social engagement and an increased hunger for solitude, study, and spiritual practice. Others may find you distant; you are simply elsewhere — attending to the inner dimension of your existence, which requires quiet and focus. This is not antisocial behavior but a sacred necessity, and those who love you should be given to understand this.
 CORE CURRICULUM: Wisdom, spiritual depth, and the integration of life experience into understanding. In a Year 7, you are learning to trust your inner guidance over external authority, to develop a spiritual practice that sustains you, and to find the lessons embedded in the experiences of the previous six years. This is the year to study — not for credentials but for transformation.
 THE PRACTICE: Establish or deepen a spiritual practice — meditation, contemplation, study of sacred texts, time in nature. Read challenging books. Keep a journal of insights and questions. Protect your solitude fiercely; the Year 7's gifts emerge in silence, not in conversation.
-THE SHADOW: Isolation, intellectual arrogance, and the temptation to use spiritual seeking as an escape from practical responsibilities or relational commitments. The Year 7 who ascends to the mountaintop and never descends has missed the point — the wisdom gained in solitude must eventually be shared with others.`,
+THE SHADOW: Isolation, intellectual arrogance, and the temptation to use spiritual seeking as an escape from practical responsibilities or relational commitments. The Year 7 who ascends to the mountaintop and never descends has missed the point — the wisdom gained in solitude must eventually be shared with others.
+
+SHADOW IN CATASTROPHE: the retreat of the 7 is chosen when it can be; where it is imposed by circumstance, the same introspection appears as a people driven indoors to weigh what their ground was worth.`,
   },
   8: {
     title: "Personal Year 8 — The Year of Power",
