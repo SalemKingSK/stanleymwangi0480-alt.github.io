@@ -16,6 +16,8 @@ import { findEntity } from "@/lib/match-engine";
  * turn a reading into a promise, and it is not one.
  */
 
+interface SuitAudit { meta: { n: number; betterCalls: number; betterRate: number; homeRate: number; awayRate: number; z: number }; gapTable: { gap: number; n: number; homeRate: number }[] }
+
 interface Audit {
   sample: number;
   combined: { calls: number; accuracy: number; nullAcc: number; z: number };
@@ -23,6 +25,16 @@ interface Audit {
   homeWinRate: number;
   awayWinRate: number;
   verdictLine: string;
+}
+
+let suitCache: SuitAudit | null = null;
+function useSuitability() {
+  const [a, setA] = React.useState<SuitAudit | null>(suitCache);
+  React.useEffect(() => {
+    if (suitCache) return;
+    fetch("/data/suitability-test.json").then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { suitCache = j; setA(j); } }).catch(() => {});
+  }, []);
+  return a;
 }
 
 let auditCache: Audit | null = null;
@@ -45,6 +57,7 @@ const LEAN_WORD: Record<Lean, string> = { favours: "favours", tests: "tests", ne
 export function DayFavourPanel({ date, home, away }: { date: string; home: string; away: string }) {
   const [open, setOpen] = React.useState(false);
   const audit = useAudit();
+  const suit = useSuitability();
 
   const reading: DayFavour | null = React.useMemo(() => {
     const h = findEntity(home), a = findEntity(away);
@@ -69,6 +82,35 @@ export function DayFavourPanel({ date, home, away }: { date: string; home: strin
         <span style={{ fontSize: "0.72rem", fontWeight: 800, color: reading.combined >= 12 ? "#86efac" : reading.combined <= -12 ? "#93c5fd" : "rgba(200,180,240,0.7)" }}>
           {reading.verdict}
         </span>
+      </div>
+
+      {/* the comparison itself: which side the day suits, and by how much */}
+      <div style={{ marginTop: "0.55rem", padding: "0.5rem 0.6rem", borderRadius: 10, background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ fontSize: "0.7rem", color: "#f1d98a", fontWeight: 800 }}>
+          The comparison: {reading.suitability.suited === "neither"
+            ? "the day suits neither side more than the other"
+            : `the day suits ${reading.suitability.suited === "home" ? home : away} more`}
+          {" "}(gap {reading.suitability.gap > 0 ? "+" : ""}{reading.suitability.gap})
+        </div>
+        <div style={{ fontSize: "0.66rem", color: "rgba(200,180,240,0.62)", lineHeight: 1.55, marginTop: 3 }}>
+          {home}: {reading.suitability.home} favourable signal{Math.abs(reading.suitability.home) === 1 ? "" : "s"} — {reading.suitability.homeWhy.join("; ")}.
+          <br />
+          {away}: {reading.suitability.away} — {reading.suitability.awayWhy.join("; ")}.
+        </div>
+        {suit && (
+          <div style={{ fontSize: "0.66rem", color: "rgba(200,180,240,0.72)", lineHeight: 1.55, marginTop: 4 }}>
+            Measured: across {suit.meta.n.toLocaleString()} matches, the home-win rate barely moves with this gap —{" "}
+            {suit.gapTable.filter((g) => g.gap >= 2).reduce((a, g) => a + g.homeRate * g.n, 0) /
+              Math.max(suit.gapTable.filter((g) => g.gap >= 2).reduce((a, g) => a + g.n, 0), 1) * 100 > 0
+              ? `${((suit.gapTable.filter((g) => g.gap >= 2).reduce((a, g) => a + g.homeRate * g.n, 0) / Math.max(suit.gapTable.filter((g) => g.gap >= 2).reduce((a, g) => a + g.n, 0), 1)) * 100).toFixed(1)}% when it favours the home side`
+              : "no measurable difference"}
+            {" "}versus {suit.gapTable.filter((g) => g.gap <= -2).length
+              ? `${((suit.gapTable.filter((g) => g.gap <= -2).reduce((a, g) => a + g.homeRate * g.n, 0) / Math.max(suit.gapTable.filter((g) => g.gap <= -2).reduce((a, g) => a + g.n, 0), 1)) * 100).toFixed(1)}% when it favours the away side`
+              : "the other way"}. Reading the gap as a pick is worth{" "}
+            <b style={{ color: "#fca5a5" }}>{((suit.meta.betterRate - suit.meta.homeRate / (suit.meta.homeRate + suit.meta.awayRate)) * 100).toFixed(1)}pp</b>{" "}
+            against simply backing the home side (z {suit.meta.z}).
+          </div>
+        )}
       </div>
 
       {reading.methods.map((meth, i) => (

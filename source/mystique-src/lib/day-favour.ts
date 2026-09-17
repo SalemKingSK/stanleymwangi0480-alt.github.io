@@ -4,6 +4,7 @@ import {
   type SoulResonanceReport,
 } from "@/lib/compatibility-engine";
 import { lookupCompound } from "@/lib/numerology/chaldean-pyn-compounds";
+import { computeRawPersonalYear } from "@/lib/numerology/personal-year-full";
 import { reduceToSingleDigit } from "@/lib/numerology/personal-year-full";
 
 /**
@@ -56,6 +57,15 @@ export interface MethodReading {
   score: number;          // + favours home, − favours away, 0 neutral field
 }
 
+export interface Suitability {
+  home: number;
+  away: number;
+  gap: number;
+  suited: "home" | "away" | "neither";
+  homeWhy: string[];
+  awayWhy: string[];
+}
+
 export interface DayFavour {
   date: string;
   methods: MethodReading[];
@@ -68,6 +78,8 @@ export interface DayFavour {
     report: SoulResonanceReport;
   };
   series: { home: number; away: number; homeDate: string; awayDate: string };
+  /** the transparent version of the comparison: count the day's favourable signals per side */
+  suitability: Suitability;
   compound: { home: number | null; away: number | null; homeName: string; awayName: string; text: string };
   /** + favours the home side, − favours the away side, 0 = the day takes no side */
   combined: number;
@@ -171,6 +183,43 @@ export function dayFavour(
     score: cmp(ch.lean) - cmp(ca.lean),
   };
 
+  /* ── the comparison, in its plainest form ────────────────────────────────────
+     For each side: does the match day fall in this club's Cheiro founding series, does the
+     personal day harmonise with or oppose the founding day, and is the season compound a royal
+     star or a karmic debt? +1 for each favourable, −1 for each adverse. The gap is the verdict
+     of the comparison — and the panel prints what that gap has been worth on real matches. */
+  const ROYALS = new Set([17, 19, 21, 23, 24, 27, 37]);
+  const KARMICS = new Set([13, 14, 16, 19]);
+  const scoreOne = (e: { day: number; month: number; year: number }, pd: number, fdv: number, compound: number | null) => {
+    let s = 0; const why: string[] = [];
+    if (cheiroSeries(e.day).includes(D)) { s += 1; why.push(`the ${D}th falls in its founding series (${cheiroSeries(e.day).join("/")})`); }
+    else why.push(`the ${D}th is outside its founding series (${cheiroSeries(e.day).join("/")})`);
+    if (fdv === 0 || fdv === 1) { s += 1; why.push("its personal day harmonises with its founding day"); }
+    else if (fdv === 3) { s -= 1; why.push("its personal day opposes its founding day"); }
+    else why.push("its personal day sits neutral against its founding day");
+    if (compound && ROYALS.has(compound)) { s += 1; why.push(`royal-star compound ${compound} this season`); }
+    if (compound && KARMICS.has(compound)) { s -= 1; why.push(`karmic compound ${compound} this season`); }
+    return { s, why };
+  };
+  // personal day per side: reduce(personalYear + month + day) — the same chain the corpus uses
+  const FR: Record<number, number[]> = { 1: [1,2,3,5,9], 2: [1,2,3], 3: [1,2,3,5,9], 4: [1,2,5,6,7],
+    5: [1,3,4,8], 6: [4,5,6,8], 7: [4,5,6], 8: [1,4,5,6], 9: [1,2,3,6] };
+  const relTo = (a: number, b: number) => (a === b ? 0 : (FR[a] || []).includes(b) || (FR[b] || []).includes(a) ? 1 : 3);
+  const pdOf = (e: { day: number; month: number; year: number }) => {
+    const py = reduceToSingleDigit(computeRawPersonalYear(e.day, e.month, Y));
+    const pm = reduceToSingleDigit(py + reduceToSingleDigit(M));
+    return reduceToSingleDigit(pm + reduceToSingleDigit(D));
+  };
+  const compOf = (e: { day: number; month: number; year: number }) => {
+    const raw = computeRawPersonalYear(e.day, e.month, Y);
+    const c = raw >= 10 ? lookupCompound(raw) : null;
+    return c ? c.compound : null;
+  };
+  const pdH = pdOf(home), pdA = pdOf(away);
+  const sh = scoreOne(home, pdH, relTo(pdH, reduceToSingleDigit(home.day)), compOf(home));
+  const sa = scoreOne(away, pdA, relTo(pdA, reduceToSingleDigit(away.day)), compOf(away));
+  const gap = sh.s - sa.s;
+
   const combined = method1.score + method2.score * 12 + method3.score * 12;   // methods 2 & 3 are ±1 steps; scale to the resonance's ±points
   const verdict = combined >= 12
     ? `The day leans to ${home.name}`
@@ -192,6 +241,8 @@ export function dayFavour(
       report: pairReport,
     },
     series: { home: home.day, away: away.day, homeDate: `${D}${homeIn ? " ✓" : ""}`, awayDate: `${D}${awayIn ? " ✓" : ""}` },
+    suitability: { home: sh.s, away: sa.s, gap, suited: gap > 0 ? "home" : gap < 0 ? "away" : "neither",
+                   homeWhy: sh.why, awayWhy: sa.why },
     compound: { home: ch.compound, away: ca.compound, homeName: ch.name || "", awayName: ca.name || "", text: `${home.name}: ${ch.text}  |  ${away.name}: ${ca.text}` },
     combined,
     verdict,

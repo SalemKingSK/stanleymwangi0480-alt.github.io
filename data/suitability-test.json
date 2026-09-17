@@ -1,0 +1,68 @@
+{
+ "meta": {
+  "n": 20673,
+  "betterCalls": 10197,
+  "betterRate": 0.4974,
+  "homeRate": 0.4443,
+  "awayRate": 0.2503,
+  "z": -29.913
+ },
+ "gapTable": [
+  {
+   "gap": -5,
+   "n": 4,
+   "homeRate": 1
+  },
+  {
+   "gap": -4,
+   "n": 129,
+   "homeRate": 0.4651
+  },
+  {
+   "gap": -3,
+   "n": 1031,
+   "homeRate": 0.45
+  },
+  {
+   "gap": -2,
+   "n": 2724,
+   "homeRate": 0.4449
+  },
+  {
+   "gap": -1,
+   "n": 3405,
+   "homeRate": 0.4441
+  },
+  {
+   "gap": 0,
+   "n": 5956,
+   "homeRate": 0.4469
+  },
+  {
+   "gap": 1,
+   "n": 3463,
+   "homeRate": 0.4383
+  },
+  {
+   "gap": 2,
+   "n": 2805,
+   "homeRate": 0.4378
+  },
+  {
+   "gap": 3,
+   "n": 1027,
+   "homeRate": 0.4596
+  },
+  {
+   "gap": 4,
+   "n": 125,
+   "homeRate": 0.4
+  },
+  {
+   "gap": 5,
+   "n": 4,
+   "homeRate": 0.75
+  }
+ ],
+ "purpose": "the transparent suitability comparison, measured \u2014 shown beside the reading in the app"
+}
