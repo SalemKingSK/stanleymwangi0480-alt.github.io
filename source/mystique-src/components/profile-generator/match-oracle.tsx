@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { AccordionContentWithPlayer } from "./accordion-content-with-player";
 import { PredictionLab } from "./prediction-lab";
 import { VerdictPanel, computeVerdict, useVerdictReady } from "./verdict-panel";
+import { DayFavourPanel } from "./day-favour-panel";
 import {
   buildFixtureDossier,
   numberAlignment,
@@ -370,7 +371,10 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
       </div>
 
       {home && away && home !== away && (
-        <VerdictPanel date={date} home={home} away={away} calibration={rawCalib} formFile={rawForm} />
+        <>
+          <VerdictPanel date={date} home={home} away={away} calibration={rawCalib} formFile={rawForm} />
+          <DayFavourPanel date={date} home={home} away={away} />
+        </>
       )}
 
       {!dossier && <WhyNoDossier home={home} away={away} />}

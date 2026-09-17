@@ -1,0 +1,1655 @@
+{
+ "meta": {
+  "settled": 4,
+  "unseparated": 31,
+  "single": 79,
+  "tooFew": 3,
+  "minOccurrences": 12,
+  "built": "2026-09-17"
+ },
+ "clubs": {
+  "Burnley": {
+   "settled": false,
+   "displayName": "Burnley",
+   "matches": 5102,
+   "commonStart": "1882-05-18",
+   "chosen": "1874-09-26",
+   "chosenSource": "Wikipedia history (Burnley F.C.)",
+   "margin": -0.0201,
+   "null": {
+    "mean": 0.4218,
+    "max": 0.4905
+   },
+   "graded": [
+    {
+     "date": "1874-09-26",
+     "source": "Wikipedia history (Burnley F.C.)",
+     "n": 2408,
+     "direct": "921/2246",
+     "classic": "867/2135",
+     "pinnacle": "1311/2188",
+     "challenge": "906/2408",
+     "combined": "734/1941",
+     "combinedAcc": 0.3782,
+     "fullSupportN": 2408,
+     "fullSupportAcc": 0.3782
+    },
+    {
+     "date": "1882-05-18",
+     "source": "Wikipedia infobox (Burnley F.C.)",
+     "n": 2408,
+     "direct": "967/2227",
+     "classic": "859/1909",
+     "pinnacle": "210/357",
+     "challenge": "906/2408",
+     "combined": "924/2320",
+     "combinedAcc": 0.3983,
+     "fullSupportN": 2408,
+     "fullSupportAcc": 0.3983
+    }
+   ]
+  },
+  "Manchester United": {
+   "settled": false,
+   "displayName": "Manchester United",
+   "matches": 4784,
+   "commonStart": "1902-04-28",
+   "chosen": "1902-04-24",
+   "chosenSource": "Wikipedia infobox (Manchester United F.C.)",
+   "margin": 0.0154,
+   "null": {
+    "mean": 0.4528,
+    "max": 0.4704
+   },
+   "graded": [
+    {
+     "date": "1902-04-24",
+     "source": "Wikipedia infobox (Manchester United F.C.)",
+     "n": 2616,
+     "direct": "1113/2396",
+     "classic": "1142/2326",
+     "pinnacle": "1100/2510",
+     "challenge": "1138/2616",
+     "combined": "1214/2616",
+     "combinedAcc": 0.4641,
+     "fullSupportN": 2616,
+     "fullSupportAcc": 0.4641
+    },
+    {
+     "date": "1902-04-28",
+     "source": "performance-history settlement (batch c01)",
+     "n": 2616,
+     "direct": "1060/2368",
+     "classic": "1020/2057",
+     "pinnacle": "1281/2548",
+     "challenge": "1138/2616",
+     "combined": "1027/2289",
+     "combinedAcc": 0.4487,
+     "fullSupportN": 2616,
+     "fullSupportAcc": 0.4487
+    },
+    {
+     "date": "1878-03-05",
+     "source": "Wikipedia infobox (Manchester United F.C.)",
+     "n": 2616,
+     "direct": "1143/2455",
+     "classic": "1036/2054",
+     "pinnacle": "191/435",
+     "challenge": "1138/2616",
+     "combined": "1195/2547",
+     "combinedAcc": 0.4692,
+     "fullSupportN": 2696,
+     "fullSupportAcc": 0.4654
+    }
+   ]
+  },
+  "Liverpool": {
+   "settled": false,
+   "displayName": "Liverpool",
+   "matches": 4752,
+   "commonStart": "2023-07-16",
+   "chosen": "1892-06-03",
+   "chosenSource": "Wikidata P571",
+   "margin": -0.02,
+   "null": {
+    "mean": 0.5554,
+    "max": 0.58
+   },
+   "graded": [
+    {
+     "date": "1892-06-03",
+     "source": "Wikidata P571",
+     "n": 50,
+     "direct": "28/50",
+     "classic": "28/50",
+     "pinnacle": "29/50",
+     "challenge": "29/50",
+     "combined": "28/50",
+     "combinedAcc": 0.56,
+     "fullSupportN": 2762,
+     "fullSupportAcc": 0.4649
+    },
+    {
+     "date": "2014-03-14",
+     "source": "Wikipedia infobox (Liverpool F.C.)",
+     "n": 50,
+     "direct": "29/50",
+     "classic": "15/37",
+     "pinnacle": "29/50",
+     "challenge": "29/50",
+     "combined": "29/50",
+     "combinedAcc": 0.58,
+     "fullSupportN": 244,
+     "fullSupportAcc": 0.4688
+    },
+    {
+     "date": "1959-12-01",
+     "source": "performance-history settlement (batch c01)",
+     "n": 50,
+     "direct": "23/38",
+     "classic": "22/50",
+     "pinnacle": "0/0",
+     "challenge": "29/50",
+     "combined": "29/50",
+     "combinedAcc": 0.58,
+     "fullSupportN": 1602,
+     "fullSupportAcc": 0.4895
+    },
+    {
+     "date": "2023-07-16",
+     "source": "Wikipedia infobox (Liverpool F.C.)",
+     "n": 50,
+     "direct": "29/50",
+     "classic": "13/25",
+     "pinnacle": "21/50",
+     "challenge": "21/50",
+     "combined": "13/25",
+     "combinedAcc": 0.52,
+     "fullSupportN": 50,
+     "fullSupportAcc": 0.52
+    }
+   ]
+  },
+  "Chesterfield": {
+   "settled": false,
+   "displayName": "Chesterfield",
+   "matches": 4425,
+   "commonStart": "1919-04-24",
+   "chosen": "1866-10-19",
+   "chosenSource": "Wikipedia infobox (Chesterfield F.C.)",
+   "margin": 0.0158,
+   "null": {
+    "mean": 0.4361,
+    "max": 0.4689
+   },
+   "graded": [
+    {
+     "date": "1866-10-19",
+     "source": "Wikipedia infobox (Chesterfield F.C.)",
+     "n": 1318,
+     "direct": "517/1205",
+     "classic": "591/1166",
+     "pinnacle": "793/1318",
+     "challenge": "525/1318",
+     "combined": "340/761",
+     "combinedAcc": 0.4468,
+     "fullSupportN": 1404,
+     "fullSupportAcc": 0.454
+    },
+    {
+     "date": "1919-04-24",
+     "source": "Wikipedia infobox (Chesterfield F.C.)",
+     "n": 1318,
+     "direct": "524/1205",
+     "classic": "591/1174",
+     "pinnacle": "188/437",
+     "challenge": "525/1318",
+     "combined": "568/1318",
+     "combinedAcc": 0.431,
+     "fullSupportN": 1318,
+     "fullSupportAcc": 0.431
+    }
+   ]
+  },
+  "Coventry City": {
+   "settled": false,
+   "displayName": "Coventry City",
+   "matches": 4206,
+   "commonStart": "2012-09-22",
+   "chosen": "2012-09-22",
+   "chosenSource": "Wikipedia infobox (Coventry City F.C.)",
+   "margin": -0.0011,
+   "null": {
+    "mean": 0.4136,
+    "max": 0.5465
+   },
+   "graded": [
+    {
+     "date": "2012-09-22",
+     "source": "Wikipedia infobox (Coventry City F.C.)",
+     "n": 216,
+     "direct": "83/199",
+     "classic": "67/165",
+     "pinnacle": "140/216",
+     "challenge": "76/216",
+     "combined": "47/134",
+     "combinedAcc": 0.3507,
+     "fullSupportN": 216,
+     "fullSupportAcc": 0.3507
+    },
+    {
+     "date": "1883-08-13",
+     "source": "Wikidata P571",
+     "n": 216,
+     "direct": "79/216",
+     "classic": "89/197",
+     "pinnacle": "76/216",
+     "challenge": "76/216",
+     "combined": "76/216",
+     "combinedAcc": 0.3519,
+     "fullSupportN": 2152,
+     "fullSupportAcc": 0.3894
+    },
+    {
+     "date": "2011-11-07",
+     "source": "Wikipedia infobox (Coventry City F.C.)",
+     "n": 216,
+     "direct": "77/201",
+     "classic": "89/175",
+     "pinnacle": "0/0",
+     "challenge": "76/216",
+     "combined": "87/216",
+     "combinedAcc": 0.4028,
+     "fullSupportN": 239,
+     "fullSupportAcc": 0.4017
+    }
+   ]
+  },
+  "Leeds United": {
+   "settled": false,
+   "displayName": "Leeds",
+   "matches": 4108,
+   "commonStart": "1919-10-31",
+   "chosen": "1919-10-31",
+   "chosenSource": "Wikipedia history (Leeds United F.C.)",
+   "margin": -0.0186,
+   "null": {
+    "mean": 0.4341,
+    "max": 0.4948
+   },
+   "graded": [
+    {
+     "date": "1919-10-31",
+     "source": "Wikipedia history (Leeds United F.C.)",
+     "n": 2310,
+     "direct": "975/2271",
+     "classic": "978/2039",
+     "pinnacle": "1011/2123",
+     "challenge": "926/2310",
+     "combined": "861/2048",
+     "combinedAcc": 0.4204,
+     "fullSupportN": 2310,
+     "fullSupportAcc": 0.4204
+    },
+    {
+     "date": "1919-10-17",
+     "source": "Wikipedia infobox (Leeds United F.C.)",
+     "n": 2310,
+     "direct": "920/2115",
+     "classic": "931/1826",
+     "pinnacle": "755/1892",
+     "challenge": "926/2310",
+     "combined": "1014/2310",
+     "combinedAcc": 0.439,
+     "fullSupportN": 2310,
+     "fullSupportAcc": 0.439
+    }
+   ]
+  },
+  "West Ham United": {
+   "settled": false,
+   "displayName": "West Ham",
+   "matches": 4030,
+   "commonStart": "1900-07-05",
+   "chosen": "1895-06-29",
+   "chosenSource": "Wikipedia infobox (West Ham United F.C.)",
+   "margin": -0.0237,
+   "null": {
+    "mean": 0.3978,
+    "max": 0.5037
+   },
+   "graded": [
+    {
+     "date": "1895-06-29",
+     "source": "Wikipedia infobox (West Ham United F.C.)",
+     "n": 2268,
+     "direct": "872/2129",
+     "classic": "792/2005",
+     "pinnacle": "1346/2099",
+     "challenge": "816/2268",
+     "combined": "612/1713",
+     "combinedAcc": 0.3573,
+     "fullSupportN": 2268,
+     "fullSupportAcc": 0.3573
+    },
+    {
+     "date": "1900-07-05",
+     "source": "Wikipedia infobox (West Ham United F.C.)",
+     "n": 2268,
+     "direct": "882/2176",
+     "classic": "900/1991",
+     "pinnacle": "724/2022",
+     "challenge": "816/2268",
+     "combined": "847/2223",
+     "combinedAcc": 0.381,
+     "fullSupportN": 2268,
+     "fullSupportAcc": 0.381
+    }
+   ]
+  },
+  "Wrexham": {
+   "settled": true,
+   "displayName": "Wrexham",
+   "matches": 3650,
+   "commonStart": "1864-10-29",
+   "chosen": "1864-10-22",
+   "chosenSource": "Wikipedia history (Wrexham A.F.C.)",
+   "margin": 0.0138,
+   "null": {
+    "mean": 0.3782,
+    "max": 0.4174
+   },
+   "graded": [
+    {
+     "date": "1864-10-22",
+     "source": "Wikipedia history (Wrexham A.F.C.)",
+     "n": 1035,
+     "direct": "369/931",
+     "classic": "447/923",
+     "pinnacle": "370/1035",
+     "challenge": "665/1035",
+     "combined": "383/860",
+     "combinedAcc": 0.4453,
+     "fullSupportN": 1035,
+     "fullSupportAcc": 0.4453
+    },
+    {
+     "date": "1864-10-29",
+     "source": "Wikipedia history (Wrexham A.F.C.)",
+     "n": 1035,
+     "direct": "418/1015",
+     "classic": "441/920",
+     "pinnacle": "370/1035",
+     "challenge": "665/1035",
+     "combined": "315/730",
+     "combinedAcc": 0.4315,
+     "fullSupportN": 1035,
+     "fullSupportAcc": 0.4315
+    },
+    {
+     "date": "1864-10-04",
+     "source": "Wikipedia infobox (Wrexham A.F.C.)",
+     "n": 1035,
+     "direct": "382/992",
+     "classic": "447/923",
+     "pinnacle": "370/1035",
+     "challenge": "665/1035",
+     "combined": "310/753",
+     "combinedAcc": 0.4117,
+     "fullSupportN": 1035,
+     "fullSupportAcc": 0.4117
+    },
+    {
+     "date": "1863-10-12",
+     "source": "Wikipedia history (Wrexham A.F.C.)",
+     "n": 1035,
+     "direct": "388/942",
+     "classic": "431/912",
+     "pinnacle": "370/1035",
+     "challenge": "370/1035",
+     "combined": "357/925",
+     "combinedAcc": 0.3859,
+     "fullSupportN": 1035,
+     "fullSupportAcc": 0.3859
+    }
+   ]
+  },
+  "Shrewsbury Town": {
+   "settled": false,
+   "displayName": "Shrewsbury",
+   "matches": 3304,
+   "commonStart": "1886-05-26",
+   "chosen": "1886-05-20",
+   "chosenSource": "Wikipedia infobox (Shrewsbury Town F.C.)",
+   "margin": 0.0305,
+   "null": {
+    "mean": 0.3995,
+    "max": 0.4677
+   },
+   "graded": [
+    {
+     "date": "1886-05-20",
+     "source": "Wikipedia infobox (Shrewsbury Town F.C.)",
+     "n": 1264,
+     "direct": "465/1160",
+     "classic": "475/977",
+     "pinnacle": "462/1264",
+     "challenge": "802/1264",
+     "combined": "380/914",
+     "combinedAcc": 0.4158,
+     "fullSupportN": 1264,
+     "fullSupportAcc": 0.4158
+    },
+    {
+     "date": "1886-05-26",
+     "source": "Wikipedia history (Shrewsbury Town F.C.)",
+     "n": 1264,
+     "direct": "466/1138",
+     "classic": "435/977",
+     "pinnacle": "462/1264",
+     "challenge": "802/1264",
+     "combined": "304/789",
+     "combinedAcc": 0.3853,
+     "fullSupportN": 1264,
+     "fullSupportAcc": 0.3853
+    }
+   ]
+  },
+  "Juventus": {
+   "settled": false,
+   "displayName": "Juventus",
+   "matches": 3150,
+   "commonStart": "2018-11-01",
+   "chosen": "2018-11-01",
+   "chosenSource": "Wikipedia infobox (Juventus FC)",
+   "margin": 0,
+   "null": {
+    "mean": 0.4979,
+    "max": 0.5524
+   },
+   "graded": [
+    {
+     "date": "2018-11-01",
+     "source": "Wikipedia infobox (Juventus FC)",
+     "n": 180,
+     "direct": "92/180",
+     "classic": "69/150",
+     "pinnacle": "87/180",
+     "challenge": "87/180",
+     "combined": "87/180",
+     "combinedAcc": 0.4833,
+     "fullSupportN": 180,
+     "fullSupportAcc": 0.4833
+    },
+    {
+     "date": "1897-11-01",
+     "source": "performance-history settlement (batch c01)",
+     "n": 180,
+     "direct": "92/180",
+     "classic": "69/150",
+     "pinnacle": "0/0",
+     "challenge": "87/180",
+     "combined": "87/180",
+     "combinedAcc": 0.4833,
+     "fullSupportN": 2164,
+     "fullSupportAcc": 0.499
+    }
+   ]
+  },
+  "Real Madrid": {
+   "settled": false,
+   "displayName": "Real Madrid",
+   "matches": 3066,
+   "commonStart": "1920-06-29",
+   "chosen": "1920-06-29",
+   "chosenSource": "performance-history settlement (batch c01)",
+   "margin": 0.0109,
+   "null": {
+    "mean": 0.5038,
+    "max": 0.5158
+   },
+   "graded": [
+    {
+     "date": "1920-06-29",
+     "source": "performance-history settlement (batch c01)",
+     "n": 2636,
+     "direct": "1229/2439",
+     "classic": "1167/2313",
+     "pinnacle": "446/964",
+     "challenge": "1327/2636",
+     "combined": "1289/2557",
+     "combinedAcc": 0.5041,
+     "fullSupportN": 2636,
+     "fullSupportAcc": 0.5041
+    },
+    {
+     "date": "1902-03-06",
+     "source": "Wikidata P571",
+     "n": 2636,
+     "direct": "1264/2525",
+     "classic": "1046/2060",
+     "pinnacle": "0/0",
+     "challenge": "1287/2636",
+     "combined": "1300/2636",
+     "combinedAcc": 0.4932,
+     "fullSupportN": 2636,
+     "fullSupportAcc": 0.4932
+    }
+   ]
+  },
+  "ACF Fiorentina": {
+   "settled": false,
+   "displayName": "ACF Fiorentina",
+   "matches": 2968,
+   "commonStart": "2002-08-01",
+   "chosen": "1926-08-29",
+   "chosenSource": "Wikipedia infobox (ACF Fiorentina)",
+   "margin": -0.1136,
+   "null": {
+    "mean": 0.3888,
+    "max": 0.4602
+   },
+   "graded": [
+    {
+     "date": "1926-08-29",
+     "source": "Wikipedia infobox (ACF Fiorentina)",
+     "n": 528,
+     "direct": "201/474",
+     "classic": "190/476",
+     "pinnacle": "189/528",
+     "challenge": "189/528",
+     "combined": "189/528",
+     "combinedAcc": 0.358,
+     "fullSupportN": 2049,
+     "fullSupportAcc": 0.4065
+    },
+    {
+     "date": "2002-08-01",
+     "source": "Wikipedia infobox (ACF Fiorentina)",
+     "n": 528,
+     "direct": "229/472",
+     "classic": "222/422",
+     "pinnacle": "0/0",
+     "challenge": "189/528",
+     "combined": "249/528",
+     "combinedAcc": 0.4716,
+     "fullSupportN": 528,
+     "fullSupportAcc": 0.4716
+    }
+   ]
+  },
+  "Espanyol Barcelona": {
+   "settled": true,
+   "displayName": "Espanyol",
+   "matches": 2854,
+   "commonStart": "1908-12-27",
+   "chosen": "1900-10-28",
+   "chosenSource": "Wikipedia infobox (RCD Espanyol)",
+   "margin": 0.0404,
+   "null": {
+    "mean": 0.4047,
+    "max": 0.421
+   },
+   "graded": [
+    {
+     "date": "1900-10-28",
+     "source": "Wikipedia infobox (RCD Espanyol)",
+     "n": 2462,
+     "direct": "999/2361",
+     "classic": "1105/2209",
+     "pinnacle": "980/2462",
+     "challenge": "1525/2462",
+     "combined": "758/1668",
+     "combinedAcc": 0.4544,
+     "fullSupportN": 2462,
+     "fullSupportAcc": 0.4544
+    },
+    {
+     "date": "1908-12-27",
+     "source": "Wikipedia history (RCD Espanyol)",
+     "n": 2462,
+     "direct": "1007/2359",
+     "classic": "1002/2178",
+     "pinnacle": "860/2253",
+     "challenge": "992/2462",
+     "combined": "953/2302",
+     "combinedAcc": 0.414,
+     "fullSupportN": 2462,
+     "fullSupportAcc": 0.414
+    }
+   ]
+  },
+  "Torino FC": {
+   "settled": false,
+   "displayName": "Torino FC",
+   "matches": 2761,
+   "commonStart": "2014-01-12",
+   "chosen": "2013-12-26",
+   "chosenSource": "Wikipedia infobox (Torino FC)",
+   "margin": 0.0598,
+   "null": {
+    "mean": 0.3986,
+    "max": 0.4855
+   },
+   "graded": [
+    {
+     "date": "2013-12-26",
+     "source": "Wikipedia infobox (Torino FC)",
+     "n": 301,
+     "direct": "115/274",
+     "classic": "137/274",
+     "pinnacle": "201/301",
+     "challenge": "100/301",
+     "combined": "88/198",
+     "combinedAcc": 0.4444,
+     "fullSupportN": 301,
+     "fullSupportAcc": 0.4444
+    },
+    {
+     "date": "2014-01-12",
+     "source": "Wikipedia infobox (Torino FC)",
+     "n": 301,
+     "direct": "95/259",
+     "classic": "123/276",
+     "pinnacle": "201/301",
+     "challenge": "100/301",
+     "combined": "75/195",
+     "combinedAcc": 0.3846,
+     "fullSupportN": 301,
+     "fullSupportAcc": 0.3846
+    },
+    {
+     "date": "2005-09-01",
+     "source": "Wikipedia infobox (Torino FC)",
+     "n": 301,
+     "direct": "104/250",
+     "classic": "117/275",
+     "pinnacle": "100/301",
+     "challenge": "100/301",
+     "combined": "113/276",
+     "combinedAcc": 0.4094,
+     "fullSupportN": 408,
+     "fullSupportAcc": 0.4204
+    },
+    {
+     "date": "1906-12-03",
+     "source": "Wikipedia infobox (Torino FC)",
+     "n": 301,
+     "direct": "86/250",
+     "classic": "111/232",
+     "pinnacle": "100/301",
+     "challenge": "100/301",
+     "combined": "86/250",
+     "combinedAcc": 0.344,
+     "fullSupportN": 1900,
+     "fullSupportAcc": 0.4235
+    }
+   ]
+  },
+  "Sevilla FC": {
+   "settled": false,
+   "displayName": "Sevilla",
+   "matches": 2712,
+   "commonStart": "1890-03-17",
+   "chosen": "1890-03-17",
+   "chosenSource": "Wikipedia history (Sevilla FC)",
+   "margin": 0.0069,
+   "null": {
+    "mean": 0.4318,
+    "max": 0.4836
+   },
+   "graded": [
+    {
+     "date": "1890-03-17",
+     "source": "Wikipedia history (Sevilla FC)",
+     "n": 2332,
+     "direct": "969/2161",
+     "classic": "1075/2083",
+     "pinnacle": "954/2332",
+     "challenge": "954/2332",
+     "combined": "1019/2312",
+     "combinedAcc": 0.4407,
+     "fullSupportN": 2332,
+     "fullSupportAcc": 0.4407
+    },
+    {
+     "date": "1890-01-25",
+     "source": "Wikipedia infobox (Sevilla FC)",
+     "n": 2332,
+     "direct": "949/2151",
+     "classic": "917/1846",
+     "pinnacle": "937/2292",
+     "challenge": "954/2332",
+     "combined": "1003/2312",
+     "combinedAcc": 0.4338,
+     "fullSupportN": 2332,
+     "fullSupportAcc": 0.4338
+    }
+   ]
+  },
+  "SSC Napoli": {
+   "settled": false,
+   "displayName": "Napoli",
+   "matches": 2690,
+   "commonStart": "2004-09-06",
+   "chosen": "1926-08-25",
+   "chosenSource": "Wikipedia infobox (SSC Napoli)",
+   "margin": 0.015,
+   "null": {
+    "mean": 0.4489,
+    "max": 0.5
+   },
+   "graded": [
+    {
+     "date": "1926-08-25",
+     "source": "Wikipedia infobox (SSC Napoli)",
+     "n": 468,
+     "direct": "183/415",
+     "classic": "188/416",
+     "pinnacle": "188/468",
+     "challenge": "188/468",
+     "combined": "202/468",
+     "combinedAcc": 0.4316,
+     "fullSupportN": 1865,
+     "fullSupportAcc": 0.4176
+    },
+    {
+     "date": "2004-09-06",
+     "source": "Wikipedia infobox (SSC Napoli)",
+     "n": 468,
+     "direct": "171/416",
+     "classic": "188/416",
+     "pinnacle": "0/0",
+     "challenge": "188/468",
+     "combined": "195/468",
+     "combinedAcc": 0.4167,
+     "fullSupportN": 468,
+     "fullSupportAcc": 0.4167
+    }
+   ]
+  },
+  "OGC Nice": {
+   "settled": false,
+   "displayName": "Nice",
+   "matches": 2354,
+   "commonStart": "1919-09-20",
+   "chosen": "1919-09-20",
+   "chosenSource": "Wikipedia history (OGC Nice)",
+   "margin": 0.0562,
+   "null": {
+    "mean": 0.4149,
+    "max": 0.4649
+   },
+   "graded": [
+    {
+     "date": "1919-09-20",
+     "source": "Wikipedia history (OGC Nice)",
+     "n": 1334,
+     "direct": "537/1263",
+     "classic": "626/1215",
+     "pinnacle": "734/1209",
+     "challenge": "532/1334",
+     "combined": "413/926",
+     "combinedAcc": 0.446,
+     "fullSupportN": 1334,
+     "fullSupportAcc": 0.446
+    },
+    {
+     "date": "1904-07-09",
+     "source": "Wikipedia infobox (OGC Nice)",
+     "n": 1334,
+     "direct": "495/1217",
+     "classic": "478/1155",
+     "pinnacle": "520/1334",
+     "challenge": "520/1334",
+     "combined": "520/1334",
+     "combinedAcc": 0.3898,
+     "fullSupportN": 1334,
+     "fullSupportAcc": 0.3898
+    }
+   ]
+  },
+  "Bor. Monchengladbach": {
+   "settled": false,
+   "displayName": "Borussia Monchengladbach",
+   "matches": 2040,
+   "commonStart": "1903-05-24",
+   "chosen": "1899-11-17",
+   "chosenSource": "Wikipedia history (Borussia Mönchengladbach)",
+   "margin": -0.03,
+   "null": {
+    "mean": 0.4419,
+    "max": 0.5
+   },
+   "graded": [
+    {
+     "date": "1899-11-17",
+     "source": "Wikipedia history (Borussia Mönchengladbach)",
+     "n": 1502,
+     "direct": "599/1397",
+     "classic": "655/1324",
+     "pinnacle": "607/1502",
+     "challenge": "607/1502",
+     "combined": "640/1502",
+     "combinedAcc": 0.4261,
+     "fullSupportN": 1502,
+     "fullSupportAcc": 0.4261
+    },
+    {
+     "date": "1900-08-01",
+     "source": "Wikipedia infobox (Borussia Mönchengladbach)",
+     "n": 1502,
+     "direct": "652/1429",
+     "classic": "617/1176",
+     "pinnacle": "0/0",
+     "challenge": "607/1502",
+     "combined": "685/1502",
+     "combinedAcc": 0.4561,
+     "fullSupportN": 1502,
+     "fullSupportAcc": 0.4561
+    },
+    {
+     "date": "1903-05-24",
+     "source": "Wikipedia history (Borussia Mönchengladbach)",
+     "n": 1502,
+     "direct": "582/1396",
+     "classic": "652/1326",
+     "pinnacle": "0/0",
+     "challenge": "607/1502",
+     "combined": "633/1502",
+     "combinedAcc": 0.4214,
+     "fullSupportN": 1502,
+     "fullSupportAcc": 0.4214
+    },
+    {
+     "date": "1903-02-16",
+     "source": "Wikipedia history (Borussia Mönchengladbach)",
+     "n": 1502,
+     "direct": "570/1321",
+     "classic": "617/1176",
+     "pinnacle": "0/0",
+     "challenge": "607/1502",
+     "combined": "657/1502",
+     "combinedAcc": 0.4374,
+     "fullSupportN": 1502,
+     "fullSupportAcc": 0.4374
+    }
+   ]
+  },
+  "Real Betis": {
+   "settled": false,
+   "displayName": "Real Betis",
+   "matches": 2032,
+   "commonStart": "1913-12-25",
+   "chosen": "1913-12-25",
+   "chosenSource": "Wikipedia history (Real Betis)",
+   "margin": 0.0441,
+   "null": {
+    "mean": 0.3804,
+    "max": 0.4235
+   },
+   "graded": [
+    {
+     "date": "1913-12-25",
+     "source": "Wikipedia history (Real Betis)",
+     "n": 1748,
+     "direct": "693/1623",
+     "classic": "762/1529",
+     "pinnacle": "658/1748",
+     "challenge": "628/1748",
+     "combined": "671/1639",
+     "combinedAcc": 0.4094,
+     "fullSupportN": 1748,
+     "fullSupportAcc": 0.4094
+    },
+    {
+     "date": "1907-09-12",
+     "source": "Wikipedia infobox (Real Betis)",
+     "n": 1748,
+     "direct": "656/1683",
+     "classic": "738/1634",
+     "pinnacle": "649/1748",
+     "challenge": "628/1748",
+     "combined": "628/1719",
+     "combinedAcc": 0.3653,
+     "fullSupportN": 1748,
+     "fullSupportAcc": 0.3653
+    }
+   ]
+  },
+  "Udinese Calcio": {
+   "settled": false,
+   "displayName": "Udinese Calcio",
+   "matches": 1828,
+   "commonStart": "1911-07-05",
+   "chosen": "1911-07-05",
+   "chosenSource": "Wikipedia infobox (Udinese Calcio)",
+   "margin": 0.0223,
+   "null": {
+    "mean": 0.3492,
+    "max": 0.439
+   },
+   "graded": [
+    {
+     "date": "1911-07-05",
+     "source": "Wikipedia infobox (Udinese Calcio)",
+     "n": 1238,
+     "direct": "438/1133",
+     "classic": "483/1119",
+     "pinnacle": "433/1238",
+     "challenge": "433/1238",
+     "combined": "441/1175",
+     "combinedAcc": 0.3753,
+     "fullSupportN": 1238,
+     "fullSupportAcc": 0.3753
+    },
+    {
+     "date": "1896-11-30",
+     "source": "Wikipedia infobox (Udinese Calcio)",
+     "n": 1238,
+     "direct": "423/1187",
+     "classic": "509/1106",
+     "pinnacle": "381/1238",
+     "challenge": "381/1238",
+     "combined": "419/1187",
+     "combinedAcc": 0.353,
+     "fullSupportN": 1238,
+     "fullSupportAcc": 0.353
+    }
+   ]
+  },
+  "SC Freiburg": {
+   "settled": true,
+   "displayName": "Freiburg",
+   "matches": 1662,
+   "commonStart": "2017-10-28",
+   "chosen": "1904-05-30",
+   "chosenSource": "Wikipedia infobox (SC Freiburg)",
+   "margin": 0.0702,
+   "null": {
+    "mean": 0.3803,
+    "max": 0.4571
+   },
+   "graded": [
+    {
+     "date": "1904-05-30",
+     "source": "Wikipedia infobox (SC Freiburg)",
+     "n": 175,
+     "direct": "71/153",
+     "classic": "69/129",
+     "pinnacle": "62/175",
+     "challenge": "113/175",
+     "combined": "63/128",
+     "combinedAcc": 0.4922,
+     "fullSupportN": 940,
+     "fullSupportAcc": 0.4549
+    },
+    {
+     "date": "2017-10-28",
+     "source": "Wikipedia infobox (SC Freiburg)",
+     "n": 175,
+     "direct": "64/155",
+     "classic": "74/155",
+     "pinnacle": "62/175",
+     "challenge": "113/175",
+     "combined": "46/109",
+     "combinedAcc": 0.422,
+     "fullSupportN": 175,
+     "fullSupportAcc": 0.422
+    }
+   ]
+  },
+  "Real Valladolid": {
+   "settled": false,
+   "displayName": "Real Valladolid",
+   "matches": 1656,
+   "commonStart": "1928-09-22",
+   "chosen": "1928-09-22",
+   "chosenSource": "Wikipedia history (Real Valladolid)",
+   "margin": -0.0147,
+   "null": {
+    "mean": 0.3818,
+    "max": 0.4803
+   },
+   "graded": [
+    {
+     "date": "1928-09-22",
+     "source": "Wikipedia history (Real Valladolid)",
+     "n": 1442,
+     "direct": "480/1307",
+     "classic": "464/1121",
+     "pinnacle": "947/1442",
+     "challenge": "483/1442",
+     "combined": "338/966",
+     "combinedAcc": 0.3499,
+     "fullSupportN": 1442,
+     "fullSupportAcc": 0.3499
+    },
+    {
+     "date": "1928-06-20",
+     "source": "Wikipedia infobox (Real Valladolid)",
+     "n": 1442,
+     "direct": "495/1321",
+     "classic": "530/1113",
+     "pinnacle": "490/1442",
+     "challenge": "490/1442",
+     "combined": "509/1396",
+     "combinedAcc": 0.3646,
+     "fullSupportN": 1442,
+     "fullSupportAcc": 0.3646
+    }
+   ]
+  },
+  "Kilmarnock": {
+   "settled": false,
+   "displayName": "Kilmarnock",
+   "matches": 1156,
+   "commonStart": "1869-01-05",
+   "chosen": "1869-01-05",
+   "chosenSource": "Wikipedia infobox (Kilmarnock F.C.)",
+   "margin": -0.0143,
+   "null": {
+    "mean": 0.4025,
+    "max": 0.4675
+   },
+   "graded": [
+    {
+     "date": "1869-01-05",
+     "source": "Wikipedia infobox (Kilmarnock F.C.)",
+     "n": 426,
+     "direct": "164/354",
+     "classic": "161/336",
+     "pinnacle": "159/426",
+     "challenge": "159/426",
+     "combined": "178/426",
+     "combinedAcc": 0.4178,
+     "fullSupportN": 426,
+     "fullSupportAcc": 0.4178
+    },
+    {
+     "date": "1869-01-02",
+     "source": "Wikipedia history (Kilmarnock F.C.)",
+     "n": 426,
+     "direct": "173/375",
+     "classic": "157/369",
+     "pinnacle": "159/426",
+     "challenge": "159/426",
+     "combined": "172/398",
+     "combinedAcc": 0.4322,
+     "fullSupportN": 426,
+     "fullSupportAcc": 0.4322
+    }
+   ]
+  },
+  "Fenerbahce": {
+   "settled": false,
+   "displayName": "Fenerbahce",
+   "matches": 1070,
+   "commonStart": "1910-06-05",
+   "chosen": "1910-06-05",
+   "chosenSource": "Wikipedia history (Fenerbahçe S.K. (football))",
+   "margin": -0.0158,
+   "null": {
+    "mean": 0.4845,
+    "max": 0.511
+   },
+   "graded": [
+    {
+     "date": "1910-06-05",
+     "source": "Wikipedia history (Fenerbahçe S.K. (football))",
+     "n": 666,
+     "direct": "283/562",
+     "classic": "318/606",
+     "pinnacle": "326/666",
+     "challenge": "326/666",
+     "combined": "308/622",
+     "combinedAcc": 0.4952,
+     "fullSupportN": 666,
+     "fullSupportAcc": 0.4952
+    },
+    {
+     "date": "1907-05-03",
+     "source": "Wikipedia infobox (Fenerbahçe S.K. (football))",
+     "n": 666,
+     "direct": "296/576",
+     "classic": "265/512",
+     "pinnacle": "340/666",
+     "challenge": "326/666",
+     "combined": "256/501",
+     "combinedAcc": 0.511,
+     "fullSupportN": 666,
+     "fullSupportAcc": 0.511
+    }
+   ]
+  },
+  "Galatasaray": {
+   "settled": false,
+   "displayName": "Galatasaray",
+   "matches": 1070,
+   "commonStart": "2017-03-30",
+   "chosen": "1905-10-01",
+   "chosenSource": "Wikipedia infobox (Galatasaray S.K. (football))",
+   "margin": 0.0292,
+   "null": {
+    "mean": 0.4604,
+    "max": 0.5123
+   },
+   "graded": [
+    {
+     "date": "1905-10-01",
+     "source": "Wikipedia infobox (Galatasaray S.K. (football))",
+     "n": 162,
+     "direct": "61/124",
+     "classic": "68/141",
+     "pinnacle": "72/162",
+     "challenge": "72/162",
+     "combined": "66/145",
+     "combinedAcc": 0.4552,
+     "fullSupportN": 666,
+     "fullSupportAcc": 0.4834
+    },
+    {
+     "date": "2017-03-30",
+     "source": "Wikipedia infobox (Galatasaray S.K. (football))",
+     "n": 162,
+     "direct": "71/153",
+     "classic": "59/136",
+     "pinnacle": "0/0",
+     "challenge": "90/162",
+     "combined": "69/162",
+     "combinedAcc": 0.4259,
+     "fullSupportN": 162,
+     "fullSupportAcc": 0.4259
+    },
+    {
+     "date": "2016-01-23",
+     "source": "Wikipedia infobox (Galatasaray S.K. (football))",
+     "n": 162,
+     "direct": "77/162",
+     "classic": "59/136",
+     "pinnacle": "0/0",
+     "challenge": "72/162",
+     "combined": "77/162",
+     "combinedAcc": 0.4753,
+     "fullSupportN": 192,
+     "fullSupportAcc": 0.4688
+    }
+   ]
+  },
+  "US Palermo": {
+   "settled": true,
+   "displayName": "US Palermo",
+   "matches": 1050,
+   "commonStart": "1905-02-02",
+   "chosen": "1905-02-02",
+   "chosenSource": "Wikipedia history (Palermo FC)",
+   "margin": 0.0899,
+   "null": {
+    "mean": 0.3639,
+    "max": 0.4062
+   },
+   "graded": [
+    {
+     "date": "1905-02-02",
+     "source": "Wikipedia history (Palermo FC)",
+     "n": 734,
+     "direct": "241/610",
+     "classic": "327/658",
+     "pinnacle": "272/734",
+     "challenge": "272/734",
+     "combined": "261/634",
+     "combinedAcc": 0.4117,
+     "fullSupportN": 734,
+     "fullSupportAcc": 0.4117
+    },
+    {
+     "date": "1900-11-01",
+     "source": "Wikipedia infobox (Palermo FC)",
+     "n": 734,
+     "direct": "243/668",
+     "classic": "249/608",
+     "pinnacle": "264/734",
+     "challenge": "262/734",
+     "combined": "205/637",
+     "combinedAcc": 0.3218,
+     "fullSupportN": 734,
+     "fullSupportAcc": 0.3218
+    }
+   ]
+  },
+  "Sp Lisbon": {
+   "settled": false,
+   "displayName": "Sp Lisbon",
+   "matches": 1022,
+   "commonStart": "1906-07-01",
+   "chosen": "1906-07-01",
+   "chosenSource": "Wikipedia infobox (Sporting CP)",
+   "margin": 0.0179,
+   "null": {
+    "mean": 0.4911,
+    "max": 0.5237
+   },
+   "graded": [
+    {
+     "date": "1906-07-01",
+     "source": "Wikipedia infobox (Sporting CP)",
+     "n": 626,
+     "direct": "276/543",
+     "classic": "236/489",
+     "pinnacle": "324/626",
+     "challenge": "324/626",
+     "combined": "288/572",
+     "combinedAcc": 0.5035,
+     "fullSupportN": 626,
+     "fullSupportAcc": 0.5035
+    },
+    {
+     "date": "1906-05-08",
+     "source": "Wikipedia history (Sporting CP)",
+     "n": 626,
+     "direct": "261/551",
+     "classic": "234/495",
+     "pinnacle": "302/626",
+     "challenge": "302/626",
+     "combined": "304/626",
+     "combinedAcc": 0.4856,
+     "fullSupportN": 626,
+     "fullSupportAcc": 0.4856
+    }
+   ]
+  },
+  "Milton Keynes Dons": {
+   "settled": false,
+   "displayName": "Milton Keynes Dons",
+   "matches": 909,
+   "commonStart": "2015-02-17",
+   "chosen": "2004-07-01",
+   "chosenSource": "Wikipedia history (Milton Keynes Dons F.C.)",
+   "margin": 0.1479,
+   "null": {
+    "mean": 0.3398,
+    "max": 0.4545
+   },
+   "graded": [
+    {
+     "date": "2004-07-01",
+     "source": "Wikipedia history (Milton Keynes Dons F.C.)",
+     "n": 169,
+     "direct": "79/164",
+     "classic": "67/145",
+     "pinnacle": "50/169",
+     "challenge": "50/169",
+     "combined": "75/169",
+     "combinedAcc": 0.4438,
+     "fullSupportN": 339,
+     "fullSupportAcc": 0.4071
+    },
+    {
+     "date": "2015-02-17",
+     "source": "Wikipedia history (Milton Keynes Dons F.C.)",
+     "n": 169,
+     "direct": "67/169",
+     "classic": "75/148",
+     "pinnacle": "50/169",
+     "challenge": "50/169",
+     "combined": "50/169",
+     "combinedAcc": 0.2959,
+     "fullSupportN": 169,
+     "fullSupportAcc": 0.2959
+    },
+    {
+     "date": "2008-12-29",
+     "source": "Wikipedia history (Milton Keynes Dons F.C.)",
+     "n": 169,
+     "direct": "41/143",
+     "classic": "46/117",
+     "pinnacle": "119/169",
+     "challenge": "50/169",
+     "combined": "27/103",
+     "combinedAcc": 0.2621,
+     "fullSupportN": 272,
+     "fullSupportAcc": 0.3117
+    },
+    {
+     "date": "2004-06-21",
+     "source": "Wikipedia infobox (Milton Keynes Dons F.C.)",
+     "n": 169,
+     "direct": "57/169",
+     "classic": "69/133",
+     "pinnacle": "0/0",
+     "challenge": "50/169",
+     "combined": "57/169",
+     "combinedAcc": 0.3373,
+     "fullSupportN": 339,
+     "fullSupportAcc": 0.3392
+    }
+   ]
+  },
+  "Antalyaspor": {
+   "settled": false,
+   "displayName": "Antalyaspor",
+   "matches": 832,
+   "commonStart": "1966-07-02",
+   "chosen": "1966-06-06",
+   "chosenSource": "Wikipedia history (Antalyaspor)",
+   "margin": -0.0429,
+   "null": {
+    "mean": 0.3941,
+    "max": 0.4713
+   },
+   "graded": [
+    {
+     "date": "1966-06-06",
+     "source": "Wikipedia history (Antalyaspor)",
+     "n": 516,
+     "direct": "177/437",
+     "classic": "208/449",
+     "pinnacle": "205/516",
+     "challenge": "169/516",
+     "combined": "180/461",
+     "combinedAcc": 0.3905,
+     "fullSupportN": 516,
+     "fullSupportAcc": 0.3905
+    },
+    {
+     "date": "1966-07-02",
+     "source": "Wikipedia infobox (Antalyaspor)",
+     "n": 516,
+     "direct": "203/478",
+     "classic": "216/413",
+     "pinnacle": "115/169",
+     "challenge": "169/516",
+     "combined": "208/480",
+     "combinedAcc": 0.4333,
+     "fullSupportN": 516,
+     "fullSupportAcc": 0.4333
+    }
+   ]
+  },
+  "Panionios": {
+   "settled": false,
+   "displayName": "Panionios",
+   "matches": 777,
+   "commonStart": "1908-02-03",
+   "chosen": "1908-02-03",
+   "chosenSource": "Wikidata P571",
+   "margin": -0.0058,
+   "null": {
+    "mean": 0.3708,
+    "max": 0.447
+   },
+   "graded": [
+    {
+     "date": "1908-02-03",
+     "source": "Wikidata P571",
+     "n": 633,
+     "direct": "231/528",
+     "classic": "275/575",
+     "pinnacle": "438/633",
+     "challenge": "195/633",
+     "combined": "223/478",
+     "combinedAcc": 0.4665,
+     "fullSupportN": 633,
+     "fullSupportAcc": 0.4665
+    },
+    {
+     "date": "1890-09-14",
+     "source": "Wikipedia infobox (Panionios F.C.)",
+     "n": 633,
+     "direct": "225/607",
+     "classic": "208/488",
+     "pinnacle": "0/0",
+     "challenge": "438/633",
+     "combined": "299/633",
+     "combinedAcc": 0.4724,
+     "fullSupportN": 633,
+     "fullSupportAcc": 0.4724
+    }
+   ]
+  },
+  "Getafe CF": {
+   "settled": false,
+   "displayName": "Getafe",
+   "matches": 760,
+   "commonStart": "1983-07-08",
+   "chosen": "1976-09-01",
+   "chosenSource": "Wikipedia history (Getafe CF)",
+   "margin": 0.0975,
+   "null": {
+    "mean": 0.3756,
+    "max": 0.454
+   },
+   "graded": [
+    {
+     "date": "1976-09-01",
+     "source": "Wikipedia history (Getafe CF)",
+     "n": 670,
+     "direct": "254/565",
+     "classic": "290/598",
+     "pinnacle": "144/363",
+     "challenge": "227/670",
+     "combined": "278/637",
+     "combinedAcc": 0.4364,
+     "fullSupportN": 670,
+     "fullSupportAcc": 0.4364
+    },
+    {
+     "date": "1982-07-10",
+     "source": "Wikipedia history (Getafe CF)",
+     "n": 670,
+     "direct": "222/598",
+     "classic": "257/506",
+     "pinnacle": "227/670",
+     "challenge": "227/670",
+     "combined": "182/537",
+     "combinedAcc": 0.3389,
+     "fullSupportN": 670,
+     "fullSupportAcc": 0.3389
+    },
+    {
+     "date": "1983-07-08",
+     "source": "Wikipedia infobox (Getafe CF)",
+     "n": 670,
+     "direct": "197/567",
+     "classic": "204/567",
+     "pinnacle": "239/452",
+     "challenge": "227/670",
+     "combined": "200/591",
+     "combinedAcc": 0.3384,
+     "fullSupportN": 670,
+     "fullSupportAcc": 0.3384
+    }
+   ]
+  },
+  "Burton Albion": {
+   "settled": false,
+   "displayName": "Burton Albion",
+   "matches": 679,
+   "commonStart": "1959-10-28",
+   "chosen": "1950-07-06",
+   "chosenSource": "Wikipedia infobox (Burton Albion F.C.)",
+   "margin": 0.0139,
+   "null": {
+    "mean": 0.3386,
+    "max": 0.4323
+   },
+   "graded": [
+    {
+     "date": "1950-07-06",
+     "source": "Wikipedia infobox (Burton Albion F.C.)",
+     "n": 280,
+     "direct": "92/246",
+     "classic": "95/221",
+     "pinnacle": "197/280",
+     "challenge": "83/280",
+     "combined": "87/225",
+     "combinedAcc": 0.3867,
+     "fullSupportN": 280,
+     "fullSupportAcc": 0.3867
+    },
+    {
+     "date": "1957-11-13",
+     "source": "Wikipedia history (Burton Albion F.C.)",
+     "n": 280,
+     "direct": "100/280",
+     "classic": "86/211",
+     "pinnacle": "197/280",
+     "challenge": "83/280",
+     "combined": "85/228",
+     "combinedAcc": 0.3728,
+     "fullSupportN": 280,
+     "fullSupportAcc": 0.3728
+    },
+    {
+     "date": "1957-06-01",
+     "source": "Wikipedia history (Burton Albion F.C.)",
+     "n": 280,
+     "direct": "113/229",
+     "classic": "99/208",
+     "pinnacle": "83/280",
+     "challenge": "83/280",
+     "combined": "122/280",
+     "combinedAcc": 0.4357,
+     "fullSupportN": 280,
+     "fullSupportAcc": 0.4357
+    },
+    {
+     "date": "1959-10-28",
+     "source": "Wikipedia history (Burton Albion F.C.)",
+     "n": 280,
+     "direct": "100/245",
+     "classic": "119/245",
+     "pinnacle": "83/280",
+     "challenge": "83/280",
+     "combined": "109/280",
+     "combinedAcc": 0.3893,
+     "fullSupportN": 280,
+     "fullSupportAcc": 0.3893
+    }
+   ]
+  },
+  "US Lecce": {
+   "settled": false,
+   "displayName": "Lecce",
+   "matches": 678,
+   "commonStart": "1908-03-17",
+   "chosen": "1908-03-17",
+   "chosenSource": "Wikipedia infobox (US Lecce)",
+   "margin": 0.0569,
+   "null": {
+    "mean": 0.2986,
+    "max": 0.4453
+   },
+   "graded": [
+    {
+     "date": "1908-03-17",
+     "source": "Wikipedia infobox (US Lecce)",
+     "n": 464,
+     "direct": "159/430",
+     "classic": "208/399",
+     "pinnacle": "114/464",
+     "challenge": "114/464",
+     "combined": "137/441",
+     "combinedAcc": 0.3107,
+     "fullSupportN": 464,
+     "fullSupportAcc": 0.3107
+    },
+    {
+     "date": "1908-03-15",
+     "source": "Wikipedia history (US Lecce)",
+     "n": 464,
+     "direct": "109/399",
+     "classic": "201/375",
+     "pinnacle": "114/464",
+     "challenge": "114/464",
+     "combined": "101/398",
+     "combinedAcc": 0.2538,
+     "fullSupportN": 464,
+     "fullSupportAcc": 0.2538
+    }
+   ]
+  },
+  "Levante UD": {
+   "settled": false,
+   "displayName": "Levante",
+   "matches": 592,
+   "commonStart": "1909-09-09",
+   "chosen": "1909-09-06",
+   "chosenSource": "Wikipedia infobox (Levante UD)",
+   "margin": 0.0077,
+   "null": {
+    "mean": 0.3534,
+    "max": 0.4483
+   },
+   "graded": [
+    {
+     "date": "1909-09-06",
+     "source": "Wikipedia infobox (Levante UD)",
+     "n": 520,
+     "direct": "136/468",
+     "classic": "165/468",
+     "pinnacle": "147/520",
+     "challenge": "147/520",
+     "combined": "151/520",
+     "combinedAcc": 0.2904,
+     "fullSupportN": 520,
+     "fullSupportAcc": 0.2904
+    },
+    {
+     "date": "1909-09-09",
+     "source": "Wikipedia history (Levante UD)",
+     "n": 520,
+     "direct": "138/453",
+     "classic": "122/453",
+     "pinnacle": "147/520",
+     "challenge": "147/520",
+     "combined": "147/520",
+     "combinedAcc": 0.2827,
+     "fullSupportN": 520,
+     "fullSupportAcc": 0.2827
+    }
+   ]
+  },
+  "Nelson": {
+   "settled": false,
+   "displayName": "Nelson",
+   "matches": 412,
+   "commonStart": "1882-11-11",
+   "chosen": "1882-10-23",
+   "chosenSource": "Wikipedia infobox (Nelson F.C.)",
+   "margin": 0.0138,
+   "null": {
+    "mean": 0.4033,
+    "max": 0.5
+   },
+   "graded": [
+    {
+     "date": "1882-10-23",
+     "source": "Wikipedia infobox (Nelson F.C.)",
+     "n": 110,
+     "direct": "41/100",
+     "classic": "41/84",
+     "pinnacle": "41/105",
+     "challenge": "65/110",
+     "combined": "36/87",
+     "combinedAcc": 0.4138,
+     "fullSupportN": 110,
+     "fullSupportAcc": 0.4138
+    },
+    {
+     "date": "1882-11-11",
+     "source": "Wikipedia history (Nelson F.C.)",
+     "n": 110,
+     "direct": "38/100",
+     "classic": "42/91",
+     "pinnacle": "42/110",
+     "challenge": "42/110",
+     "combined": "40/100",
+     "combinedAcc": 0.4,
+     "fullSupportN": 110,
+     "fullSupportAcc": 0.4
+    }
+   ]
+  }
+ }
+}
