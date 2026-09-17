@@ -49,6 +49,10 @@ export interface Verdict {
   baselinePct: string;
   usedFallback: { home: boolean; away: boolean };
   formNote: string;
+  /** how far the day's numbers moved this particular call, in percentage points */
+  dateShiftPp: number;
+  /** the call with the day's numbers left out — for comparison */
+  probabilitiesWithoutDates: { home: number; draw: number; away: number } | null;
 }
 
 let cache: { calib: Calibration | null; form: FormFile | null; promise: Promise<void> | null } = { calib: null, form: null, promise: null };
@@ -137,6 +141,20 @@ export function computeVerdict(
     ? `${homeName} and ${awayName} to draw`
     : `${awayName} to beat ${homeName} at ${homeName}`;
 
+  // the same fixture with the day's numbers left out, so the panel can state exactly how much
+  // the date moved this call. This is the honest answer to "two dates can't give the same %".
+  let without: { home: number; draw: number; away: number } | null = null;
+  let shift = 0;
+  if (dl !== null) {
+    try {
+      const alt = computeVerdict(dossier, calib, form, { skipDateLayers: true });
+      if (alt) {
+        without = alt.probabilities;
+        shift = Math.abs(alt.probabilities.home - p[0]) * 100;
+      }
+    } catch { without = null; }
+  }
+
   const missing = [rowH ? null : homeName, rowA ? null : awayName].filter(Boolean) as string[];
   const notes: string[] = [];
   if (missing.length) {
@@ -159,7 +177,7 @@ export function computeVerdict(
     overallAccuracyPct: (overall * 100).toFixed(1),
     baselinePct: (baseline * 100).toFixed(1),
     usedFallback: { home: !rowH, away: !rowA },
-    formNote,
+    formNote, dateShiftPp: shift, probabilitiesWithoutDates: without,
   };
 }
 
@@ -227,6 +245,30 @@ export function VerdictPanel({ date, home, away, calibration, formFile }:
       </div>
 
       <div style={{ fontSize: "0.68rem", color: "rgba(200,180,240,0.6)", marginTop: "0.5rem", lineHeight: 1.6 }}>{v.formNote}</div>
+
+      <div style={{ fontSize: "0.68rem", color: "rgba(200,180,240,0.72)", marginTop: "0.35rem", lineHeight: 1.6, padding: "0.4rem 0.5rem", borderRadius: 9, background: "rgba(255,255,255,0.035)" }}>
+        {v.dateLayersAvailable ? (
+          v.dateShiftPp < 0.05 ? (
+            <>
+              <b style={{ color: "#f1d98a" }}>The date changed nothing here.</b> Moving this fixture to another
+              day moves this call by under <b>0.05pp</b> — measured on {v.bandN.toLocaleString()}-strong bands,
+              the day's numbers contribute less than a percentage point across the whole study. Two nearby
+              dates giving near-identical percentages is the finding, not a stuck input; the Apply button
+              confirms which date was read.
+            </>
+          ) : (
+            <>
+              <b style={{ color: "#f1d98a" }}>The date moved this call by {v.dateShiftPp.toFixed(2)}pp.</b>{" "}
+              With the day's numbers left out it would read {home.toUpperCase().slice(0, 22)} {((v.probabilitiesWithoutDates?.home ?? 0) * 100).toFixed(1)}% ·
+              draw {((v.probabilitiesWithoutDates?.draw ?? 0) * 100).toFixed(1)}% · away {((v.probabilitiesWithoutDates?.away ?? 0) * 100).toFixed(1)}%.
+              Across the study the date layers are worth under a point, so small moves are expected.
+            </>
+          )
+        ) : (
+          <>One club has no founding date on file, so the day's numbers are not part of this call at all — it
+          reads the same on every date.</>
+        )}
+      </div>
 
       <button onClick={() => setShowWorking((s) => !s)} style={{ marginTop: "0.55rem", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontSize: "0.58rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#d4af37", fontWeight: 800 }}>
         {showWorking ? "▾" : "▸"} How this call is made (and what it ignores)

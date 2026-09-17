@@ -258,6 +258,17 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
   const [home, setHome] = React.useState("Manchester United");
   const [away, setAway] = React.useState("Manchester City");
   const [showCalibration, setShowCalibration] = React.useState(false);
+  /* Drafts vs committed. A date typed on a phone keyboard does not reliably fire onChange, and
+     there was no way to be sure a value had been taken. Every field now has an explicit commit
+     (the Apply button, or Enter/Go in the field), and the panel says when a draft is pending. */
+  const [dDate, setDDate] = React.useState(date);
+  const [dHome, setDHome] = React.useState(home);
+  const [dAway, setDAway] = React.useState(away);
+  const dirty = dDate !== date || dHome !== home || dAway !== away;
+  const commit = React.useCallback((dd = dDate, dh = dHome, da = dAway) => {
+    setDate(dd); setHome(dh); setAway(da);
+    try { window.dispatchEvent(new CustomEvent("mystique-oracle-commit", { detail: { date: dd, home: dh, away: da } })); } catch { /* no window (tests) */ }
+  }, [dDate, dHome, dAway]);
   const verdictReady = useVerdictReady();
   const [rawCalib, setRawCalib] = React.useState<unknown>(null);
   const [rawForm, setRawForm] = React.useState<unknown>(null);
@@ -324,17 +335,21 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
           )}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.5rem", marginTop: "0.8rem" }}>
+        <form
+          onSubmit={(e) => { e.preventDefault(); commit(); }}
+          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.5rem", marginTop: "0.8rem", alignItems: "end" }}
+        >
           <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <span style={{ fontSize: "0.6rem", color: "rgba(200,180,240,0.6)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Date</span>
             <input
               type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              style={{ background: "rgba(10,4,28,0.9)", border: "1px solid rgba(212,175,55,0.25)", borderRadius: 10, padding: "0.45rem 0.55rem", color: "#f4ecff", fontSize: "0.8rem" }}
+              value={dDate}
+              onChange={(e) => setDDate(e.target.value)}
+              onBlur={(e) => setDDate(e.target.value)}
+              style={{ background: "rgba(10,4,28,0.9)", border: `1px solid ${dDate !== date ? "rgba(241,217,138,0.6)" : "rgba(212,175,55,0.25)"}`, borderRadius: 10, padding: "0.45rem 0.55rem", color: "#f4ecff", fontSize: "0.8rem" }}
             />
           </label>
-          {[["Home", home, setHome] as const, ["Away", away, setAway] as const].map(([label, value, set]) => (
+          {[["Home", dHome, setDHome, home] as const, ["Away", dAway, setDAway, away] as const].map(([label, value, set, committed]) => (
             <label key={label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <span style={{ fontSize: "0.6rem", color: "rgba(200,180,240,0.6)", letterSpacing: "0.08em", textTransform: "uppercase" }}>{label}</span>
               <input
@@ -342,11 +357,29 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
                 value={value}
                 onChange={(e) => set(e.target.value)}
                 placeholder="country or club"
-                style={{ background: "rgba(10,4,28,0.9)", border: "1px solid rgba(212,175,55,0.25)", borderRadius: 10, padding: "0.45rem 0.55rem", color: "#f4ecff", fontSize: "0.8rem" }}
+                enterKeyHint="go"
+                style={{ background: "rgba(10,4,28,0.9)", border: `1px solid ${value !== committed ? "rgba(241,217,138,0.6)" : "rgba(212,175,55,0.25)"}`, borderRadius: 10, padding: "0.45rem 0.55rem", color: "#f4ecff", fontSize: "0.8rem" }}
               />
             </label>
           ))}
-        </div>
+          <button
+            type="submit"
+            style={{
+              padding: "0.5rem 0.7rem", borderRadius: 10, fontWeight: 800, fontSize: "0.72rem",
+              letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer",
+              border: `1px solid ${dirty ? "rgba(241,217,138,0.85)" : "rgba(212,175,55,0.35)"}`,
+              background: dirty ? "linear-gradient(135deg, rgba(212,175,55,0.35), rgba(241,217,138,0.18))" : "rgba(212,175,55,0.08)",
+              color: dirty ? "#fff7e0" : "#f1d98a",
+            }}
+          >
+            {dirty ? "↵ Apply" : "✓ Applied"}
+          </button>
+        </form>
+        {dirty && (
+          <div style={{ fontSize: "0.62rem", color: "#f1d98a", marginTop: "0.35rem" }}>
+            Pending — press Apply (or Enter) to read this fixture. The panels below still show the previous entry.
+          </div>
+        )}
         <datalist id="oracle-entities">
           {names.map((n) => <option key={n} value={n} />)}
         </datalist>
@@ -361,7 +394,7 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
           ].map(([h, a]) => (
             <button
               key={`${h}-${a}`}
-              onClick={() => { setHome(h); setAway(a); }}
+              onClick={() => { setDHome(h); setDAway(a); commit(dDate, h, a); }}
               style={{ fontSize: "0.62rem", padding: "0.25rem 0.5rem", borderRadius: 999, border: "1px solid rgba(212,175,55,0.25)", background: "rgba(212,175,55,0.08)", color: "#f1d98a", cursor: "pointer" }}
             >
               {h} v {a}
