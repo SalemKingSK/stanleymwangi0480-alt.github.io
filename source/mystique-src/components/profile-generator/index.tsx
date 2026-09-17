@@ -16,6 +16,7 @@ import type {
   NumerologyData,
 } from "./types";
 import { ProfileForm } from "./profile-form";
+import { MatchOraclePanel } from "./match-oracle";
 import { ResultsDisplay } from "./results-display";
 import type { FamousPerson } from "@/lib/famous-birthdays";
 import {
@@ -360,6 +361,14 @@ export function ProfileGenerator() {
     setFormData(item);
     processRequest(item);
   };
+  const [oracleOnly, setOracleOnly] = React.useState(false);
+  if (oracleOnly) {
+    return (
+      <div className="w-full max-w-3xl mx-auto px-3 pt-6 pb-24">
+        <MatchOraclePanel onClose={() => setOracleOnly(false)} />
+      </div>
+    );
+  }
   return (
     <Sheet open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
       <AnimatePresence mode="wait">
@@ -408,6 +417,25 @@ export function ProfileGenerator() {
               }
               onFamousPersonSelect={handleFamousPersonSelect}
             />
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={() => setOracleOnly(true)}
+                style={{
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: "0.66rem",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "#f1d98a",
+                  background: "rgba(212,175,55,0.08)",
+                  border: "1px solid rgba(212,175,55,0.3)",
+                  borderRadius: 999,
+                  padding: "0.5rem 1rem",
+                  cursor: "pointer",
+                }}
+              >
+                ⚽ Match Oracle — fixture dossier
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

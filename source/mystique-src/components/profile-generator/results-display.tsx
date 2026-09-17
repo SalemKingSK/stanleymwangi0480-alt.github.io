@@ -52,6 +52,7 @@ import {
   Users,
 } from "lucide-react";
 import { AccordionContentWithPlayer } from "./accordion-content-with-player";
+import { MatchOraclePanel } from "./match-oracle";
 import InstallButton from "../InstallButton";
 import { ZOO } from "@/lib/cosmic-fate/zoo";
 import { buildCosmicProfile } from "@/lib/cosmic-synthesizer";
@@ -1451,6 +1452,14 @@ function ResultsHeader({
             🌌 Fate Map
           </AnimatedTab>
         </div>
+        <div className="w-full">
+          <AnimatedTab
+            isActive={activeTab === "oracle"}
+            onClick={() => onTabClick("oracle")}
+          >
+            ⚽ Match Oracle
+          </AnimatedTab>
+        </div>
       </div>
     </div>
   );
@@ -2107,6 +2116,7 @@ export function ResultsDisplay({
                   birthYear={numerology.birthYear}
                 />
               )}
+              {activeTab === "oracle" && <MatchOraclePanel />}
             </motion.div>
           </AnimatePresence>
           {/* ── Soul Weather (permanent, below all tabs) ── */}

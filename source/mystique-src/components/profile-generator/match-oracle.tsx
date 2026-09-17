@@ -1,0 +1,409 @@
+import * as React from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { AccordionContentWithPlayer } from "./accordion-content-with-player";
+import {
+  buildFixtureDossier,
+  letterAlignment,
+  oracleEntities,
+  seasonLetters,
+  CALIBRATION,
+  SEASON_CONSTANT_WARNING,
+  ROYAL_STARS,
+  KARMIC_DEBTS,
+  lookupCompoundName,
+  type FixtureDossier,
+  type Relation,
+} from "@/lib/match-engine";
+
+/* ── small style helpers ───────────────────────────────────────────────────── */
+const CARD: React.CSSProperties = {
+  border: "1px solid rgba(212,175,55,0.18)",
+  background: "linear-gradient(135deg, rgba(16,8,42,0.96), rgba(38,16,68,0.72))",
+  borderRadius: "1rem",
+  padding: "0.9rem",
+  marginBottom: "0.85rem",
+};
+const LABEL: React.CSSProperties = {
+  fontFamily: "'Cinzel', serif",
+  fontSize: "0.58rem",
+  letterSpacing: "0.16em",
+  textTransform: "uppercase",
+  color: "#d4af37",
+  fontWeight: 800,
+};
+const MUTED: React.CSSProperties = { fontSize: "0.72rem", color: "rgba(200,180,240,0.6)", lineHeight: 1.6 };
+const MONO: React.CSSProperties = { fontVariantNumeric: "tabular-nums" };
+
+const REL_COLOR: Record<Relation, string> = {
+  same: "#f1d98a",
+  friend: "#86efac",
+  neutral: "#94a3b8",
+  enemy: "#fca5a5",
+};
+
+function Row({ k, v, tone }: { k: string; v: React.ReactNode; tone?: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: "0.7rem", padding: "0.22rem 0", borderBottom: "1px dashed rgba(255,255,255,0.06)" }}>
+      <span style={{ fontSize: "0.7rem", color: "rgba(200,180,240,0.62)" }}>{k}</span>
+      <span style={{ fontSize: "0.72rem", color: tone || "rgba(240,234,255,0.92)", textAlign: "right", fontWeight: 600 }}>{v}</span>
+    </div>
+  );
+}
+
+/* ── team card ─────────────────────────────────────────────────────────────── */
+function TeamCard({ side, d }: { side: "home" | "away"; d: FixtureDossier }) {
+  const t = side === "home" ? d.home : d.away;
+  const clash = side === "home" ? d.clash.homeDayVsFoundingDay : d.clash.awayDayVsFoundingDay;
+  const crown = t.direct.isRoyal ? " ★ royal" : "";
+  const karma = t.direct.isKarmic ? " ⚠ karmic" : "";
+  return (
+    <div style={{ ...CARD, flex: 1, minWidth: 240 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "0.5rem" }}>
+        <span style={LABEL}>{side === "home" ? "Home" : "Away"} · {t.kind}</span>
+        <span style={{ fontSize: "0.6rem", color: "rgba(200,180,240,0.45)" }}>founded {t.foundedISO} · age {t.age}y</span>
+      </div>
+      <div style={{ fontFamily: "'Cinzel', serif", color: "#f1d98a", fontSize: "0.92rem", fontWeight: 800, margin: "0.25rem 0 0.5rem" }}>{t.team}</div>
+      <Row k="Season letter (direct)" v={t.direct.name + crown + karma} tone={t.direct.isRoyal ? "#f1d98a" : undefined} />
+      <Row k="Season letter (classic)" v={t.classic.name} />
+      <Row k="Personal year" v={`${t.personalYear}`} />
+      <Row k="Personal month" v={t.personalMonth} />
+      <Row k="Personal day (the moving letter)" v={<span style={{ ...MONO, color: "#fff7e0" }}>{t.personalDay}</span>} tone={REL_COLOR[clash]} />
+      <Row k="Founding-day number" v={t.foundingDayNumber} />
+      <Row k="Name number" v={`${t.nameNumber.total} → ${t.nameNumber.reduced}${t.nameNumber.compoundNumber ? ` (${t.nameNumber.compoundNumber} ${t.nameNumber.compoundName})` : ""}`} />
+      <Row k="Today's letter vs founding day" v={clash} tone={REL_COLOR[clash]} />
+    </div>
+  );
+}
+
+/* ── trend tables (precomputed dataset) ────────────────────────────────────── */
+interface TrendTable { n: number; w: number; d: number; l: number; gf: number; ga: number; pd: number[][]; pm: number[][]; ud: number[][]; dc: number[][]; rfd: number[][]; rnn: number[][]; dec: number[][]; top: number[][]; since: number }
+interface TrendFile { meta: { source: string; sample: number; teams: number; since: number }; teams: Record<string, TrendTable> }
+
+let trendCache: TrendFile | null = null;
+let trendPromise: Promise<TrendFile | null> | null = null;
+function useTrends(): { data: TrendFile | null; loading: boolean } {
+  const [data, setData] = React.useState<TrendFile | null>(trendCache);
+  const [loading, setLoading] = React.useState(!trendCache && !!trendPromise);
+  React.useEffect(() => {
+    if (trendCache) { setData(trendCache); return; }
+    if (!trendPromise) {
+      setLoading(true);
+      trendPromise = fetch("/data/team-trends.json")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => { trendCache = j; return j; })
+        .catch(() => null);
+    }
+    let alive = true;
+    trendPromise.then((j) => { if (alive) { setData(j); setLoading(false); } });
+    return () => { alive = false; };
+  }, []);
+  return { data, loading };
+}
+
+const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
+const zOf = (w: number, n: number, p: number) => (n ? (w - n * p) / Math.sqrt(Math.max(n * p * (1 - p), 1e-9)) : 0);
+
+function TrendTableBlock({
+  title, rows, baseline, labelFn, note,
+}: { title: string; rows: number[][]; baseline: number; labelFn: (k: number) => string; note?: string }) {
+  if (!rows?.length) return null;
+  const sorted = [...rows].sort((a, b) => ((b[2] * 3 + b[3]) / b[1]) - ((a[2] * 3 + a[3]) / a[1]));
+  return (
+    <div style={{ marginBottom: "0.9rem" }}>
+      <div style={{ ...LABEL, marginBottom: "0.35rem" }}>{title}</div>
+      {note && <div style={{ ...MUTED, marginBottom: "0.3rem" }}>{note}</div>}
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.68rem", ...MONO }}>
+          <thead>
+            <tr style={{ color: "rgba(200,180,240,0.55)", textAlign: "left" }}>
+              <th style={{ padding: "0.2rem 0.3rem", fontWeight: 600 }}>letter</th>
+              <th style={{ padding: "0.2rem 0.3rem", fontWeight: 600 }}>n</th>
+              <th style={{ padding: "0.2rem 0.3rem", fontWeight: 600 }}>W-D-L</th>
+              <th style={{ padding: "0.2rem 0.3rem", fontWeight: 600 }}>win</th>
+              <th style={{ padding: "0.2rem 0.3rem", fontWeight: 600 }}>ppg</th>
+              <th style={{ padding: "0.2rem 0.3rem", fontWeight: 600 }}>lift</th>
+              <th style={{ padding: "0.2rem 0.3rem", fontWeight: 600 }}>z</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r) => {
+              const [k, n, w, d, l] = r;
+              const win = w / n, ppg = (w * 3 + d) / n, lift = win - baseline, z = zOf(w, n, baseline);
+              const strong = Math.abs(z) >= 2 && n >= 15;
+              return (
+                <tr key={k} style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                  <td style={{ padding: "0.22rem 0.3rem", color: strong ? "#f1d98a" : "rgba(240,234,255,0.88)" }}>{labelFn(k)}</td>
+                  <td style={{ padding: "0.22rem 0.3rem", color: n < 12 ? "#fca5a5" : undefined }}>{n}</td>
+                  <td style={{ padding: "0.22rem 0.3rem" }}>{w}-{d}-{l}</td>
+                  <td style={{ padding: "0.22rem 0.3rem" }}>{pct(win)}</td>
+                  <td style={{ padding: "0.22rem 0.3rem" }}>{ppg.toFixed(2)}</td>
+                  <td style={{ padding: "0.22rem 0.3rem", color: lift >= 0 ? "#86efac" : "#fca5a5" }}>{lift >= 0 ? "+" : ""}{(lift * 100).toFixed(1)}pp</td>
+                  <td style={{ padding: "0.22rem 0.3rem", color: strong ? "#f1d98a" : "rgba(200,180,240,0.6)" }}>{z.toFixed(2)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+const REL_NAMES = ["same", "friend", "neutral", "enemy"];
+
+function TeamTrend({ name }: { name: string }) {
+  const { data, loading } = useTrends();
+  const t = data?.teams?.[name];
+  if (loading && !data) return <div style={{ ...MUTED }}>Loading the decade ledger…</div>;
+  if (!t) {
+    return (
+      <div style={{ ...MUTED }}>
+        No precomputed ledger for <b style={{ color: "#f1d98a" }}>{name}</b>.
+        The shipped dataset covers {data?.meta?.teams ?? "—"} national teams from {data?.meta?.since ?? 1950}
+        {" "}({data?.meta?.sample ? data.meta.sample.toLocaleString() : "—"} graded match-rows). Clubs have no bundled
+        match history — the same method applies once a results file is available.
+      </div>
+    );
+  }
+  const baseline = t.w / t.n;
+  const gd = (t.gf - t.ga) / t.n;
+  return (
+    <div style={{ ...CARD }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: "0.4rem" }}>
+        <span style={LABEL}>{name} — deep ledger, {t.since}→today</span>
+        <span style={{ fontSize: "0.66rem", color: "rgba(200,180,240,0.6)" }}>
+          {t.n} matches · W{t.w} D{t.d} L{t.l} · win {pct(baseline)} · ppg {((t.w * 3 + t.d) / t.n).toFixed(2)} · gd {gd >= 0 ? "+" : ""}{gd.toFixed(2)}
+        </span>
+      </div>
+      <div style={{ ...MUTED, marginTop: "0.35rem" }}>
+        Every match this team has played is graded, and every letter is measured against the team's <b>own</b> baseline
+        ({pct(baseline)} wins) — never against a global average. “z” is the standard score of the win count: |z| ≥ 2 with n ≥ 15
+        is where a letter starts to look like a real pattern; n &lt; 12 rows are shown in red as noise.
+      </div>
+      <div style={{ marginTop: "0.8rem" }}>
+        <TrendTableBlock
+          title="By personal day (the finest moving layer)"
+          rows={t.pd}
+          baseline={baseline}
+          labelFn={(k) => `personal day ${k}`}
+          note="The layer that actually changes between fixtures. Read any strong row as a hypothesis to test further, never as a call."
+        />
+        <TrendTableBlock title="By personal month" rows={t.pm} baseline={baseline} labelFn={(k) => `personal month ${k}`} />
+        <TrendTableBlock title="By universal day (the field, same for both sides)" rows={t.ud} baseline={baseline} labelFn={(k) => `universal day ${k}`} />
+        <TrendTableBlock
+          title="By calendar-day compound (the day’s own letter)"
+          rows={t.dc}
+          baseline={baseline}
+          labelFn={(k) => `${k}${lookupCompoundName(k) ? ` — ${lookupCompoundName(k)}` : ""}`}
+        />
+        <TrendTableBlock title="Today's letter vs the founding day" rows={t.rfd} baseline={baseline} labelFn={(k) => REL_NAMES[k] ?? String(k)} />
+        <TrendTableBlock title="Today's letter vs the name number" rows={t.rnn} baseline={baseline} labelFn={(k) => REL_NAMES[k] ?? String(k)} />
+        <TrendTableBlock
+          title="Strongest compounds on record (n ≥ 8)"
+          rows={t.top}
+          baseline={baseline}
+          labelFn={(k) => `${k}${lookupCompoundName(k) ? ` — ${lookupCompoundName(k)}` : ""}`}
+        />
+      </div>
+      <div style={{ marginTop: "0.6rem" }}>
+        <div style={{ ...LABEL, marginBottom: "0.3rem" }}>Decade stability</div>
+        <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
+          {t.dec.map(([dec, n, w]) => (
+            <div key={dec} style={{ padding: "0.3rem 0.45rem", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", fontSize: "0.64rem", ...MONO }}>
+              <span style={{ color: "rgba(200,180,240,0.6)" }}>{dec}s </span>
+              <span style={{ color: "#f1d98a" }}>{pct(w / n)}</span>
+              <span style={{ color: "rgba(200,180,240,0.45)" }}> (n={n})</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── main panel ────────────────────────────────────────────────────────────── */
+export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
+  const entities = React.useMemo(() => oracleEntities(), []);
+  const names = React.useMemo(() => entities.map((e) => e.name), [entities]);
+  const today = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = React.useState(today);
+  const [home, setHome] = React.useState("Kenya");
+  const [away, setAway] = React.useState("Brazil");
+  const [showCalibration, setShowCalibration] = React.useState(false);
+
+  const dossier = React.useMemo(() => {
+    try {
+      if (!date || !home || !away || home === away) return null;
+      return buildFixtureDossier(date, home, away);
+    } catch {
+      return null;
+    }
+  }, [date, home, away]);
+
+  const summaryText = React.useMemo(() => {
+    if (!dossier) return "";
+    const lines = letterAlignment(dossier);
+    const s = seasonLetters(dossier);
+    return [
+      `${dossier.home.team} against ${dossier.away.team}, ${dossier.date}.`,
+      `The day is a universal day ${dossier.day.universalDay.raw}${dossier.day.universalDay.name ? `, ${dossier.day.universalDay.name}` : ""}, its calendar-day letter ${dossier.day.calendarDay.raw}${dossier.day.calendarDay.name ? `, ${dossier.day.calendarDay.name}` : ""}, falling on a ${dossier.day.weekday}.`,
+      `${dossier.home.team} carries the season letter ${s.home.direct.name}, with classic reading ${s.home.classic.name}, and stands today on personal day ${dossier.home.personalDay} against its founding day ${dossier.home.foundingDayNumber} and its name number ${dossier.home.nameNumber.total}.`,
+      `${dossier.away.team} carries the season letter ${s.away.direct.name}, with classic reading ${s.away.classic.name}, and stands today on personal day ${dossier.away.personalDay} against its founding day ${dossier.away.foundingDayNumber} and its name number ${dossier.away.nameNumber.total}.`,
+      lines.map((l) => l.detail).join(" "),
+      "Read the letters as language, not as a forecast. The season letters are identical in every fixture this year and cannot separate matches; the moving layers describe the day, and the data on nearly forty thousand matches says they do not predict results.",
+    ].join("\n\n");
+  }, [dossier]);
+
+  return (
+    <div>
+      <div style={{ ...CARD, background: "linear-gradient(135deg, rgba(24,10,56,0.98), rgba(52,20,88,0.72))" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+          <div>
+            <div style={{ ...LABEL, fontSize: "0.66rem" }}>⚽ Match Oracle</div>
+            <div style={{ ...MUTED, marginTop: 2 }}>
+              A fixture dossier for any two ledger entities — deterministic, offline, and honest about what it can know.
+            </div>
+          </div>
+          {onClose && (
+            <Button variant="ghost" size="sm" onClick={onClose} style={{ color: "#d4af37" }}>
+              Close
+            </Button>
+          )}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.5rem", marginTop: "0.8rem" }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontSize: "0.6rem", color: "rgba(200,180,240,0.6)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Date</span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              style={{ background: "rgba(10,4,28,0.9)", border: "1px solid rgba(212,175,55,0.25)", borderRadius: 10, padding: "0.45rem 0.55rem", color: "#f4ecff", fontSize: "0.8rem" }}
+            />
+          </label>
+          {[["Home", home, setHome] as const, ["Away", away, setAway] as const].map(([label, value, set]) => (
+            <label key={label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span style={{ fontSize: "0.6rem", color: "rgba(200,180,240,0.6)", letterSpacing: "0.08em", textTransform: "uppercase" }}>{label}</span>
+              <input
+                list="oracle-entities"
+                value={value}
+                onChange={(e) => set(e.target.value)}
+                placeholder="country or club"
+                style={{ background: "rgba(10,4,28,0.9)", border: "1px solid rgba(212,175,55,0.25)", borderRadius: 10, padding: "0.45rem 0.55rem", color: "#f4ecff", fontSize: "0.8rem" }}
+              />
+            </label>
+          ))}
+        </div>
+        <datalist id="oracle-entities">
+          {names.map((n) => <option key={n} value={n} />)}
+        </datalist>
+
+        <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.55rem" }}>
+          {[
+            ["Gor Mahia", "Al Ahly"],
+            ["Kenya", "Brazil"],
+            ["Brazil", "Germany"],
+            ["Argentina", "France"],
+            ["Manchester United", "Liverpool"],
+          ].map(([h, a]) => (
+            <button
+              key={`${h}-${a}`}
+              onClick={() => { setHome(h); setAway(a); }}
+              style={{ fontSize: "0.62rem", padding: "0.25rem 0.5rem", borderRadius: 999, border: "1px solid rgba(212,175,55,0.25)", background: "rgba(212,175,55,0.08)", color: "#f1d98a", cursor: "pointer" }}
+            >
+              {h} v {a}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {!dossier && (
+        <div style={{ ...CARD, color: "#fca5a5" }}>
+          Choose two different entities that both carry a founding date in the ledger.
+        </div>
+      )}
+
+      {dossier && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+          <div style={{ display: "flex", gap: "0.7rem", flexWrap: "wrap" }}>
+            <TeamCard side="home" d={dossier} />
+            <TeamCard side="away" d={dossier} />
+          </div>
+
+          <div style={CARD}>
+            <div style={{ ...LABEL, marginBottom: "0.4rem" }}>The day both play on</div>
+            <Row k="Date" v={`${dossier.date} · ${dossier.day.weekday}`} />
+            <Row k="Universal day" v={`${dossier.day.universalDay.raw}${dossier.day.universalDay.name ? ` — ${dossier.day.universalDay.name}` : ""} → ${dossier.day.universalDay.reduced}`} />
+            <Row k="Calendar-day letter" v={`${dossier.day.calendarDay.raw}${dossier.day.calendarDay.name ? ` — ${dossier.day.calendarDay.name}` : ""}`} />
+            <Row k="Universal month / year" v={`${dossier.day.universalMonth} / ${dossier.day.universalYear.raw}${dossier.day.universalYear.name ? ` (${dossier.day.universalYear.name})` : ""}`} />
+            {dossier.era && (
+              <Row k={`${dossier.home.team} era (pinnacle ${dossier.era.pinnacleNumber}, stage ${dossier.era.pinnacleStage})`} v={`challenge ${dossier.era.challengeNumber}`} />
+            )}
+          </div>
+
+          <div style={CARD}>
+            <div style={{ ...LABEL, marginBottom: "0.4rem" }}>Letter alignment — a reading, not a forecast</div>
+            {letterAlignment(dossier).map((l, i) => (
+              <div key={i} style={{ padding: "0.4rem 0", borderBottom: "1px dashed rgba(255,255,255,0.06)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "0.6rem" }}>
+                  <span style={{ fontSize: "0.7rem", color: "rgba(200,180,240,0.7)" }}>{l.label}</span>
+                  <span style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.08em", color: l.verdict === "favours" ? "#86efac" : l.verdict === "tests" ? "#fca5a5" : "#94a3b8", fontWeight: 700 }}>
+                    {l.verdict}
+                  </span>
+                </div>
+                <div style={{ ...MUTED, marginTop: 2 }}>{l.detail}</div>
+              </div>
+            ))}
+            <div style={{ ...MUTED, marginTop: "0.55rem", color: "rgba(241,217,138,0.75)" }}>
+              “Favours” and “tests” describe the language of the letters only. No probability, no pick, no stake.
+            </div>
+          </div>
+
+          <div style={CARD}>
+            <div style={{ ...LABEL, marginBottom: "0.4rem" }}>Narrative dossier (plays with the sentence-following reader)</div>
+            <AccordionContentWithPlayer text={summaryText} />
+          </div>
+
+          <div style={{ ...CARD, borderColor: "rgba(252,165,165,0.35)", background: "linear-gradient(135deg, rgba(40,12,24,0.96), rgba(60,18,38,0.7))" }}>
+            <div style={{ ...LABEL, color: "#fca5a5" }}>⚠ The one rule this engine enforces on itself</div>
+            <div style={{ ...MUTED, color: "rgba(255,220,220,0.85)", marginTop: "0.3rem" }}>{SEASON_CONSTANT_WARNING}</div>
+          </div>
+
+          <div style={CARD}>
+            <button
+              onClick={() => setShowCalibration((s) => !s)}
+              style={{ width: "100%", background: "none", border: "none", textAlign: "left", cursor: "pointer", padding: 0 }}
+            >
+              <div style={{ ...LABEL }}>{showCalibration ? "▾" : "▸"} What the data says (calibration)</div>
+            </button>
+            {showCalibration && (
+              <div style={{ marginTop: "0.5rem" }}>
+                <div style={{ ...MUTED, color: "#f1d98a", fontWeight: 700 }}>{CALIBRATION.headline}</div>
+                <div style={{ ...MUTED, marginTop: "0.4rem" }}>
+                  Tested on {CALIBRATION.matches.toLocaleString()} matches ({CALIBRATION.span}); train {CALIBRATION.trainN.toLocaleString()}, test {CALIBRATION.testN.toLocaleString()}.
+                  Base rates — train: home {CALIBRATION.baseRates.train.home}% / draw {CALIBRATION.baseRates.train.draw}% / away {CALIBRATION.baseRates.train.away}%;
+                  test: home {CALIBRATION.baseRates.test.home}% / draw {CALIBRATION.baseRates.test.draw}% / away {CALIBRATION.baseRates.test.away}%.
+                  Signatures swept: {CALIBRATION.signaturesTested}. Survivors that replicated out of sample: {CALIBRATION.survivors}.
+                </div>
+                <ul style={{ margin: "0.5rem 0 0 1rem", padding: 0 }}>
+                  {CALIBRATION.detail.map((d, i) => (
+                    <li key={i} style={{ ...MUTED, marginBottom: "0.32rem" }}>{d}</li>
+                  ))}
+                </ul>
+                <div style={{ ...MUTED, marginTop: "0.45rem", color: "rgba(241,217,138,0.85)" }}>{CALIBRATION.conclusion}</div>
+              </div>
+            )}
+          </div>
+
+          <TeamTrend name={dossier.home.team} />
+          <TeamTrend name={dossier.away.team} />
+
+          <div style={{ ...MUTED, marginTop: "0.4rem" }}>
+            Ledger entities available: {entities.length} (countries and clubs). Royal stars {[...ROYAL_STARS].join(", ")}; karmic debts {[...KARMIC_DEBTS].join(", ")}.
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}

@@ -15,6 +15,13 @@ interface Block {
   percent?: number;
 }
 
+/** A sentence located inside a rendered block: which sentence, and where. */
+interface SentenceSpan {
+  sentenceIndex: number;
+  start: number;
+  end: number;
+}
+
 function renderInline(raw: string): React.ReactNode {
   const parts: React.ReactNode[] = [];
   const regex = /(\*\*([^*]+)\*\*|==([^=]+)==|`([^`]+)`)/g;
@@ -123,32 +130,120 @@ function ProbabilityBar({ label, percent }: { label: string; percent: number }) 
   );
 }
 
+/** Highlight styling for the single sentence currently being spoken. */
+const SENTENCE_STYLE: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(212,175,55,0.26), rgba(212,175,55,0.16))',
+  boxShadow: '0 0 0 1px rgba(212,175,55,0.42), 0 3px 14px rgba(212,175,55,0.18)',
+  borderRadius: 6,
+  padding: '0.06em 0.24em',
+  color: '#fff7e0',
+  transition: 'background 180ms ease, box-shadow 180ms ease',
+};
+
 export const ScrollableTextDisplay: React.FC<Props> = ({ text, activeSentenceIndex, sentences }) => {
-  const sentenceRefs = useRef<(HTMLElement | null)[]>([]);
+  const blockRefs = useRef<(HTMLElement | null)[]>([]);
+  const sentenceRef = useRef<HTMLSpanElement | null>(null);
   const blocks = useMemo(() => parseBlocks(text || ''), [text]);
-  const activeSnippet = activeSentenceIndex >= 0 ? (sentences[activeSentenceIndex] || '').trim().replace(/\s+/g, ' ').slice(0, 64) : '';
+
+  // Normalised sentences, in the same order the SpeechPlayer speaks them.
+  const normalised = useMemo(
+    () => (sentences || []).map((s, i) => ({ i, norm: (s || '').replace(/\s+/g, ' ').trim() })).filter((s) => s.norm.length > 0),
+    [sentences]
+  );
+
+  // Locate every sentence inside the block it belongs to, with character offsets.
+  const spansByBlock = useMemo(() => {
+    const map = new Map<number, SentenceSpan[]>();
+    blocks.forEach((block, bIdx) => {
+      const displayed = block.text.replace(/\s+/g, ' ');
+      if (!displayed) return;
+      const spans: SentenceSpan[] = [];
+      for (const s of normalised) {
+        const needle = s.norm;
+        if (needle.length < 8) continue;
+        let from = 0;
+        for (;;) {
+          const at = displayed.indexOf(needle, from);
+          if (at < 0) break;
+          spans.push({ sentenceIndex: s.i, start: at, end: at + needle.length });
+          from = at + needle.length;
+          if (spans.length > 60) break;
+        }
+      }
+      if (spans.length) map.set(bIdx, spans.sort((a, b) => a.start - b.start));
+    });
+    return map;
+  }, [blocks, normalised]);
+
+  // Fallback (only used when a sentence cannot be located in any block).
+  const fallbackSnippet = useMemo(() => {
+    if (activeSentenceIndex < 0) return '';
+    const raw = normalised.find((s) => s.i === activeSentenceIndex)?.norm || '';
+    return raw.slice(0, 64);
+  }, [activeSentenceIndex, normalised]);
+
+  const fallbackSnippetShort = useMemo(() => {
+    const raw = normalised.find((s) => s.i === activeSentenceIndex)?.norm || '';
+    return raw.length > 48 ? raw.slice(-48) : '';
+  }, [activeSentenceIndex, normalised]);
+
+  const hasActiveSpan = useMemo(
+    () => activeSentenceIndex >= 0 && [...spansByBlock.values()].some((spans) => spans.some((s) => s.sentenceIndex === activeSentenceIndex)),
+    [activeSentenceIndex, spansByBlock]
+  );
 
   useEffect(() => {
-    sentenceRefs.current = sentenceRefs.current.slice(0, blocks.length);
+    blockRefs.current = blockRefs.current.slice(0, blocks.length);
   }, [blocks.length]);
 
+  /**
+   * Follow the voice: keep the spoken sentence inside the middle band of the viewport,
+   * scrolling up as the reading progresses. Only scrolls when the sentence would drift
+   * out of that band, so the page does not jitter on every sentence.
+   */
   useEffect(() => {
-    if (activeSentenceIndex >= 0) {
-      const idx = blocks.findIndex((b) => activeSnippet && b.text.replace(/\s+/g, ' ').includes(activeSnippet));
-      if (idx >= 0) sentenceRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (activeSentenceIndex < 0) return;
+    const target: HTMLElement | null = sentenceRef.current || blockRefs.current.find(Boolean) || null;
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const topBand = vh * 0.3;
+    const bottomBand = vh * 0.7;
+    if (rect.top < topBand || rect.bottom > bottomBand) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  }, [activeSentenceIndex, activeSnippet, blocks]);
+  }, [activeSentenceIndex, hasActiveSpan, blocks]);
 
   if (!text) return null;
+
+  const renderBody = (displayed: string, spans: SentenceSpan[] | undefined, keyPrefix: string) => {
+    const active = activeSentenceIndex >= 0 ? spans?.find((s) => s.sentenceIndex === activeSentenceIndex) : undefined;
+    if (!active || active.start >= active.end) return renderInline(displayed);
+    return (
+      <>
+        {renderInline(displayed.slice(0, active.start))}
+        <span ref={sentenceRef} style={SENTENCE_STYLE} data-active-sentence={active.sentenceIndex}>
+          {renderInline(displayed.slice(active.start, active.end))}
+        </span>
+        {renderInline(displayed.slice(active.end))}
+      </>
+    );
+  };
 
   return (
     <div style={{ lineHeight: 1.72, paddingBottom: '0.5rem' }}>
       {blocks.map((block, idx) => {
-        const isActive = !!activeSnippet && block.text.replace(/\s+/g, ' ').includes(activeSnippet);
-        const activeWrap: React.CSSProperties = isActive
+        const displayed = block.text.replace(/\s+/g, ' ');
+        const spans = spansByBlock.get(idx);
+        const activeHere = activeSentenceIndex >= 0 && !!spans?.some((s) => s.sentenceIndex === activeSentenceIndex);
+        // Legacy paragraph tint is used ONLY when the sentence could not be located anywhere,
+        // so a fallback never expands the highlight into the whole block while spans exist.
+        const fallbackHere = !hasActiveSpan && !!fallbackSnippet && displayed.includes(fallbackSnippet);
+        const fallbackHereShort = !hasActiveSpan && !fallbackHere && !!fallbackSnippetShort && displayed.includes(fallbackSnippetShort);
+        const activeWrap: React.CSSProperties = fallbackHere || fallbackHereShort
           ? { background: 'rgba(212,175,55,0.11)', borderRadius: 10, outline: '1px solid rgba(212,175,55,0.2)' }
           : {};
-        const setRef = (el: HTMLElement | null) => { sentenceRefs.current[idx] = el; };
+        const setRef = (el: HTMLElement | null) => { blockRefs.current[idx] = el; };
 
         if (block.kind === 'empty') return <div key={idx} ref={setRef} style={{ height: '0.45rem' }} />;
         if (block.kind === 'divider') return <div key={idx} ref={setRef} style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.35), transparent)', margin: '1.25rem 0' }} />;
@@ -157,7 +252,7 @@ export const ScrollableTextDisplay: React.FC<Props> = ({ text, activeSentenceInd
         if (block.kind === 'hero') {
           return (
             <div key={idx} ref={setRef} style={{ ...activeWrap, margin: '0.2rem 0 0.9rem', padding: '0.82rem 0.9rem', borderRadius: 16, background: 'linear-gradient(135deg, rgba(212,175,55,0.13), rgba(139,92,246,0.09))', border: '1px solid rgba(212,175,55,0.25)' }}>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '0.78rem', letterSpacing: '0.14em', lineHeight: 1.55, textTransform: 'uppercase', color: '#f1d98a', fontWeight: 800 }}>{renderInline(block.text)}</div>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '0.78rem', letterSpacing: '0.14em', lineHeight: 1.55, textTransform: 'uppercase', color: '#f1d98a', fontWeight: 800 }}>{renderBody(displayed, spans, 'hero')}</div>
             </div>
           );
         }
@@ -165,7 +260,7 @@ export const ScrollableTextDisplay: React.FC<Props> = ({ text, activeSentenceInd
         if (block.kind === 'heading') {
           return (
             <div key={idx} ref={setRef} style={{ ...activeWrap, margin: '1.45rem 0 0.7rem', padding: '0.55rem 0.7rem', borderRadius: 12, background: 'rgba(139,92,246,0.10)', borderLeft: '3px solid rgba(212,175,55,0.85)' }}>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '0.66rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: '#d4af37', fontWeight: 800 }}>{renderInline(block.text)}</div>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '0.66rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: '#d4af37', fontWeight: 800 }}>{renderBody(displayed, spans, 'heading')}</div>
             </div>
           );
         }
@@ -173,7 +268,7 @@ export const ScrollableTextDisplay: React.FC<Props> = ({ text, activeSentenceInd
         if (block.kind === 'subheading' || block.kind === 'compound') {
           return (
             <div key={idx} ref={setRef} style={{ ...activeWrap, margin: '0.95rem 0 0.35rem' }}>
-              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '0.62rem', letterSpacing: '0.11em', textTransform: 'uppercase', color: block.kind === 'compound' ? '#f1d98a' : '#c4b5fd', fontWeight: 750 }}>{renderInline(block.text)}</div>
+              <div style={{ fontFamily: "'Cinzel', serif", fontSize: '0.62rem', letterSpacing: '0.11em', textTransform: 'uppercase', color: block.kind === 'compound' ? '#f1d98a' : '#c4b5fd', fontWeight: 750 }}>{renderBody(displayed, spans, 'sub')}</div>
             </div>
           );
         }
@@ -182,14 +277,14 @@ export const ScrollableTextDisplay: React.FC<Props> = ({ text, activeSentenceInd
           return (
             <div key={idx} ref={setRef} style={{ ...activeWrap, display: 'grid', gridTemplateColumns: '1.1rem 1fr', gap: '0.45rem', alignItems: 'start', margin: '0.5rem 0', paddingLeft: 0 }}>
               <span style={{ color: block.kind === 'numbered' ? '#d4af37' : '#a78bfa', fontSize: '0.72rem', lineHeight: 1.7, textAlign: 'center' }}>{block.kind === 'numbered' ? '›' : '◆'}</span>
-              <span style={{ fontSize: '0.84rem', color: 'rgba(231,221,255,0.86)', lineHeight: 1.75 }}>{renderInline(block.text)}</span>
+              <span style={{ fontSize: '0.84rem', color: 'rgba(231,221,255,0.86)', lineHeight: 1.75 }}>{renderBody(displayed, spans, 'list')}</span>
             </div>
           );
         }
 
         return (
           <p key={idx} ref={setRef} style={{ ...activeWrap, fontSize: '0.86rem', lineHeight: 1.82, color: 'rgba(231,221,255,0.86)', margin: '0.65rem 0' }}>
-            {renderInline(block.text)}
+            {renderBody(displayed, spans, 'body')}
           </p>
         );
       })}
