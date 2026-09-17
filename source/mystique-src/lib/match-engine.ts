@@ -286,15 +286,16 @@ export function buildFixtureDossier(dateISO: string, homeName: string, awayName:
 export interface AlignmentLine {
   side: "home" | "away" | "field";
   label: string;
-  verdict: "favours" | "tests" | "neutral";
+  /** a description of how the numbers stand to one another — never a leaning, never a pick */
+  verdict: "in harmony" | "opposing" | "neutral";
   detail: string;
 }
 
 const REL_TEXT: Record<Relation, { word: string; verdict: AlignmentLine["verdict"] }> = {
-  same: { word: "repeats", verdict: "favours" },
-  friend: { word: "supports", verdict: "favours" },
+  same: { word: "repeats", verdict: "in harmony" },
+  friend: { word: "supports", verdict: "in harmony" },
   neutral: { word: "passes through", verdict: "neutral" },
-  enemy: { word: "tests", verdict: "tests" },
+  enemy: { word: "stands against", verdict: "opposing" },
 };
 
 export function numberAlignment(d: FixtureDossier): AlignmentLine[] {
@@ -395,6 +396,10 @@ export const CALIBRATION = {
   correction: {
     note: "Correction published with this version: an earlier build of these studies passed the founding year into the engine where the match year belonged, freezing each team's personal year at its founding value. The app's own match engine had the same fault. It is fixed (three-argument engine calls), both studies were re-run from scratch, and the earlier 'royal star' finding is withdrawn — it was an artefact of the fault, not a discovery.",
   },
+  removal: {
+    note: "The match-prediction engine was removed from the app. It was held to a rule - 80% accuracy on match outcomes or it goes - and it could not meet it: 51.4% on 20,673 held-out club matches. Published benchmarks put the best history-only models at 53.6% and bookmaker closing odds at 55.1%, so 80% was never reachable by any model, not just this one. What remains is description: the day's numbers, each club's own record, and no pick.",
+    closing: "Removed under the 80% ruling.",
+  },
   conclusion:
-    "The letters describe; they do not predict. Measured on 168,162 real matches across two independent datasets, numerology carried no match-level edge, so the app refuses to pretend otherwise — and shows you the full working. This build re-ran the whole study on an expanded corpus (128,727 club matches, up from 34,765) and added the date-invariance gate.",
+    "The letters describe; they do not predict. Measured on 168,162 real matches across two independent datasets, numerology carried no match-level edge, so the app refuses to pretend otherwise — and shows you the full working. The match-prediction engine this evidence was gathered for has since been removed under the 80% rule; the app describes and no longer calls results.",
 } as const;

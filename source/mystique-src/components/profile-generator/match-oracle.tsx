@@ -2,9 +2,6 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { AccordionContentWithPlayer } from "./accordion-content-with-player";
-import { PredictionLab } from "./prediction-lab";
-import { VerdictPanel, computeVerdict, useVerdictReady } from "./verdict-panel";
-import { DayFavourPanel } from "./day-favour-panel";
 import {
   buildFixtureDossier,
   numberAlignment,
@@ -269,17 +266,7 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
     setDate(dd); setHome(dh); setAway(da);
     try { window.dispatchEvent(new CustomEvent("mystique-oracle-commit", { detail: { date: dd, home: dh, away: da } })); } catch { /* no window (tests) */ }
   }, [dDate, dHome, dAway]);
-  const verdictReady = useVerdictReady();
-  const [rawCalib, setRawCalib] = React.useState<unknown>(null);
-  const [rawForm, setRawForm] = React.useState<unknown>(null);
-  React.useEffect(() => {
-    let alive = true;
-    Promise.all([
-      fetch("/data/calibration.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      fetch("/data/club-form.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),
-    ]).then(([c, f]) => { if (alive) { setRawCalib(c); setRawForm(f); } });
-    return () => { alive = false; };
-  }, [verdictReady]);
+
 
   const dossier = React.useMemo(() => {
     try {
@@ -290,30 +277,19 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
     }
   }, [date, home, away]);
 
-  const verdict = React.useMemo(
-    () => (dossier && rawCalib ? computeVerdict(dossier, rawCalib as never, rawForm as never) : null),
-    [dossier, rawCalib, rawForm],
-  );
-
   const summaryText = React.useMemo(() => {
     if (!dossier) return "";
     const lines = numberAlignment(dossier);
     const s = seasonNumbers(dossier);
-    const v = verdict;
     return [
-      v
-        ? `${dossier.home.team} against ${dossier.away.team}, ${dossier.date}. The verdict: ${v.verdictLong}.`
-        : `${dossier.home.team} against ${dossier.away.team}, ${dossier.date}.`,
-      v
-        ? `That call comes from measured form — each club\u2019s points per game and goal difference over its previous thirty matches — with home advantage. Confidence ${v.confidencePct}%, and verdicts in this band were right ${v.bandAccuracyPct} of the time on held-out matches.`
-        : "",
+      `${dossier.home.team} against ${dossier.away.team}, ${dossier.date}. This is a reading of the day\u2019s numbers, not a prediction of the result.`,
       `The day is a universal day ${dossier.day.universalDay.raw}${dossier.day.universalDay.name ? `, ${dossier.day.universalDay.name}` : ""}, its calendar-day number ${dossier.day.calendarDay.raw}${dossier.day.calendarDay.name ? `, ${dossier.day.calendarDay.name}` : ""}, falling on a ${dossier.day.weekday}.`,
       `${dossier.home.team} carries the season number ${s.home.direct.name} with classic reading ${s.home.classic.name}, and stands today on personal day ${dossier.home.personalDay} against its founding day ${dossier.home.foundingDayNumber}.`,
       `${dossier.away.team} carries the season number ${s.away.direct.name} with classic reading ${s.away.classic.name}, and stands today on personal day ${dossier.away.personalDay} against its founding day ${dossier.away.foundingDayNumber}.`,
       lines.map((l) => l.detail).join(" "),
-      "The date numbers describe the day; measured on 128,727 matches they do not change who wins. The verdict is the call; everything else here is context, not a forecast.",
+      "Measured on 128,727 matches, none of these layers separates winners. The app states that plainly rather than dressing the reading up as a forecast.",
     ].filter(Boolean).join("\n\n");
-  }, [dossier, verdict]);
+  }, [dossier]);
 
   return (
     <div>
@@ -404,10 +380,7 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
       </div>
 
       {home && away && home !== away && (
-        <>
-          <VerdictPanel date={date} home={home} away={away} calibration={rawCalib} formFile={rawForm} />
-          <DayFavourPanel date={date} home={home} away={away} />
-        </>
+        <NoPredictionsCard />
       )}
 
       {!dossier && <WhyNoDossier home={home} away={away} />}
@@ -436,7 +409,7 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
               <div key={i} style={{ padding: "0.4rem 0", borderBottom: "1px dashed rgba(255,255,255,0.06)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "0.6rem" }}>
                   <span style={{ fontSize: "0.7rem", color: "rgba(200,180,240,0.7)" }}>{l.label}</span>
-                  <span style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.08em", color: l.verdict === "favours" ? "#86efac" : l.verdict === "tests" ? "#fca5a5" : "#94a3b8", fontWeight: 700 }}>
+                  <span style={{ fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.08em", color: l.verdict === "in harmony" ? "#86efac" : l.verdict === "opposing" ? "#fca5a5" : "#94a3b8", fontWeight: 700 }}>
                     {l.verdict}
                   </span>
                 </div>
@@ -444,7 +417,8 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
               </div>
             ))}
             <div style={{ ...MUTED, marginTop: "0.55rem", color: "rgba(241,217,138,0.75)" }}>
-              “Supports” and “tests” describe the language of the numbers only. The pick is in the verdict above; this block carries no probability and never decides a match.
+              These words describe how the day's numbers stand to one another. They carry no probability
+              and never decide a match — measured on 128,727 matches, none of these layers separated winners.
             </div>
           </div>
 
@@ -484,7 +458,6 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
             )}
           </div>
 
-          <PredictionLab />
 
           <TeamTrend name={dossier.home.team} />
           <TeamTrend name={dossier.away.team} />
@@ -541,6 +514,62 @@ function WhyNoDossier({ home, away }: { home: string; away: string }) {
         </div>
       ))}
       {!a && !b && <div>Choose two different entities that both carry a founding date in the ledger.</div>}
+    </div>
+  );
+}
+
+
+/* ── Why this app no longer predicts match results ────────────────────────────
+   The rule it was held to: reach 80% accuracy on match outcomes, or come out of the app.
+   It could not, and neither can anything else — the measurements below are from this app's own
+   study and from published benchmarks of the field. The engine is removed rather than left in
+   place making calls it cannot stand behind. What remains is description: the day's numbers,
+   each club's own record, and no pick.
+   ──────────────────────────────────────────────────────────────────────────── */
+function NoPredictionsCard() {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div style={{ ...CARD, borderColor: "rgba(252,165,165,0.35)", background: "linear-gradient(135deg, rgba(40,12,24,0.96), rgba(60,18,38,0.7))" }}>
+      <div style={{ ...LABEL, color: "#fca5a5" }}>No match predictions — the engine was removed</div>
+      <div style={{ ...MUTED, color: "rgba(255,220,220,0.85)", marginTop: "0.3rem" }}>
+        The prediction engine was held to a rule: score <b>80% or better</b> on match outcomes, or be
+        scrapped. It could not — and neither can any model in the field.
+      </div>
+      <button onClick={() => setOpen((o) => !o)} style={{ marginTop: "0.55rem", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", ...LABEL }}>
+        {open ? "▾" : "▸"} The measurements behind that decision
+      </button>
+      {open && (
+        <div style={{ ...MUTED, color: "rgba(255,220,220,0.82)", marginTop: "0.45rem", lineHeight: 1.65 }}>
+          <div style={{ marginBottom: "0.35rem" }}>
+            <b style={{ color: "#f1d98a" }}>This app's own model:</b> 51.4% on 20,673 held-out club
+            matches (2015 onward) — better than the 44.4% from always naming the home side, and well
+            short of 80%.
+          </div>
+          <div style={{ marginBottom: "0.35rem" }}>
+            <b style={{ color: "#f1d98a" }}>What 80% would require:</b> the single most likely outcome of
+            a football match is never 80% probable. Measured on this corpus, the most likely outcome is
+            home at 44.4%; the best model reaches 51.4%. An 80% three-way accuracy implies fixtures whose
+            result is a foregone conclusion, and football does not produce them.
+          </div>
+          <div style={{ marginBottom: "0.35rem" }}>
+            <b style={{ color: "#f1d98a" }}>Where that sits in the field:</b> published benchmarks put the
+            best history-only models at 53.6% and bookmaker closing odds at 55.1% on 1,520 held-out
+            Premier League matches. Nothing on record reaches 80% on three-way outcomes.
+          </div>
+          <div style={{ marginBottom: "0.35rem" }}>
+            <b style={{ color: "#f1d98a" }}>Could it be right more often by speaking less?</b> Yes, and the
+            app measured it: 86.2% correct when it spoke on only the most confident 2% of fixtures, 82.1%
+            on 5%. That is a trick of coverage, not a better forecast — it stays silent on 95 of every 100
+            matches. Reporting that as "86% accuracy" would be misleading, so it is not reported as an
+            accuracy claim.
+          </div>
+          <div>
+            <b style={{ color: "#f1d98a" }}>What replaced it:</b> the day's numbers read as a description,
+            the three Soul Resonance / Cheiro day methods shown with the record of what they achieved
+            (no edge), and each club's own decade ledger. The app describes; it no longer calls results.
+          </div>
+        </div>
+      )}
     </div>
   );
 }
