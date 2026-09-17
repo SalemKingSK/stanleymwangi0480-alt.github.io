@@ -36,7 +36,37 @@ interface Calibration {
 }
 
 interface FormRow { csvName?: string; n30: number; ppg30: number | null; gd30: number | null; nCareer: number; ppgCareer: number | null }
-interface FormFile { meta: { clubs: number }; clubs: Record<string, FormRow> }
+interface FormFile { meta: { clubs: number; aliases?: Record<string, string> }; clubs: Record<string, FormRow> }
+
+/* Form lookup. The ledger names a club "Brighton & Hove Albion" while the form file is keyed
+   "Brighton", and the mismatch was silent: the club fell back to the corpus average and the
+   reading went wrong without saying so. Resolution order: exact key → published alias →
+   normalised match (unique only). Anything still unresolved is reported as a fallback. */
+const normName = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+  .replace(/\b(fc|cf|sc|ac|afc|ud|cd|sv|vfl|vfb|tsv|bsc|ssc|as|ss|us|rc|rcd|sd|ca|club|football|calcio)\b/g, " ")
+  .replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+const normIndexCache = new WeakMap<object, Map<string, string[]>>();
+function resolveFormRow(name: string, form: FormFile | null): { row?: FormRow; matchedAs?: string } {
+  if (!form?.clubs) return {};
+  const direct = form.clubs[name];
+  if (direct) return { row: direct, matchedAs: name };
+  const viaAlias = form.meta?.aliases?.[name];
+  if (viaAlias && form.clubs[viaAlias]) return { row: form.clubs[viaAlias], matchedAs: viaAlias };
+  let idx = normIndexCache.get(form.clubs);
+  if (!idx) {
+    idx = new Map();
+    for (const k of Object.keys(form.clubs)) {
+      const n = normName(k);
+      const arr = idx.get(n) || [];
+      arr.push(k);
+      idx.set(n, arr);
+    }
+    normIndexCache.set(form.clubs, idx);
+  }
+  const hits = idx.get(normName(name)) || [];
+  if (hits.length === 1) return { row: form.clubs[hits[0]], matchedAs: hits[0] };
+  return {};
+}
 
 export interface Verdict {
   outcome: "home" | "draw" | "away";
@@ -93,8 +123,9 @@ export function computeVerdict(
 
   const feat = v.features;
   const idx = (name: string) => feat.indexOf(name);
-  const rowH = form?.clubs?.[dossier.home.team];
-  const rowA = form?.clubs?.[dossier.away.team];
+  const resH = resolveFormRow(dossier.home.team, form);
+  const resA = resolveFormRow(dossier.away.team, form);
+  const rowH = resH.row, rowA = resA.row;
   const fb = v.formFallbacks || { ppg: 1.4, gd: 0, careerPpg: 1.4 };
   const div = v.scaling?.formDivisor || { ppg: 0.6, gd: 0.8, careerPpg: 0.6 };
 
@@ -183,6 +214,8 @@ export function computeVerdict(
   if (dl === null) {
     notes.push("One of these clubs has no founding date on file, so the day's numbers are not part of this call — form and home advantage decided it.");
   }
+  if (resH.matchedAs && resH.matchedAs !== homeName) notes.push(`(${homeName} → form key "${resH.matchedAs}".)`);
+  if (resA.matchedAs && resA.matchedAs !== awayName) notes.push(`(${awayName} → form key "${resA.matchedAs}".)`);
   const formNote = notes.join(" ");
 
   /* The two-way question — "which side does this reading favour?" — is a different question from
