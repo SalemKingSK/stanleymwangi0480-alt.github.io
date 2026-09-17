@@ -1,7 +1,7 @@
 // Bumped again for the Google Preferred Sources integration. This version
 // keeps the same-origin impostor-page guard and ensures every device receives
 // the latest app shell and CSP policy.
-const CACHE_NAME = "mystique-compass-v74";
+const CACHE_NAME = "mystique-compass-v75";
 const RUNTIME_CACHE = `${CACHE_NAME}-runtime`;
 
 // Every file the manifest/index.html actually reference, so the offline

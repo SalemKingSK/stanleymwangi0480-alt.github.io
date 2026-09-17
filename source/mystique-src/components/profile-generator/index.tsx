@@ -361,7 +361,16 @@ export function ProfileGenerator() {
     setFormData(item);
     processRequest(item);
   };
-  const [oracleOnly, setOracleOnly] = React.useState(false);
+  const [oracleOnly, setOracleOnly] = React.useState(
+    typeof window !== "undefined" && /(^|[?&#])oracle(=1)?\b/.test(window.location.search + window.location.hash)
+  );
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sync = () => setOracleOnly(/(^|[?&#])oracle(=1)?\b/.test(window.location.search + window.location.hash));
+    window.addEventListener("hashchange", sync);
+    window.addEventListener("popstate", sync);
+    return () => { window.removeEventListener("hashchange", sync); window.removeEventListener("popstate", sync); };
+  }, []);
   if (oracleOnly) {
     return (
       <div className="w-full max-w-3xl mx-auto px-3 pt-6 pb-24">
@@ -439,6 +448,33 @@ export function ProfileGenerator() {
           </motion.div>
         )}
       </AnimatePresence>
+      <button
+        onClick={() => setOracleOnly(true)}
+        aria-label="Open the Match Oracle"
+        style={{
+          position: "fixed",
+          left: "1rem",
+          bottom: "1.15rem",
+          zIndex: 60,
+          display: "flex",
+          alignItems: "center",
+          gap: "0.45rem",
+          padding: "0.6rem 0.85rem",
+          borderRadius: 999,
+          border: "1px solid rgba(212,175,55,0.45)",
+          background: "linear-gradient(135deg, rgba(30,14,60,0.97), rgba(60,26,96,0.94))",
+          color: "#f1d98a",
+          fontFamily: "'Cinzel', serif",
+          fontSize: "0.66rem",
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          fontWeight: 800,
+          boxShadow: "0 10px 26px rgba(0,0,0,0.45)",
+          cursor: "pointer",
+        }}
+      >
+        ⚽ Oracle
+      </button>
       <SheetContent
         className="w-[90%] sm:max-w-md"
         style={{

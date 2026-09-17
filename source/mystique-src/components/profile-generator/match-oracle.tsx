@@ -2,6 +2,7 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { AccordionContentWithPlayer } from "./accordion-content-with-player";
+import { PredictionLab } from "./prediction-lab";
 import {
   buildFixtureDossier,
   letterAlignment,
@@ -89,10 +90,14 @@ function useTrends(): { data: TrendFile | null; loading: boolean } {
     if (trendCache) { setData(trendCache); return; }
     if (!trendPromise) {
       setLoading(true);
-      trendPromise = fetch("/data/team-trends.json")
-        .then((r) => (r.ok ? r.json() : null))
-        .then((j) => { trendCache = j; return j; })
-        .catch(() => null);
+      trendPromise = Promise.all([
+        fetch("/data/team-trends.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch("/data/club-trends.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      ]).then(([nations, clubs]) => {
+        const merged = { meta: nations?.meta || {}, teams: { ...(clubs?.teams || {}), ...(nations?.teams || {}) } };
+        trendCache = merged as TrendFile;
+        return trendCache;
+      }).catch(() => null);
     }
     let alive = true;
     trendPromise.then((j) => { if (alive) { setData(j); setLoading(false); } });
@@ -395,6 +400,8 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
               </div>
             )}
           </div>
+
+          <PredictionLab dossier={dossier} />
 
           <TeamTrend name={dossier.home.team} />
           <TeamTrend name={dossier.away.team} />

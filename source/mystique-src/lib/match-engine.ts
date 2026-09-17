@@ -143,12 +143,12 @@ export function teamLayers(entity: LedgerEntity, dateISO: string): TeamLayers {
   const [Y, M, D] = dateISO.split("-").map(Number);
   const { day, month, year, name } = entity;
 
-  const raw = computeRawPersonalYear(day, month, year, Y);
-  const rawClassic = computeRawPersonalYearClassic(day, month, year, Y);
+  const raw = computeRawPersonalYear(day, month, Y);
+  const rawClassic = computeRawPersonalYearClassic(day, month, Y);
   const directCompound = raw >= 10 ? lookupCompound(raw) : null;
   const classicCompound = rawClassic >= 10 ? lookupCompound(rawClassic) : null;
-  const personalYear = computePersonalYearNumber(day, month, year, Y);
-  const personalYearClassic = computePersonalYearNumberClassic(day, month, year, Y);
+  const personalYear = computePersonalYearNumber(day, month, Y);
+  const personalYearClassic = computePersonalYearNumberClassic(day, month, Y);
 
   const personalMonth = reduceToSingleDigit(personalYear + reduceToSingleDigit(M));
   const personalDay = reduceToSingleDigit(personalMonth + reduceToSingleDigit(D));
@@ -353,28 +353,62 @@ export function seasonLetters(d: FixtureDossier) {
 
 /* ── The honesty layer, shipped with the feature ──────────────────────────── */
 export const SEASON_CONSTANT_WARNING =
-  "A team's personal year is one letter held for twelve months — identical in every match that season. It cannot separate one fixture from another. Match-level reading must use the layers that move daily: personal month, personal day, universal day, the calendar-day letter, and the relations to each team's fixed numbers.";
+  "A team's personal year is one letter held for twelve months — roughly 10-15 matches share it in a season, so it cannot separate one fixture from another. Match-level reading must use the layers that move daily: personal month, personal day, universal day, the calendar-day letter, and the relations to each team's fixed numbers. Even then, the measured answer is that these letters describe a day rather than predict its result.";
 
 export const CALIBRATION = {
-  matches: 39435,
-  span: "1950 → today, international football, both teams carrying a settled founding date",
-  trainN: 17368,
-  testN: 22067,
-  baseRates: {
-    train: { home: 49.2, draw: 23.8, away: 27.0 },
-    test: { home: 48.0, draw: 24.1, away: 27.9 },
-  },
-  signaturesTested: 72,
-  survivors: 0,
-  headline:
-    "No numerology signature produced a match-level edge that survived out-of-sample replication and within-team controls.",
-  detail: [
-    "The strongest candidate on the training era was “home team in a royal-star year” — 56.3% home wins against a 49.2% base (+7.1pp, z 5.61). On the held-out era it fell to +3.0pp, and its goal-difference mirror collapsed.",
-    "The decisive control compared each team to ITSELF: across 91 teams with 200+ home matches, the royal-year win rate was 59.6% and the same teams' overall rate was 59.6% — identical. Mean within-team difference −4.02pp, pooled z 0.00.",
-    "That is composition, not timing: the fixtures that fell in “royal years” happened to be played by a stronger mix of teams. It is the mechanism behind most match numerology that appears to work.",
-    "Power rule: detecting a genuine 3-point edge across 72 signatures needs ≈4,500 matches carrying that signature. The strongest candidate had ~1,500 (train) and ~2,000 (test) — underpowered by design.",
-    "Selective speaking buys accuracy only by silence: predicting home victories on the single strongest signature covered 9.4% of matches at 51.1%, against 48.0% for always predicting home.",
+  studies: [
+    {
+      name: "International football",
+      matches: 39435,
+      span: "1950 → today, both teams carrying a settled founding date",
+      trainN: 17368,
+      testN: 22067,
+      baseRates: { train: { home: 49.2, draw: 23.8, away: 27.0 }, test: { home: 48.0, draw: 24.1, away: 27.9 } },
+      signaturesTested: 150,
+      survivors: 0,
+      headline: "Not one numerology signature replicated out of sample.",
+      detail: [
+        "The strongest training-era signature reached z 1.75 (a 1.1pp lift on 6,460 matches) and then went the other way on the held-out era (z −1.55).",
+        "The royal-star candidate that once looked strong (train z 5.61) collapsed to z 1.32 once the engine call was corrected — it had been reading a constant per-team flag, which is team identity, not timing.",
+        "Within-team control (91 teams, 200+ home matches each): royal-year win rate 53.0% against the same teams' overall 52.8% — a difference of 0.2pp, pooled z 0.25.",
+        "Symmetry control: the away team's royal year must push the same result the other way; on the test era the mirror is +0.549 vs +0.518 goal difference — noise.",
+        "Selective prediction gained nothing: speaking on the strongest signatures covered 36.9% of matches at 47.2% accuracy, against 48.0% for always predicting a home win.",
+      ],
+    },
+    {
+      name: "Club football (the deepest test)",
+      matches: 34765,
+      span: "1888 → today across 8 countries and 117 clubs, both clubs carrying a day-precision founding date",
+      trainN: 23301,
+      testN: 4559,
+      baseRates: { train: { home: 51.4, draw: 23.0, away: 25.6 }, test: { home: 55.3, draw: 21.9, away: 22.8 } },
+      signaturesTested: 122,
+      survivors: 0,
+      headline: "Club football says the same thing, with much greater power.",
+      detail: [
+        "Best training signature: z 2.64 (age-mod-10 = 0). Shuffling match dates produces a best z of 2.66 on average (95th percentile 2.86, max 3.07) — the real finding sits inside the noise band, below the shuffle average.",
+        "Placebo test with random founding dates for every club produced best z up to 4.23 — random dates invent 'signals' larger than the real ones.",
+        "A numerology-only logistic model scored AUC 0.500 on validation and 0.515 on test — a coin flip. Adding prior form (a non-numerology control) lifted AUC to 0.560/0.590, which is where the real information lives.",
+        "Accuracy: numerology-only 47.6% on test, versus 55.3% for simply always predicting a home win.",
+        "Confidence made it worse, not better: speaking only on the most confident 10% of fixtures gave 45.5% accuracy, and the most confident 1% gave 41.2%.",
+        "The strongest signature flips sign across decades (z +2.63 in the 1920s, −0.90 in the 1940s, +3.29 in the 1990s, −0.39 in the 2000s), which is the signature of noise rather than of a law.",
+      ],
+    },
   ],
+  gate: {
+    rule: "The app only makes a match call when a numerology signal has passed a protocol: it must beat a permutation null, beat a placebo null on randomised founding dates, replicate on a held-out era, and come from a sample of at least 4,500 matches carrying that signature.",
+    status: "SILENT",
+    reason: "No signature has passed. 0 of 122 club signatures and 0 of 150 international signatures replicated, and the strongest candidates sit inside the null distributions. Until that changes, the Oracle describes and does not predict.",
+    powerRule: "Detecting a genuine 3-point edge across this many signatures needs ≈4,500 matches per signature at 80% power; the strongest club candidate carried 311.",
+  },
+  failure: {
+    definition: "A failure is a spoken call that goes the wrong way. 'Failure as an outlier' therefore means: speak rarely, only where the measured edge is real, and publish the cost of speaking.",
+    measured: "At the best validation-selected confidence threshold the test era produced 0 spoken calls — the gate stayed shut by its own rule, so the failure rate is undefined rather than dressed up.",
+    rolling: "Rolling 100-call accuracy windows, worst losing streaks and a flat-stake drawdown simulation are computed for every future dataset the app is built with; they are meaningless while the gate is closed, and the app says so instead of inventing numbers.",
+  },
+  correction: {
+    note: "Correction published with this version: an earlier build of these studies passed the founding year into the engine where the match year belonged, freezing each team's personal year at its founding value. The app's own match engine had the same fault. It is fixed (three-argument engine calls), both studies were re-run from scratch, and the earlier 'royal star' finding is withdrawn — it was an artefact of the fault, not a discovery.",
+  },
   conclusion:
-    "The letters describe, they do not predict. This panel is built to describe with total rigour, and to refuse to make a call that the data does not support.",
-};
+    "The letters describe; they do not predict. Measured on 74,200 real matches across two independent datasets, numerology carried no match-level edge, so the app refuses to pretend otherwise — and shows you the full working.",
+} as const;
