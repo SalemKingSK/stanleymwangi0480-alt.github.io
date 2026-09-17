@@ -100,7 +100,11 @@ export function entityLedger(): Map<string, LedgerEntity> {
       : tags.includes("Country")
       ? "Country"
       : "Other";
-    map.set(p.name, { name: p.name, day: p.day, month: p.month, year: p.year, kind, tags });
+    const entity: LedgerEntity = { name: p.name, day: p.day, month: p.month, year: p.year, kind, tags };
+    map.set(p.name, entity);
+    // alternate spellings resolve to the SAME entity, so "Bayern Munich", "FC Bayern München"
+    // and the CSV spelling "Bayern Munchen" are one club rather than three lookups.
+    for (const a of p.aliases || []) if (!map.has(a)) map.set(a, entity);
   }
   ledgerCache = map;
   return map;
@@ -377,38 +381,39 @@ export const CALIBRATION = {
     },
     {
       name: "Club football (the deepest test)",
-      matches: 34765,
-      span: "1888 → today across 8 countries and 117 clubs, both clubs carrying a day-precision founding date",
-      trainN: 23301,
-      testN: 4559,
-      baseRates: { train: { home: 51.4, draw: 23.0, away: 25.6 }, test: { home: 55.3, draw: 21.9, away: 22.8 } },
-      signaturesTested: 122,
+      matches: 128727,
+      span: "1888–2025 across 11 countries and 296 clubs, both clubs carrying a day-precision founding date",
+      trainN: 77224,
+      testN: 20673,
+      baseRates: { train: { home: 52.5, draw: 0, away: 0 }, test: { home: 44.4, draw: 0, away: 0 } },
+      signaturesTested: 104,
       survivors: 0,
-      headline: "Club football says the same thing, with much greater power.",
+      headline: "Not one date-sensitive numerology signature survived the protocol.",
       detail: [
-        "Best training signature: z 2.64 (age-mod-10 = 0). Shuffling match dates produces a best z of 2.66 on average (95th percentile 2.86, max 3.07) — the real finding sits inside the noise band, below the shuffle average.",
-        "Placebo test with random founding dates for every club produced best z up to 4.23 — random dates invent 'signals' larger than the real ones.",
-        "A numerology-only logistic model scored AUC 0.500 on validation and 0.515 on test — a coin flip. Adding prior form (a non-numerology control) lifted AUC to 0.560/0.590, which is where the real information lives.",
-        "Accuracy: numerology-only 47.6% on test, versus 55.3% for simply always predicting a home win.",
-        "Confidence made it worse, not better: speaking only on the most confident 10% of fixtures gave 45.5% accuracy, and the most confident 1% gave 41.2%.",
-        "The strongest signature flips sign across decades (z +2.63 in the 1920s, −0.90 in the 1940s, +3.29 in the 1990s, −0.39 in the 2000s), which is the signature of noise rather than of a law.",
+        "Best training signature after the date-invariance gate: hPY=2 at z 2.16 (a +1.2pp lift on 8,534 matches). Shuffling match dates produces a best z of 2.33 on average (95th percentile 3.35, max 3.49) — the observed best sits INSIDE that range.",
+        "Placebo test with random founding dates for every club: best z up to 2.75 (mean 2.09) — invented dates produce 'signals' as large as the real ones.",
+        "DATE-INVARIANCE GATE (added this build): both clubs in a fixture share the match's year, month and day, so the difference of their personal days telescopes to the difference of their reduced personal years — a fixed property of the pairing that no date permutation can move. Those signature families are now excluded from the sweep; the one they used to top it (z 4.50) has been withdrawn, because it was reading team identity, not timing.",
+        "A numerology-only logistic model scored AUC 0.503 on validation and 0.495 on test — a coin flip. Adding prior form (a non-numerology control) lifted test AUC to 0.639, which is where the real information lives.",
+        "Accuracy on test: numerology-only 44.4%, versus 55.6% for simply always predicting a home win.",
+        "Confidence made it worse: speaking on the most confident 10.0 of fixtures gave 41.9% accuracy.",
+        "The strongest remaining signature flips sign across decades (z +0.61 in the 1900s, z -0.29 in the 1930s, z +0.80 in the 1960s, z -0.56 in the 1990s), the signature of noise.",
       ],
     },
   ],
   gate: {
     rule: "The app only makes a match call when a numerology signal has passed a protocol: it must beat a permutation null, beat a placebo null on randomised founding dates, replicate on a held-out era, and come from a sample of at least 4,500 matches carrying that signature.",
     status: "SILENT",
-    reason: "No signature has passed. 0 of 122 club signatures and 0 of 150 international signatures replicated, and the strongest candidates sit inside the null distributions. Until that changes, the Oracle describes and does not predict.",
+    reason: "No signature has passed. 0 of 104 club signatures and 0 of 150 international signatures replicated, and the strongest club candidate (hPY=2, z 2.16) sits inside the permutation null (mean 2.33, max 3.49). Until that changes, the Oracle describes and does not predict.",
     powerRule: "Detecting a genuine 3-point edge across this many signatures needs ≈4,500 matches per signature at 80% power; the strongest club candidate carried 311.",
   },
   failure: {
     definition: "A failure is a spoken call that goes the wrong way. 'Failure as an outlier' therefore means: speak rarely, only where the measured edge is real, and publish the cost of speaking.",
-    measured: "At the best validation-selected confidence threshold the test era produced 0 spoken calls — the gate stayed shut by its own rule, so the failure rate is undefined rather than dressed up.",
+    measured: "At the best validation-selected confidence threshold the test era produced 0 spoken calls — no threshold beat always-home while actually filtering, so the gate stayed shut by its own rule and the failure rate is undefined rather than dressed up.",
     rolling: "Rolling 100-call accuracy windows, worst losing streaks and a flat-stake drawdown simulation are computed for every future dataset the app is built with; they are meaningless while the gate is closed, and the app says so instead of inventing numbers.",
   },
   correction: {
     note: "Correction published with this version: an earlier build of these studies passed the founding year into the engine where the match year belonged, freezing each team's personal year at its founding value. The app's own match engine had the same fault. It is fixed (three-argument engine calls), both studies were re-run from scratch, and the earlier 'royal star' finding is withdrawn — it was an artefact of the fault, not a discovery.",
   },
   conclusion:
-    "The letters describe; they do not predict. Measured on 74,200 real matches across two independent datasets, numerology carried no match-level edge, so the app refuses to pretend otherwise — and shows you the full working.",
+    "The letters describe; they do not predict. Measured on 168,162 real matches across two independent datasets, numerology carried no match-level edge, so the app refuses to pretend otherwise — and shows you the full working. This build re-ran the whole study on an expanded corpus (128,727 club matches, up from 34,765) and added the date-invariance gate.",
 } as const;

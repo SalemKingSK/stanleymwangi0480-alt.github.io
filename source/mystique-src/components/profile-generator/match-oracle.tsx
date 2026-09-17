@@ -79,8 +79,11 @@ function TeamCard({ side, d }: { side: "home" | "away"; d: FixtureDossier }) {
 
 /* ── trend tables (precomputed dataset) ────────────────────────────────────── */
 interface TrendTable { n: number; w: number; d: number; l: number; gf: number; ga: number; pd: number[][]; pm: number[][]; ud: number[][]; dc: number[][]; rfd: number[][]; rnn: number[][]; dec: number[][]; top: number[][]; since: number }
-interface TrendFile { meta: { source: string; sample: number; teams: number; since: number }; teams: Record<string, TrendTable> }
+interface PendingFile { clubs: Record<string, { year: number; precision: string; source: string; csvName: string }> }
 
+interface TrendFile { meta: { source?: string; sample?: number; teams?: number; since?: number; clubs?: number; matches?: number; aliases?: Record<string, string> }; teams: Record<string, TrendTable> }
+
+type TrendAndPending = TrendFile & { pending?: PendingFile };
 let trendCache: TrendFile | null = null;
 let trendPromise: Promise<TrendFile | null> | null = null;
 function useTrends(): { data: TrendFile | null; loading: boolean } {
@@ -93,8 +96,22 @@ function useTrends(): { data: TrendFile | null; loading: boolean } {
       trendPromise = Promise.all([
         fetch("/data/team-trends.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch("/data/club-trends.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      ]).then(([nations, clubs]) => {
-        const merged = { meta: nations?.meta || {}, teams: { ...(clubs?.teams || {}), ...(nations?.teams || {}) } };
+        fetch("/data/club-pending.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      ]).then(([nations, clubs, pending]) => {
+        const merged = {
+          meta: {
+            ...(nations?.meta || {}),
+            ...(clubs?.meta || {}),
+            // both alias maps must survive the merge — the club file is the only one with them
+            aliases: { ...(nations?.meta?.aliases || {}), ...(clubs?.meta?.aliases || {}) },
+            clubs: clubs?.meta?.clubs ?? 0,
+            matches: clubs?.meta?.matches ?? 0,
+            sample: nations?.meta?.sample,
+            since: nations?.meta?.since,
+          },
+          teams: { ...(clubs?.teams || {}), ...(nations?.teams || {}) },
+        };
+        (merged as TrendFile & { pending?: PendingFile }).pending = pending as PendingFile;
         trendCache = merged as TrendFile;
         return trendCache;
       }).catch(() => null);
@@ -159,15 +176,20 @@ const REL_NAMES = ["same", "friend", "neutral", "enemy"];
 
 function TeamTrend({ name }: { name: string }) {
   const { data, loading } = useTrends();
-  const t = data?.teams?.[name];
+  // the ledger row name is the canonical key; the CSV spelling and other aliases resolve too
+  const key = data?.teams?.[name] ? name : data?.meta?.aliases?.[name];
+  const t = key ? data?.teams?.[key] : undefined;
   if (loading && !data) return <div style={{ ...MUTED }}>Loading the decade ledger…</div>;
   if (!t) {
+    const clubs = data?.meta?.clubs ?? 0;
     return (
       <div style={{ ...MUTED }}>
-        No precomputed ledger for <b style={{ color: "#f1d98a" }}>{name}</b>.
-        The shipped dataset covers {data?.meta?.teams ?? "—"} national teams from {data?.meta?.since ?? 1950}
-        {" "}({data?.meta?.sample ? data.meta.sample.toLocaleString() : "—"} graded match-rows). Clubs have no bundled
-        match history — the same method applies once a results file is available.
+        No bundled match history for <b style={{ color: "#f1d98a" }}>{name}</b> — its founding date is settled in the
+        ledger, but its league results are not in the shipped corpus. The deep ledger currently covers{" "}
+        <b style={{ color: "#f1d98a" }}>{clubs}</b> clubs
+        {data?.meta?.matches ? ` across ${data.meta.matches.toLocaleString()} graded match-rows` : ""},
+        plus {Object.keys(data?.teams ?? {}).length - clubs + clubs > 0 ? "the national teams" : ""}. Clubs outside the
+        corpus still get the full deterministic reading above — only the decade tables need the results file.
       </div>
     );
   }
@@ -268,6 +290,9 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
             <div style={{ ...LABEL, fontSize: "0.66rem" }}>⚽ Match Oracle</div>
             <div style={{ ...MUTED, marginTop: 2 }}>
               A fixture dossier for any two ledger entities — deterministic, offline, and honest about what it can know.
+              {" "}Ledger: <b style={{ color: "#f1d98a" }}>{entities.length}</b> entities
+              {" "}({entities.filter((e) => e.kind === "Football Club").length} clubs,{" "}
+              {entities.filter((e) => e.kind === "Country").length} nations).
             </div>
           </div>
           {onClose && (
@@ -323,11 +348,7 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
         </div>
       </div>
 
-      {!dossier && (
-        <div style={{ ...CARD, color: "#fca5a5" }}>
-          Choose two different entities that both carry a founding date in the ledger.
-        </div>
-      )}
+      {!dossier && <WhyNoDossier home={home} away={away} />}
 
       {dossier && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
@@ -411,6 +432,53 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
           </div>
         </motion.div>
       )}
+    </div>
+  );
+}
+
+
+/* ── why a fixture could not be read ─────────────────────────────────────────
+   "Not in the ledger" and "we know the club but its founding date is only attested
+   to the year" are different answers, and the second one is worth saying out loud:
+   the letters need a day and a month, and inventing them would be worse than a blank.
+   ──────────────────────────────────────────────────────────────────────────── */
+function WhyNoDossier({ home, away }: { home: string; away: string }) {
+  const { data } = useTrends();
+  const pending = (data as TrendAndPending | null)?.pending;
+  const lookup = (name: string) => {
+    for (const [key, v] of Object.entries(pending?.clubs || {})) {
+      if (key.toLowerCase() === name.trim().toLowerCase()) return { name: key, ...v };
+      if (v.csvName?.toLowerCase() === name.trim().toLowerCase()) return { name: key, ...v };
+    }
+    return null;
+  };
+  const problem = (name: string) => {
+    if (!name.trim()) return null;
+    const p = lookup(name);
+    if (p) {
+      return {
+        head: `${p.name} — date not settled to day precision`,
+        body: `Our sources attest its founding only to the ${p.precision} (${p.year}, ${p.source}). The reading needs a day and a month, and neither source gives one, so the club is held back rather than guessed at.`,
+      };
+    }
+    return {
+      head: `${name} — not in the ledger`,
+      body: "It carries no founding date in the shipped ledger. Clubs enter the ledger once their founding date is sourced to the day; the list keeps growing.",
+    };
+  };
+  const a = problem(home), b = problem(away);
+  if (home === away && home) {
+    return <div style={{ ...CARD, color: "#fca5a5" }}>A club cannot play itself — pick two different entities.</div>;
+  }
+  return (
+    <div style={{ ...CARD, color: "#fca5a5" }}>
+      {[a, b].filter(Boolean).map((p, i) => (
+        <div key={i} style={{ marginBottom: i === 0 ? "0.5rem" : 0 }}>
+          <div style={{ fontWeight: 800, fontSize: "0.78rem" }}>{p!.head}</div>
+          <div style={{ ...MUTED, color: "rgba(255,220,220,0.8)", marginTop: 2 }}>{p!.body}</div>
+        </div>
+      ))}
+      {!a && !b && <div>Choose two different entities that both carry a founding date in the ledger.</div>}
     </div>
   );
 }

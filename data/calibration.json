@@ -1,9 +1,10 @@
 {
  "built": "2026-09-17",
  "dataset": {
-  "matches": 34765,
-  "clubs": 117,
+  "matches": 128727,
+  "clubs": 296,
   "leagues": [
+   "belgium",
    "england",
    "france",
    "germany",
@@ -11,94 +12,96 @@
    "holland",
    "italy",
    "portugal",
+   "scotland",
+   "spain",
    "turkey"
   ],
   "span": "1888–2025"
  },
  "splits": {
-  "train": 23301,
-  "validation": 6905,
-  "test": 4559,
+  "train": 77224,
+  "validation": 30830,
+  "test": 20673,
   "splitVal": 2000,
   "splitTest": 2015
  },
  "baseRates": {
-  "train": 0.514999,
-  "validation": 0.466474,
-  "test": 0.446589
+  "train": 0.525212,
+  "validation": 0.470873,
+  "test": 0.444299
  },
  "model": {
   "kind": "numerology-only logistic regression",
   "features": "one-hot personal-day (both clubs), universal day, calendar-day reduced, today-vs-founding-day relation (both), today-vs-name-number relation (both), age mod 10 (both), personal year (both); NO prior-form feature",
   "weights": [
    0,
-   -0.001331,
-   0.076033,
-   -0.007997,
-   -0.043933,
-   -0.036939,
-   -0.000085,
-   0.026297,
-   -0.013081,
-   0.034299,
-   0.019221,
-   0.049862,
-   0.05467,
-   0.022401,
-   0.022598,
-   -0.081085,
-   -0.05862,
-   -0.00306,
-   0.007277,
-   -0.018943,
-   0.025694,
-   -0.007604,
-   -0.015989,
-   -0.007526,
-   0.003388,
-   0.009377,
-   0.019173,
-   0.025694,
-   -0.018943,
-   0.025694,
-   -0.007604,
-   -0.015989,
-   -0.007526,
-   0.003388,
-   0.009377,
-   0.019173,
-   0.0195,
-   0.009678,
+   -0.005426,
+   0.039549,
+   0.037668,
+   -0.01822,
+   -0.030846,
+   -0.012759,
+   0.0064,
+   -0.032575,
+   0.044248,
+   0.000079,
+   0.010199,
+   0.003428,
+   0.008177,
+   0.000947,
+   -0.015621,
+   0.006858,
+   0.023905,
+   -0.009932,
+   0.015309,
+   0.010955,
+   -0.013073,
+   -0.00108,
+   -0.013644,
+   0.001791,
+   0.006427,
+   0.010808,
+   0.010546,
+   0.015309,
+   0.010955,
+   -0.013073,
+   -0.00108,
+   -0.013644,
+   0.001791,
+   0.006427,
+   0.010808,
+   -0.008697,
+   0.022881,
    0,
-   0.014067,
-   0.005029,
-   -0.020865,
+   0.040947,
+   -0.00079,
+   0.018586,
    0,
-   0.049099,
-   0.021857,
-   -0.010871,
+   0.010243,
+   0.011064,
+   -0.000657,
    0,
-   0.022277,
-   0.005842,
-   0.013873,
+   0.017632,
+   0.008731,
+   0.017591,
    0,
-   0.013549,
-   0.006487,
-   -0.085909,
-   0.030828,
-   -0.010519
+   0.001717,
+   -0.011436,
+   -0.031284,
+   0.006413,
+   0.034118
   ],
-  "intercept": 0.037141,
+  "intercept": 0.03186,
   "metrics": {
    "validation": {
-    "accuracy": 0.482,
-    "auc": 0.4998,
-    "brier": 0.25169
+    "accuracy": 0.4718,
+    "auc": 0.5033,
+    "brier": 0.25217
    },
    "test": {
-    "accuracy": 0.476,
-    "auc": 0.5151,
-    "brier": 0.25172
+    "accuracy": 0.4444,
+    "auc": 0.4953,
+    "brier": 0.25364
    },
    "calibration": [
     {
@@ -127,15 +130,15 @@
     },
     {
      "bucket": 40,
-     "predicted": 0.489,
-     "actual": 0.435,
-     "n": 1030
+     "predicted": 0.4971,
+     "actual": 0.4922,
+     "n": 128
     },
     {
      "bucket": 50,
-     "predicted": 0.5222,
-     "actual": 0.45,
-     "n": 3529
+     "predicted": 0.5252,
+     "actual": 0.444,
+     "n": 20545
     },
     {
      "bucket": 60,
@@ -166,31 +169,31 @@
  },
  "skillModel": {
   "test": {
-   "accuracy": 0.5238,
-   "auc": 0.5899,
-   "brier": 0.24858
+   "accuracy": 0.4981,
+   "auc": 0.6391,
+   "brier": 0.24893
   }
  },
  "alwaysHome": {
-  "validation": 0.5335,
-  "test": 0.5534
+  "validation": 0.5291,
+  "test": 0.5557
  },
  "nulls": {
   "permutationDates": {
    "iterations": 60,
-   "mean": 2.66,
-   "p95": 2.862,
-   "max": 3.066
+   "mean": 2.334,
+   "p95": 3.348,
+   "max": 3.493
   },
   "placeboFoundingDates": {
    "iterations": 25,
-   "mean": 2.789,
-   "p95": 3.886,
-   "max": 4.231
+   "mean": 2.094,
+   "p95": 2.576,
+   "max": 2.746
   },
   "observedBestTrain": {
-   "id": "aAge=0",
-   "z": 2.643,
+   "id": "hPY=2",
+   "z": 2.164,
    "beyondNulls": false
   }
  },
@@ -198,39 +201,39 @@
   {
    "threshold": -0.5,
    "valCoverage": 1,
-   "valAccuracy": 0.482,
+   "valAccuracy": 0.4718,
    "testCoverage": 1,
-   "testAccuracy": 0.476,
-   "testN": 4559
+   "testAccuracy": 0.4444,
+   "testN": 20673
   },
   {
    "threshold": 0.02,
-   "valCoverage": 0.433,
-   "valAccuracy": 0.4709,
-   "testCoverage": 0.4229,
-   "testAccuracy": 0.4704,
-   "testN": 1928
+   "valCoverage": 0.6655,
+   "valAccuracy": 0.4726,
+   "testCoverage": 0.6592,
+   "testAccuracy": 0.4436,
+   "testN": 13628
   },
   {
    "threshold": 0.04,
-   "valCoverage": 0.1072,
-   "valAccuracy": 0.4554,
-   "testCoverage": 0.1013,
-   "testAccuracy": 0.4545,
-   "testN": 462
+   "valCoverage": 0.102,
+   "valAccuracy": 0.4647,
+   "testCoverage": 0.1,
+   "testAccuracy": 0.4185,
+   "testN": 2067
   },
   {
    "threshold": 0.06,
-   "valCoverage": 0.0132,
-   "valAccuracy": 0.4176,
-   "testCoverage": 0.0075,
-   "testAccuracy": 0.4118,
-   "testN": 34
+   "valCoverage": 0,
+   "valAccuracy": 0,
+   "testCoverage": 0.0002,
+   "testAccuracy": 0.4,
+   "testN": 5
   },
   {
    "threshold": 0.08,
-   "valCoverage": 0.0001,
-   "valAccuracy": 1,
+   "valCoverage": 0,
+   "valAccuracy": 0,
    "testCoverage": 0,
    "testAccuracy": 0,
    "testN": 0
@@ -261,8 +264,10 @@
   }
  ],
  "gate": {
-  "chosenThreshold": 0.08,
-  "valAccuracyAtGate": 1,
+  "chosenThreshold": null,
+  "noHonestGate": true,
+  "qualifiedThresholds": 0,
+  "valAccuracyAtGate": 0,
   "testAccuracyAtGate": 0,
   "testCoverageAtGate": 0
  },
@@ -275,7 +280,7 @@
    "max": null,
    "windows": 0
   },
-  "worstLosingStreak": 0,
+  "worstLosingStreak": null,
   "flatStake": {
    "start": 10000,
    "end": 10000,
@@ -286,172 +291,172 @@
  "decadeStability": [
   {
    "decade": 1900,
-   "n": 61,
-   "homeWin": 0.5246,
-   "lift": -0.0342,
-   "z": -0.538
+   "n": 131,
+   "homeWin": 0.5802,
+   "lift": 0.0264,
+   "z": 0.607
   },
   {
    "decade": 1910,
-   "n": 55,
-   "homeWin": 0.4727,
-   "lift": -0.0524,
-   "z": -0.778
+   "n": 116,
+   "homeWin": 0.5345,
+   "lift": 0.0045,
+   "z": 0.097
   },
   {
    "decade": 1920,
-   "n": 200,
-   "homeWin": 0.635,
-   "lift": 0.0928,
-   "z": 2.633
+   "n": 373,
+   "homeWin": 0.563,
+   "lift": 0.0196,
+   "z": 0.761
   },
   {
    "decade": 1930,
-   "n": 189,
-   "homeWin": 0.5767,
-   "lift": -0.0046,
-   "z": -0.129
+   "n": 633,
+   "homeWin": 0.5687,
+   "lift": -0.0057,
+   "z": -0.288
   },
   {
    "decade": 1940,
-   "n": 94,
-   "homeWin": 0.4468,
-   "lift": -0.0465,
-   "z": -0.902
+   "n": 461,
+   "homeWin": 0.5792,
+   "lift": 0.0176,
+   "z": 0.761
   },
   {
    "decade": 1950,
-   "n": 257,
-   "homeWin": 0.5603,
-   "lift": 0.0258,
-   "z": 0.829
+   "n": 1055,
+   "homeWin": 0.563,
+   "lift": 0.0037,
+   "z": 0.24
   },
   {
    "decade": 1960,
-   "n": 291,
-   "homeWin": 0.5704,
-   "lift": 0.0493,
-   "z": 1.684
+   "n": 1070,
+   "homeWin": 0.5383,
+   "lift": 0.0122,
+   "z": 0.799
   },
   {
    "decade": 1970,
-   "n": 311,
-   "homeWin": 0.4887,
-   "lift": -0.0155,
-   "z": -0.548
+   "n": 1378,
+   "homeWin": 0.5631,
+   "lift": 0.0345,
+   "z": 2.567
   },
   {
    "decade": 1980,
-   "n": 381,
-   "homeWin": 0.5118,
-   "lift": 0.0186,
-   "z": 0.725
+   "n": 1486,
+   "homeWin": 0.5296,
+   "lift": 0.0206,
+   "z": 1.591
   },
   {
    "decade": 1990,
-   "n": 459,
-   "homeWin": 0.5512,
-   "lift": 0.0768,
-   "z": 3.295
+   "n": 1774,
+   "homeWin": 0.4746,
+   "lift": -0.0067,
+   "z": -0.561
   },
   {
    "decade": 2000,
-   "n": 473,
-   "homeWin": 0.4588,
-   "lift": -0.009,
-   "z": -0.392
+   "n": 2219,
+   "homeWin": 0.4845,
+   "lift": 0.0107,
+   "z": 1.006
   },
   {
    "decade": 2010,
-   "n": 467,
-   "homeWin": 0.4732,
-   "lift": 0.0111,
-   "z": 0.481
+   "n": 2289,
+   "homeWin": 0.4482,
+   "lift": -0.0127,
+   "z": -1.218
   },
   {
    "decade": 2020,
-   "n": 206,
-   "homeWin": 0.4466,
-   "lift": 0.0137,
-   "z": 0.397
+   "n": 1169,
+   "homeWin": 0.4269,
+   "lift": -0.0052,
+   "z": -0.356
   }
  ],
  "sweep": {
   "topTrain": [
    {
-    "id": "aAge=0",
-    "n": 2323,
-    "homeWin": 0.5424,
-    "lift": 0.0274,
-    "z": 2.643,
-    "valZ": -0.257,
-    "testZ": 0.752
+    "id": "hPY=2",
+    "n": 8534,
+    "homeWin": 0.5369,
+    "lift": 0.0117,
+    "z": 2.164,
+    "valZ": 0.036,
+    "testZ": -0.535
+   },
+   {
+    "id": "pD=9",
+    "n": 8660,
+    "homeWin": 0.5363,
+    "lift": 0.011,
+    "z": 2.059,
+    "valZ": 0.549,
+    "testZ": -1.803
+   },
+   {
+    "id": "aPM=9",
+    "n": 8628,
+    "homeWin": 0.536,
+    "lift": 0.0108,
+    "z": 2.015,
+    "valZ": -1.371,
+    "testZ": 0.665
+   },
+   {
+    "id": "aPM=1",
+    "n": 8749,
+    "homeWin": 0.5354,
+    "lift": 0.0102,
+    "z": 1.904,
+    "valZ": -1.539,
+    "testZ": 1.123
+   },
+   {
+    "id": "pM=1",
+    "n": 8552,
+    "homeWin": 0.535,
+    "lift": 0.0098,
+    "z": 1.806,
+    "valZ": 0.119,
+    "testZ": -0.786
    },
    {
     "id": "pD=2",
-    "n": 2622,
-    "homeWin": 0.5355,
-    "lift": 0.0205,
-    "z": 2.097,
-    "valZ": 0.285,
-    "testZ": 0.968
+    "n": 8650,
+    "homeWin": 0.5348,
+    "lift": 0.0096,
+    "z": 1.785,
+    "valZ": 0.446,
+    "testZ": -0.796
    },
    {
-    "id": "aPM=3",
-    "n": 2598,
-    "homeWin": 0.5339,
-    "lift": 0.0189,
-    "z": 1.925,
-    "valZ": -2.841,
-    "testZ": 0.66
+    "id": "aAge=0",
+    "n": 7772,
+    "homeWin": 0.5351,
+    "lift": 0.0099,
+    "z": 1.75,
+    "valZ": -0.333,
+    "testZ": 0.917
    },
    {
-    "id": "aFd=3",
-    "n": 8114,
-    "homeWin": 0.5248,
-    "lift": 0.0098,
-    "z": 1.761,
-    "valZ": 0.699,
-    "testZ": 0.017
-   },
-   {
-    "id": "aPY=5",
-    "n": 2595,
-    "homeWin": 0.5318,
-    "lift": 0.0168,
-    "z": 1.712,
-    "valZ": -0.386,
-    "testZ": 1.631
-   },
-   {
-    "id": "hPY=2",
-    "n": 2611,
-    "homeWin": 0.5312,
-    "lift": 0.0162,
-    "z": 1.658,
-    "valZ": 0.59,
-    "testZ": 0.156
-   },
-   {
-    "id": "aPY=9",
-    "n": 2630,
-    "homeWin": 0.5297,
-    "lift": 0.0147,
-    "z": 1.504,
-    "valZ": -0.862,
-    "testZ": -1.649
-   },
-   {
-    "id": "uD=2",
-    "n": 2522,
-    "homeWin": 0.5293,
-    "lift": 0.0143,
-    "z": 1.441,
-    "valZ": -1.178,
-    "testZ": 1.372
+    "id": "pD=3",
+    "n": 8555,
+    "homeWin": 0.5344,
+    "lift": 0.0092,
+    "z": 1.706,
+    "valZ": 0.712,
+    "testZ": 0.005
    }
   ],
-  "signatures": 122
+  "signatures": 104
  },
  "sources": {
   "matches": "engsoccerdata",

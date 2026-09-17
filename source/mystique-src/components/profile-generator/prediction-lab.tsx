@@ -49,7 +49,8 @@ interface Calibration {
     observedBestTrain: { id: string; z: number; beyondNulls: boolean };
   };
   abstention: { threshold: number; valCoverage: number; valAccuracy: number; testCoverage: number; testAccuracy: number; testN: number }[];
-  gate: { chosenThreshold: number; valAccuracyAtGate: number; testAccuracyAtGate: number; testCoverageAtGate: number };
+  gate: { chosenThreshold: number | null; noHonestGate?: boolean; qualifiedThresholds?: number;
+          valAccuracyAtGate: number; testAccuracyAtGate: number; testCoverageAtGate: number };
   failure: {
     spokenCalls: number;
     rolling100: { min: number; p05: number; median: number; max: number; windows: number };
@@ -110,7 +111,9 @@ export function PredictionLab({ dossier }: { dossier: FixtureDossier | null }) {
   const verdict = React.useMemo(() => {
     if (!probability || !data) return null;
     const confidence = Math.abs(probability.p - 0.5);
-    const gateThreshold = data.gate?.chosenThreshold ?? 0.06;
+    // a null threshold means no validation-era threshold ever beat always-home while filtering:
+    // the gate has no licence to speak, so nothing can open it
+    const gateThreshold = data.gate?.chosenThreshold ?? Infinity;
     const passesProtocol = data.nulls?.observedBestTrain?.beyondNulls === true;
     const speaks = passesProtocol && confidence > gateThreshold;
     return { confidence, gateThreshold, passesProtocol, speaks, side: probability.p >= 0.5 ? "home" : "away" };
@@ -213,6 +216,12 @@ export function PredictionLab({ dossier }: { dossier: FixtureDossier | null }) {
               </div>
 
               <div style={{ ...LABEL, marginBottom: "0.3rem" }}>Failure as an outlier — the measured answer</div>
+              {data.gate?.chosenThreshold == null && (
+                <div style={{ ...MUTED, marginBottom: "0.4rem", color: "#fca5a5" }}>
+                  Gate threshold: <b>none qualified</b> — {data.gate?.qualifiedThresholds ?? 0} of the tested thresholds
+                  beat always-home on the validation era while still filtering, so the honest threshold is “never speak”.
+                </div>
+              )}
               <div style={{ ...MUTED, marginBottom: "0.6rem" }}>
                 Spoken calls at the gate's own threshold on the test era: <b style={{ color: "#fca5a5" }}>{data.failure.spokenCalls}</b>.
                 With no validated edge there is no honest way to manufacture a call, so no failure rate, streak or drawdown can be reported — and inventing one would be the exact dishonesty this lab exists to prevent.
