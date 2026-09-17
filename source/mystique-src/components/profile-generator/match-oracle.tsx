@@ -3,11 +3,12 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { AccordionContentWithPlayer } from "./accordion-content-with-player";
 import { PredictionLab } from "./prediction-lab";
+import { VerdictPanel, computeVerdict, useVerdictReady } from "./verdict-panel";
 import {
   buildFixtureDossier,
-  letterAlignment,
+  numberAlignment,
   oracleEntities,
-  seasonLetters,
+  seasonNumbers,
   CALIBRATION,
   SEASON_CONSTANT_WARNING,
   ROYAL_STARS,
@@ -65,20 +66,19 @@ function TeamCard({ side, d }: { side: "home" | "away"; d: FixtureDossier }) {
         <span style={{ fontSize: "0.6rem", color: "rgba(200,180,240,0.45)" }}>founded {t.foundedISO} · age {t.age}y</span>
       </div>
       <div style={{ fontFamily: "'Cinzel', serif", color: "#f1d98a", fontSize: "0.92rem", fontWeight: 800, margin: "0.25rem 0 0.5rem" }}>{t.team}</div>
-      <Row k="Season letter (direct)" v={t.direct.name + crown + karma} tone={t.direct.isRoyal ? "#f1d98a" : undefined} />
-      <Row k="Season letter (classic)" v={t.classic.name} />
+      <Row k="Season number (direct)" v={t.direct.name + crown + karma} tone={t.direct.isRoyal ? "#f1d98a" : undefined} />
+      <Row k="Season number (classic)" v={t.classic.name} />
       <Row k="Personal year" v={`${t.personalYear}`} />
       <Row k="Personal month" v={t.personalMonth} />
-      <Row k="Personal day (the moving letter)" v={<span style={{ ...MONO, color: "#fff7e0" }}>{t.personalDay}</span>} tone={REL_COLOR[clash]} />
+      <Row k="Personal day (the moving number)" v={<span style={{ ...MONO, color: "#fff7e0" }}>{t.personalDay}</span>} tone={REL_COLOR[clash]} />
       <Row k="Founding-day number" v={t.foundingDayNumber} />
-      <Row k="Name number" v={`${t.nameNumber.total} → ${t.nameNumber.reduced}${t.nameNumber.compoundNumber ? ` (${t.nameNumber.compoundNumber} ${t.nameNumber.compoundName})` : ""}`} />
-      <Row k="Today's letter vs founding day" v={clash} tone={REL_COLOR[clash]} />
+      <Row k="Today's number vs founding day" v={clash} tone={REL_COLOR[clash]} />
     </div>
   );
 }
 
 /* ── trend tables (precomputed dataset) ────────────────────────────────────── */
-interface TrendTable { n: number; w: number; d: number; l: number; gf: number; ga: number; pd: number[][]; pm: number[][]; ud: number[][]; dc: number[][]; rfd: number[][]; rnn: number[][]; dec: number[][]; top: number[][]; since: number }
+interface TrendTable { n: number; w: number; d: number; l: number; gf: number; ga: number; pd: number[][]; pm: number[][]; ud: number[][]; dc: number[][]; rfd: number[][]; dec: number[][]; top: number[][]; since: number }
 interface PendingFile { clubs: Record<string, { year: number; precision: string; source: string; csvName: string }> }
 
 interface TrendFile { meta: { source?: string; sample?: number; teams?: number; since?: number; clubs?: number; matches?: number; aliases?: Record<string, string> }; teams: Record<string, TrendTable> }
@@ -225,7 +225,6 @@ function TeamTrend({ name }: { name: string }) {
           labelFn={(k) => `${k}${lookupCompoundName(k) ? ` — ${lookupCompoundName(k)}` : ""}`}
         />
         <TrendTableBlock title="Today's letter vs the founding day" rows={t.rfd} baseline={baseline} labelFn={(k) => REL_NAMES[k] ?? String(k)} />
-        <TrendTableBlock title="Today's letter vs the name number" rows={t.rnn} baseline={baseline} labelFn={(k) => REL_NAMES[k] ?? String(k)} />
         <TrendTableBlock
           title="Strongest compounds on record (n ≥ 8)"
           rows={t.top}
@@ -255,9 +254,20 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
   const names = React.useMemo(() => entities.map((e) => e.name), [entities]);
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = React.useState(today);
-  const [home, setHome] = React.useState("Kenya");
-  const [away, setAway] = React.useState("Brazil");
+  const [home, setHome] = React.useState("Manchester United");
+  const [away, setAway] = React.useState("Manchester City");
   const [showCalibration, setShowCalibration] = React.useState(false);
+  const verdictReady = useVerdictReady();
+  const [rawCalib, setRawCalib] = React.useState<unknown>(null);
+  const [rawForm, setRawForm] = React.useState<unknown>(null);
+  React.useEffect(() => {
+    let alive = true;
+    Promise.all([
+      fetch("/data/calibration.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch("/data/club-form.json").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]).then(([c, f]) => { if (alive) { setRawCalib(c); setRawForm(f); } });
+    return () => { alive = false; };
+  }, [verdictReady]);
 
   const dossier = React.useMemo(() => {
     try {
@@ -268,19 +278,30 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
     }
   }, [date, home, away]);
 
+  const verdict = React.useMemo(
+    () => (dossier && rawCalib ? computeVerdict(dossier, rawCalib as never, rawForm as never) : null),
+    [dossier, rawCalib, rawForm],
+  );
+
   const summaryText = React.useMemo(() => {
     if (!dossier) return "";
-    const lines = letterAlignment(dossier);
-    const s = seasonLetters(dossier);
+    const lines = numberAlignment(dossier);
+    const s = seasonNumbers(dossier);
+    const v = verdict;
     return [
-      `${dossier.home.team} against ${dossier.away.team}, ${dossier.date}.`,
-      `The day is a universal day ${dossier.day.universalDay.raw}${dossier.day.universalDay.name ? `, ${dossier.day.universalDay.name}` : ""}, its calendar-day letter ${dossier.day.calendarDay.raw}${dossier.day.calendarDay.name ? `, ${dossier.day.calendarDay.name}` : ""}, falling on a ${dossier.day.weekday}.`,
-      `${dossier.home.team} carries the season letter ${s.home.direct.name}, with classic reading ${s.home.classic.name}, and stands today on personal day ${dossier.home.personalDay} against its founding day ${dossier.home.foundingDayNumber} and its name number ${dossier.home.nameNumber.total}.`,
-      `${dossier.away.team} carries the season letter ${s.away.direct.name}, with classic reading ${s.away.classic.name}, and stands today on personal day ${dossier.away.personalDay} against its founding day ${dossier.away.foundingDayNumber} and its name number ${dossier.away.nameNumber.total}.`,
+      v
+        ? `${dossier.home.team} against ${dossier.away.team}, ${dossier.date}. The verdict: ${v.verdictLong}.`
+        : `${dossier.home.team} against ${dossier.away.team}, ${dossier.date}.`,
+      v
+        ? `That call comes from measured form — each club\u2019s points per game and goal difference over its previous thirty matches — with home advantage. Confidence ${v.confidencePct}%, and verdicts in this band were right ${v.bandAccuracyPct} of the time on held-out matches.`
+        : "",
+      `The day is a universal day ${dossier.day.universalDay.raw}${dossier.day.universalDay.name ? `, ${dossier.day.universalDay.name}` : ""}, its calendar-day number ${dossier.day.calendarDay.raw}${dossier.day.calendarDay.name ? `, ${dossier.day.calendarDay.name}` : ""}, falling on a ${dossier.day.weekday}.`,
+      `${dossier.home.team} carries the season number ${s.home.direct.name} with classic reading ${s.home.classic.name}, and stands today on personal day ${dossier.home.personalDay} against its founding day ${dossier.home.foundingDayNumber}.`,
+      `${dossier.away.team} carries the season number ${s.away.direct.name} with classic reading ${s.away.classic.name}, and stands today on personal day ${dossier.away.personalDay} against its founding day ${dossier.away.foundingDayNumber}.`,
       lines.map((l) => l.detail).join(" "),
-      "Read the letters as language, not as a forecast. The season letters are identical in every fixture this year and cannot separate matches; the moving layers describe the day, and the data on nearly forty thousand matches says they do not predict results.",
-    ].join("\n\n");
-  }, [dossier]);
+      "The date numbers describe the day; measured on 128,727 matches they do not change who wins. The verdict is the call; everything else here is context, not a forecast.",
+    ].filter(Boolean).join("\n\n");
+  }, [dossier, verdict]);
 
   return (
     <div>
@@ -348,6 +369,10 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
         </div>
       </div>
 
+      {home && away && home !== away && (
+        <VerdictPanel date={date} home={home} away={away} calibration={rawCalib} formFile={rawForm} />
+      )}
+
       {!dossier && <WhyNoDossier home={home} away={away} />}
 
       {dossier && (
@@ -369,8 +394,8 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
           </div>
 
           <div style={CARD}>
-            <div style={{ ...LABEL, marginBottom: "0.4rem" }}>Letter alignment — a reading, not a forecast</div>
-            {letterAlignment(dossier).map((l, i) => (
+            <div style={{ ...LABEL, marginBottom: "0.4rem" }}>Date numbers — context only, measured to add nothing</div>
+            {numberAlignment(dossier).map((l, i) => (
               <div key={i} style={{ padding: "0.4rem 0", borderBottom: "1px dashed rgba(255,255,255,0.06)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "0.6rem" }}>
                   <span style={{ fontSize: "0.7rem", color: "rgba(200,180,240,0.7)" }}>{l.label}</span>
@@ -382,7 +407,7 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
               </div>
             ))}
             <div style={{ ...MUTED, marginTop: "0.55rem", color: "rgba(241,217,138,0.75)" }}>
-              “Favours” and “tests” describe the language of the letters only. No probability, no pick, no stake.
+              “Supports” and “tests” describe the language of the numbers only. The pick is in the verdict above; this block carries no probability and never decides a match.
             </div>
           </div>
 
@@ -422,7 +447,7 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
             )}
           </div>
 
-          <PredictionLab dossier={dossier} />
+          <PredictionLab />
 
           <TeamTrend name={dossier.home.team} />
           <TeamTrend name={dossier.away.team} />

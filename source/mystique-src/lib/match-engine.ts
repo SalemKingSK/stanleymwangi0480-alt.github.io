@@ -52,23 +52,13 @@ export function relationOf(a: number, b: number, grid = FRIEND_GRID): Relation {
   return "neutral";
 }
 
-/* ── Chaldean name numbers ─────────────────────────────────────────────────── */
-export const CHALDEAN_VALUES: Record<string, number> = {
-  A:1,B:2,C:3,D:4,E:5,F:8,G:3,H:5,I:1,J:1,K:2,L:3,M:4,N:5,O:7,P:8,Q:1,R:2,S:3,T:4,U:6,V:6,W:6,X:5,Y:1,Z:7,
-};
+/* ── Name numbers: REMOVED from the team analysis ─────────────────────────────
+   The Chaldean name-number layer (and the "letter" vocabulary built on it) is withdrawn
+   from the match engine. Measured across 128,727 real club matches it performed no better
+   than chance, and the instruction was explicit: it does not belong in a team reading.
+   Nothing here reads a club's spelling any more — every number derives from a date.
+   ──────────────────────────────────────────────────────────────────────────── */
 
-export function nameNumber(name: string) {
-  const letters = name.toUpperCase().replace(/[^A-Z]/g, "");
-  const total = [...letters].reduce((a, ch) => a + (CHALDEAN_VALUES[ch] || 0), 0);
-  const compound = total >= 10 ? lookupCompound(total) : null;
-  return {
-    total,
-    reduced: reduceToSingleDigit(total),
-    compoundNumber: compound ? compound.compound : null,
-    compoundName: compound ? compound.name : null,
-    compoundSymbolism: compound ? compound.symbolism : null,
-  };
-}
 
 
 /** Compound name for any number (used by the trend tables). */
@@ -135,9 +125,10 @@ export interface TeamLayers {
   /** layers that move daily */
   personalMonth: number;
   personalDay: number;
-  /** the entity's fixed core numbers */
+  /** the entity's fixed core numbers — all date-derived. Name spelling is deliberately NOT
+   *  read: the name-number layer measured no better than chance on 128,727 real matches and
+   *  is withdrawn from the team analysis. */
   foundingDayNumber: number;
-  nameNumber: ReturnType<typeof nameNumber>;
 }
 
 export const ROYAL_STARS = new Set([17, 19, 21, 23, 24, 27, 37]);
@@ -184,7 +175,6 @@ export function teamLayers(entity: LedgerEntity, dateISO: string): TeamLayers {
     personalMonth,
     personalDay,
     foundingDayNumber: reduceToSingleDigit(day),
-    nameNumber: nameNumber(name),
   };
 }
 
@@ -283,13 +273,16 @@ export function buildFixtureDossier(dateISO: string, homeName: string, awayName:
       dayVsAway: relationOf(day.universalDay.reduced, away.personalYear),
       homeDayVsFoundingDay: relationOf(home.personalDay, home.foundingDayNumber),
       awayDayVsFoundingDay: relationOf(away.personalDay, away.foundingDayNumber),
-      homeDayVsName: relationOf(home.personalDay, home.nameNumber.reduced),
-      awayDayVsName: relationOf(away.personalDay, away.nameNumber.reduced),
     },
   };
 }
 
-/* ── Letter alignment — a reading, never a probability ─────────────────────── */
+/* ── Number alignment — a reading of the date layers, never a probability ──────
+   Only date-derived numbers take part. The name-number layer and the "letter" vocabulary
+   that used to sit here are withdrawn: the name reading measured no better than chance on
+   128,727 real matches, and the date layers themselves are reported with their measured
+   contribution (≈0), so nothing here is dressed up as a forecast. The verdict does the calling.
+   ──────────────────────────────────────────────────────────────────────────── */
 export interface AlignmentLine {
   side: "home" | "away" | "field";
   label: string;
@@ -298,57 +291,44 @@ export interface AlignmentLine {
 }
 
 const REL_TEXT: Record<Relation, { word: string; verdict: AlignmentLine["verdict"] }> = {
-  same: { word: "echoes", verdict: "favours" },
-  friend: { word: "is friendly to", verdict: "favours" },
-  neutral: { word: "is neutral toward", verdict: "neutral" },
-  enemy: { word: "is at odds with", verdict: "tests" },
+  same: { word: "repeats", verdict: "favours" },
+  friend: { word: "supports", verdict: "favours" },
+  neutral: { word: "passes through", verdict: "neutral" },
+  enemy: { word: "tests", verdict: "tests" },
 };
 
-export function letterAlignment(d: FixtureDossier): AlignmentLine[] {
-  const lines: AlignmentLine[] = [];
+export function numberAlignment(d: FixtureDossier): AlignmentLine[] {
   const rel = (r: Relation) => REL_TEXT[r];
-
-  lines.push({
-    side: "home",
-    label: `${d.home.team} — today's letter vs its own founding day`,
-    verdict: rel(d.clash.homeDayVsFoundingDay).verdict,
-    detail: `Personal day ${d.home.personalDay} ${rel(d.clash.homeDayVsFoundingDay).word} the founding day ${d.home.foundingDayNumber}.`,
-  });
-  lines.push({
-    side: "away",
-    label: `${d.away.team} — today's letter vs its own founding day`,
-    verdict: rel(d.clash.awayDayVsFoundingDay).verdict,
-    detail: `Personal day ${d.away.personalDay} ${rel(d.clash.awayDayVsFoundingDay).word} the founding day ${d.away.foundingDayNumber}.`,
-  });
-  lines.push({
-    side: "home",
-    label: `${d.home.team} — today's letter vs its name number`,
-    verdict: rel(d.clash.homeDayVsName).verdict,
-    detail: `Personal day ${d.home.personalDay} ${rel(d.clash.homeDayVsName).word} name number ${d.home.nameNumber.total}→${d.home.nameNumber.reduced}.`,
-  });
-  lines.push({
-    side: "away",
-    label: `${d.away.team} — today's letter vs its name number`,
-    verdict: rel(d.clash.awayDayVsName).verdict,
-    detail: `Personal day ${d.away.personalDay} ${rel(d.clash.awayDayVsName).word} name number ${d.away.nameNumber.total}→${d.away.nameNumber.reduced}.`,
-  });
-  lines.push({
-    side: "field",
-    label: "The day both play on",
-    verdict: "neutral",
-    detail: `Universal day ${d.day.universalDay.raw}${d.day.universalDay.name ? ` (${d.day.universalDay.name})` : ""}, reduced ${d.day.universalDay.reduced}; calendar-day letter ${d.day.calendarDay.raw}${d.day.calendarDay.name ? ` (${d.day.calendarDay.name})` : ""}. Universal day ${rel(d.clash.dayVsHome).word} the home year and ${rel(d.clash.dayVsAway).word} the away year.`,
-  });
-  lines.push({
-    side: "field",
-    label: "Season letters (context only — identical in every match this year)",
-    verdict: "neutral",
-    detail: `${d.home.team} ${d.home.direct.name} · ${d.away.team} ${d.away.direct.name}. These are at-odds-ness: ${rel(d.clash.homeVsAway).word} / ${rel(d.clash.awayVsHome).word}.`,
-  });
-  return lines;
+  return [
+    {
+      side: "home",
+      label: `${d.home.team} — the day against its own founding day`,
+      verdict: rel(d.clash.homeDayVsFoundingDay).verdict,
+      detail: `Personal day ${d.home.personalDay} ${rel(d.clash.homeDayVsFoundingDay).word} the founding day ${d.home.foundingDayNumber}.`,
+    },
+    {
+      side: "away",
+      label: `${d.away.team} — the day against its own founding day`,
+      verdict: rel(d.clash.awayDayVsFoundingDay).verdict,
+      detail: `Personal day ${d.away.personalDay} ${rel(d.clash.awayDayVsFoundingDay).word} the founding day ${d.away.foundingDayNumber}.`,
+    },
+    {
+      side: "field",
+      label: "The day both play on",
+      verdict: "neutral",
+      detail: `Universal day ${d.day.universalDay.raw}${d.day.universalDay.name ? ` (${d.day.universalDay.name})` : ""}, reduced ${d.day.universalDay.reduced}; calendar-day number ${d.day.calendarDay.raw}${d.day.calendarDay.name ? ` (${d.day.calendarDay.name})` : ""}. Universal day ${rel(d.clash.dayVsHome).word} the home season number and ${rel(d.clash.dayVsAway).word} the away season number.`,
+    },
+    {
+      side: "field",
+      label: "Season numbers (context only — identical in every match this year)",
+      verdict: "neutral",
+      detail: `Home ${d.home.personalYear} (classic ${d.home.personalYearClassic}) · away ${d.away.personalYear} (classic ${d.away.personalYearClassic}). A season number is held for twelve months, so it cannot separate one fixture from another.`,
+    },
+  ];
 }
 
-/** The two sides' own seasonal letters, so the panel can show them side by side. */
-export function seasonLetters(d: FixtureDossier) {
+/** The two sides' own seasonal numbers, so the panel can show them side by side. */
+export function seasonNumbers(d: FixtureDossier) {
   return {
     home: { direct: d.home.direct, classic: d.home.classic },
     away: { direct: d.away.direct, classic: d.away.classic },
@@ -356,8 +336,9 @@ export function seasonLetters(d: FixtureDossier) {
 }
 
 /* ── The honesty layer, shipped with the feature ──────────────────────────── */
+/* ── The honesty layer, shipped with the feature ──────────────────────────── */
 export const SEASON_CONSTANT_WARNING =
-  "A team's personal year is one letter held for twelve months — roughly 10-15 matches share it in a season, so it cannot separate one fixture from another. Match-level reading must use the layers that move daily: personal month, personal day, universal day, the calendar-day letter, and the relations to each team's fixed numbers. Even then, the measured answer is that these letters describe a day rather than predict its result.";
+  "A team's personal year is a single number held for twelve months — roughly 10-15 matches share it in a season, so it cannot separate one fixture from another. Only the numbers that move daily can even describe the day: personal month, personal day, universal day and the calendar-day number. Measured on 128,727 real matches, those date numbers change nothing about who wins — which is why the verdict is built on form, and why this panel reports the date reading without pretending it is a forecast.";
 
 export const CALIBRATION = {
   studies: [

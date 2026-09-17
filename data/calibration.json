@@ -461,5 +461,165 @@
  "sources": {
   "matches": "engsoccerdata",
   "founders": "Wikipedia infobox founded (MediaWiki API) + Wikidata P571"
+ },
+ "verdict": {
+  "built": "2026-09-17",
+  "kind": "3-class softmax (home/draw/away) fitted by IRLS on point-in-time form",
+  "classes": [
+   "home",
+   "draw",
+   "away"
+  ],
+  "features": [
+   "bias",
+   "ppgFormDiff",
+   "gdFormDiff",
+   "ppgCareerDiff",
+   "uDay",
+   "calDay",
+   "homePD",
+   "awayPD"
+  ],
+  "featureMeans": [
+   1,
+   -0.027071,
+   -0.03467,
+   -0.007856,
+   0.559849,
+   0.559849,
+   0.556377,
+   0.554505
+  ],
+  "featureScales": [
+   1,
+   0.745747,
+   1.066142,
+   0.451951,
+   0.286752,
+   0.286752,
+   0.28726,
+   0.286987
+  ],
+  "weights": [
+   [
+    0.541173,
+    -0.025941,
+    0.275774,
+    0.094038,
+    0.00035,
+    0.00035,
+    -0.0008,
+    -0.001586
+   ],
+   [
+    -0.384848,
+    0.005831,
+    -0.250272,
+    -0.063497,
+    -0.000369,
+    -0.000369,
+    0.003075,
+    0.000703
+   ],
+   [
+    -0.156325,
+    0.02011,
+    -0.025501,
+    -0.030541,
+    0.000019,
+    0.000019,
+    -0.002275,
+    0.000884
+   ]
+  ],
+  "scaling": {
+   "note": "standardise inputs as (x[j] - featureMeans[j]) / featureScales[j]; column 0 (bias) must stay 1",
+   "formDivisor": {
+    "ppg": 0.6,
+    "gd": 0.8,
+    "careerPpg": 0.6
+   }
+  },
+  "formSource": "data/club-form.json (rolling last-30 form + career points per game, published by tools/publish-form.mjs)",
+  "formFallbacks": {
+   "ppg": 1.3838,
+   "gd": -0.013,
+   "careerPpg": 1.387,
+   "note": "used for a club with no form row: it enters the verdict at the corpus average, so the call falls back to home advantage and the confidence band says so"
+  },
+  "metrics": {
+   "date-only (numerology)": {
+    "valAccuracy": 0.4709,
+    "testAccuracy": 0.4443,
+    "testLogLoss": 1.0918,
+    "testPicks": {
+     "home": 20673,
+     "draw": 0,
+     "away": 0
+    },
+    "features": 5
+   },
+   "form-only": {
+    "valAccuracy": 0.5003,
+    "testAccuracy": 0.4888,
+    "testLogLoss": 1.0202,
+    "testPicks": {
+     "home": 18747,
+     "draw": 1926,
+     "away": 0
+    },
+    "features": 4
+   },
+   "form+date (the verdict)": {
+    "valAccuracy": 0.5003,
+    "testAccuracy": 0.4888,
+    "testLogLoss": 1.0202,
+    "testPicks": {
+     "home": 18745,
+     "draw": 1928,
+     "away": 0
+    },
+    "features": 8
+   }
+  },
+  "confidenceBands": [
+   {
+    "band": "30-40%",
+    "n": 2201,
+    "accuracy": 0.3707
+   },
+   {
+    "band": "40-50%",
+    "n": 5818,
+    "accuracy": 0.3878
+   },
+   {
+    "band": "50-60%",
+    "n": 7043,
+    "accuracy": 0.4668
+   },
+   {
+    "band": "60-70%",
+    "n": 3810,
+    "accuracy": 0.6031
+   },
+   {
+    "band": "70-80%",
+    "n": 1572,
+    "accuracy": 0.7901
+   },
+   {
+    "band": "80-90%",
+    "n": 228,
+    "accuracy": 0.8904
+   },
+   {
+    "band": "90-100%",
+    "n": 1,
+    "accuracy": 1
+   }
+  ],
+  "fallback": "a club with no ledger entry falls back to the corpus mean form, so a verdict is still produced — home advantage then decides, and the confidence band says so.",
+  "honesty": "measured: the date layers change test accuracy by less than a percentage point in either direction, so the verdict rests on form. The app shows both numbers rather than implying the dates carry the call."
  }
 }
