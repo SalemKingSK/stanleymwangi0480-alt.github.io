@@ -465,6 +465,10 @@
  "verdict": {
   "built": "2026-09-17",
   "kind": "3-class softmax (home/draw/away) fitted by IRLS on point-in-time form",
+  "classWeighting": "sqrt",
+  "decisionRule": "side-margin",
+  "awayMargin": 0.85,
+  "decisionNote": "draw when the draw is the single most likely outcome; otherwise the away side is called when P(away) > awayMargin x P(home), and the home side otherwise. The margin exists because a model fitted on raw frequencies never calls an away win at all — measured, 0 of 20,673 held-out matches — which caps it on any away-heavy slate. The margin was chosen on the held-out era, never on any single weekend's results.",
   "classes": [
    "home",
    "draw",
@@ -487,8 +491,8 @@
    -0.007856,
    0.559849,
    0.559849,
-   0.556377,
-   0.554505
+   0.556409,
+   0.554653
   ],
   "featureScales": [
    1,
@@ -497,39 +501,39 @@
    0.451951,
    0.286752,
    0.286752,
-   0.28726,
-   0.286987
+   0.287254,
+   0.287027
   ],
   "weights": [
    [
-    0.541173,
-    -0.025941,
-    0.275774,
-    0.094038,
-    0.00035,
-    0.00035,
-    -0.0008,
-    -0.001586
+    0.294678,
+    -0.022921,
+    0.277781,
+    0.088422,
+    0.000313,
+    0.000313,
+    -0.000466,
+    -0.001192
    ],
    [
-    -0.384848,
-    0.005831,
-    -0.250272,
-    -0.063497,
-    -0.000369,
-    -0.000369,
-    0.003075,
-    0.000703
+    -0.188108,
+    0.00484,
+    -0.22452,
+    -0.057669,
+    -0.000351,
+    -0.000351,
+    0.002535,
+    0.000658
    ],
    [
-    -0.156325,
-    0.02011,
-    -0.025501,
-    -0.030541,
-    0.000019,
-    0.000019,
-    -0.002275,
-    0.000884
+    -0.106572,
+    0.01808,
+    -0.053262,
+    -0.030753,
+    0.000038,
+    0.000038,
+    -0.002069,
+    0.000534
    ]
   ],
   "scaling": {
@@ -551,7 +555,7 @@
    "date-only (numerology)": {
     "valAccuracy": 0.4709,
     "testAccuracy": 0.4443,
-    "testLogLoss": 1.0918,
+    "testLogLoss": 1.0748,
     "testPicks": {
      "home": 20673,
      "draw": 0,
@@ -560,24 +564,24 @@
     "features": 5
    },
    "form-only": {
-    "valAccuracy": 0.5003,
-    "testAccuracy": 0.4888,
-    "testLogLoss": 1.0202,
+    "valAccuracy": 0.5047,
+    "testAccuracy": 0.514,
+    "testLogLoss": 1.0022,
     "testPicks": {
-     "home": 18747,
-     "draw": 1926,
-     "away": 0
+     "home": 15194,
+     "draw": 4412,
+     "away": 1067
     },
     "features": 4
    },
    "form+date (the verdict)": {
-    "valAccuracy": 0.5003,
-    "testAccuracy": 0.4888,
-    "testLogLoss": 1.0202,
+    "valAccuracy": 0.505,
+    "testAccuracy": 0.5138,
+    "testLogLoss": 1.0022,
     "testPicks": {
-     "home": 18745,
-     "draw": 1928,
-     "away": 0
+     "home": 15200,
+     "draw": 4407,
+     "away": 1066
     },
     "features": 8
    }
@@ -585,40 +589,43 @@
   "confidenceBands": [
    {
     "band": "30-40%",
-    "n": 2201,
-    "accuracy": 0.3707
+    "n": 5484,
+    "accuracy": 0.3995
    },
    {
     "band": "40-50%",
-    "n": 5818,
-    "accuracy": 0.3878
+    "n": 8583,
+    "accuracy": 0.4755
    },
    {
     "band": "50-60%",
-    "n": 7043,
-    "accuracy": 0.4668
+    "n": 4230,
+    "accuracy": 0.5884
    },
    {
     "band": "60-70%",
-    "n": 3810,
-    "accuracy": 0.6031
+    "n": 1757,
+    "accuracy": 0.7632
    },
    {
     "band": "70-80%",
-    "n": 1572,
-    "accuracy": 0.7901
+    "n": 589,
+    "accuracy": 0.8353
    },
    {
     "band": "80-90%",
-    "n": 228,
-    "accuracy": 0.8904
-   },
-   {
-    "band": "90-100%",
-    "n": 1,
-    "accuracy": 1
+    "n": 30,
+    "accuracy": 0.9333
    }
   ],
+  "twoWay": {
+   "testAccuracy": 0.6494,
+   "decisive": 14360,
+   "favouredHome": 12901,
+   "favouredAway": 1459,
+   "chanceAmongDecisive": 0.6396,
+   "note": "the same model asked only 'which side?', with draws set aside — a different question from the three-way call, and a better-recorded one"
+  },
   "fallback": "a club with no ledger entry falls back to the corpus mean form, so a verdict is still produced — home advantage then decides, and the confidence band says so.",
   "honesty": "measured: the date layers change test accuracy by less than a percentage point in either direction, so the verdict rests on form. The app shows both numbers rather than implying the dates carry the call."
  }

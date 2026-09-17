@@ -1,0 +1,20 @@
+{
+  "date": "2026-09-13",
+  "note": "the fixture list supplied by the user, with the results as they finished",
+  "fixtures": [
+    { "home": "Manchester United", "away": "Manchester City", "score": "0-1", "result": "away", "league": "Premier League" },
+    { "home": "Coventry City", "away": "Brighton & Hove Albion", "score": "0-5", "result": "away", "league": "Premier League" },
+    { "home": "Real Sociedad", "away": "Atletico Madrid", "score": "0-3", "result": "away", "league": "La Liga" },
+    { "home": "Levante", "away": "FC Barcelona", "score": "2-4", "result": "away", "league": "La Liga" },
+    { "home": "Celta Vigo", "away": "Malaga CF", "score": "1-1", "result": "draw", "league": "La Liga" },
+    { "home": "Getafe", "away": "Deportivo La Coruna", "score": "1-1", "result": "draw", "league": "La Liga" },
+    { "home": "Sassuolo", "away": "Juventus", "score": "3-2", "result": "home", "league": "Serie A" },
+    { "home": "Napoli", "away": "Bologna", "score": "1-0", "result": "home", "league": "Serie A" },
+    { "home": "Lecce", "away": "AC Monza", "score": "3-2", "result": "home", "league": "Serie A" },
+    { "home": "RB Leipzig", "away": "Hamburger SV", "score": "5-0", "result": "home", "league": "Bundesliga" },
+    { "home": "Elversberg", "away": "Bayern Munich", "score": "1-2", "result": "away", "league": "Bundesliga" },
+    { "home": "Brest", "away": "Paris Saint-Germain", "score": "0-1", "result": "away", "league": "Ligue 1" },
+    { "home": "Lille", "away": "Troyes", "score": "2-0", "result": "home", "league": "Ligue 1" },
+    { "home": "Le Mans", "away": "Lens", "score": "2-2", "result": "draw", "league": "Ligue 1" }
+  ]
+}

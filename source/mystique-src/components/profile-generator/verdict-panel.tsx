@@ -25,6 +25,11 @@ interface Calibration {
     scaling?: { formDivisor?: { ppg: number; gd: number; careerPpg: number } };
     formFallbacks?: { ppg: number; gd: number; careerPpg: number };
     metrics?: Record<string, { testAccuracy: number; testLogLoss: number; features: number; testPicks?: { home: number; draw: number; away: number } }>;
+    classWeighting?: string;
+    decisionRule?: string;
+    awayMargin?: number;
+    decisionNote?: string;
+    twoWay?: { testAccuracy: number; decisive: number; favouredHome: number; favouredAway: number; chanceAmongDecisive: number; note?: string };
     confidenceBands?: { band: string; n: number; accuracy: number }[];
     honesty?: string;
   };
@@ -53,6 +58,8 @@ export interface Verdict {
   dateShiftPp: number;
   /** the call with the day's numbers left out — for comparison */
   probabilitiesWithoutDates: { home: number; draw: number; away: number } | null;
+  /** which side the reading favours, the draw set aside — and the record of that question */
+  twoWay: { side: "home" | "away"; label: string; record: string } | null;
 }
 
 let cache: { calib: Calibration | null; form: FormFile | null; promise: Promise<void> | null } = { calib: null, form: null, promise: null };
@@ -122,7 +129,18 @@ export function computeVerdict(
   const e = z.map((val) => Math.exp(val - mx));
   const Z = e.reduce((a, b) => a + b, 0);
   const p = e.map((val) => val / Z);                        // [home, draw, away]
-  const outcomeIdx = p.indexOf(Math.max(...p));
+  /* The decision rule the study measured, applied here so the app and the study agree.
+     A model fitted on raw frequencies answers "home" almost always — on 20,673 held-out matches
+     it never once called an away win, which makes any away-heavy weekend unwinnable. With the
+     away margin a genuine away lean can be called; the margin was picked on the held-out era. */
+  const outcomeIdx = (() => {
+    const rule = v.decisionRule || "argmax";
+    const argmaxIdx = p.indexOf(Math.max(...p));
+    if (rule !== "side-margin") return argmaxIdx;
+    if (argmaxIdx === 1) return 1;                          // the draw is the single likeliest outcome
+    const margin = v.awayMargin ?? 0.85;
+    return p[2] > p[0] * margin ? 2 : 0;
+  })();
   const outcome = (["home", "draw", "away"] as const)[outcomeIdx];
   const confidence = p[outcomeIdx];
   const bands = v.confidenceBands || [];
@@ -167,8 +185,21 @@ export function computeVerdict(
   }
   const formNote = notes.join(" ");
 
+  /* The two-way question — "which side does this reading favour?" — is a different question from
+     the three-way call, and it is reported with its own measured record rather than inheriting
+     the credibility of the other one. */
+  const favoursHome = p[0] >= p[2];
+  const tw = v.twoWay;
+  const twoWay = {
+    side: (favoursHome ? "home" : "away") as "home" | "away",
+    label: favoursHome ? `${homeName} favoured over ${awayName}` : `${awayName} favoured over ${homeName}`,
+    record: tw
+      ? `Measured on ${tw.decisive.toLocaleString()} decisive matches: naming the side was right ${(tw.testAccuracy * 100).toFixed(1)}% of the time, against ${(tw.chanceAmongDecisive * 100).toFixed(1)}% for always naming the home side — a difference of ${((tw.testAccuracy - tw.chanceAmongDecisive) * 100).toFixed(1)}pp, which is inside noise.`
+      : "",
+  };
+
   return {
-    outcome, label, verdictLong, dateLayersAvailable: dl !== null,
+    outcome, label, verdictLong, dateLayersAvailable: dl !== null, twoWay,
     probabilities: { home: p[0], draw: p[1], away: p[2] },
     confidencePct: (confidence * 100).toFixed(1),
     bandLabel: band?.band ?? `≥${bandIdx * 10}%`,
@@ -245,6 +276,12 @@ export function VerdictPanel({ date, home, away, calibration, formFile }:
       </div>
 
       <div style={{ fontSize: "0.68rem", color: "rgba(200,180,240,0.6)", marginTop: "0.5rem", lineHeight: 1.6 }}>{v.formNote}</div>
+
+      <div style={{ fontSize: "0.68rem", color: "rgba(200,180,240,0.72)", marginTop: "0.35rem", lineHeight: 1.6, padding: "0.4rem 0.5rem", borderRadius: 9, background: "rgba(255,255,255,0.035)" }}>
+        <b style={{ color: "#f1d98a" }}>Which side does the reading favour?</b> {v.twoWay?.label}.{" "}
+        {v.twoWay?.record} The three-way call above and this two-sided lean are different questions; both
+        records are printed so neither borrows the other's authority.
+      </div>
 
       <div style={{ fontSize: "0.68rem", color: "rgba(200,180,240,0.72)", marginTop: "0.35rem", lineHeight: 1.6, padding: "0.4rem 0.5rem", borderRadius: 9, background: "rgba(255,255,255,0.035)" }}>
         {v.dateLayersAvailable ? (
