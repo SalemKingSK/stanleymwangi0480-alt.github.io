@@ -10,6 +10,11 @@
  
 import type { ChaldeanPYNCompound } from '@/lib/numerology/chaldean-pyn-compounds';
 import { famousBirthdays } from '@/lib/famous-birthdays';
+import {
+  normaliseHistoricalPersonName,
+  supplementalBirthDateFor,
+  type HistoricalBirthDate,
+} from '@/lib/numerology/personal-year-history-birthdates';
 import { HISTORICAL_CASES_EXPANSION_200 } from '@/lib/numerology/personal-year-history-expanded';
 import { HISTORICAL_CASES_EXPANSION_300_EXTRA } from '@/lib/numerology/personal-year-history-expanded-2';
 import { HISTORICAL_CASES_EXPANSION_FINAL } from '@/lib/numerology/personal-year-history-expanded-4';
@@ -17,10 +22,6 @@ import { HISTORICAL_CASES_EXPANSION_300_MORE } from '@/lib/numerology/personal-y
  
 export interface PersonalYearDualEssenceSynthesis {
   title: string;
-  /** The intermarriage: one woven narrative where the Direct (Surface Journey)
-   * and Classic (Destiny Blueprint) essences are read as a single story,
-   * proven against real historical cases that carried the same pair. */
-  wovenSynthesis: string;
   subtitle: string;
   synthesisText: string;
   directEssenceRole: string;
@@ -113,6 +114,15 @@ export interface HistoricalCase {
   decisions: string[];
   personalityShift: string;
   protectiveLesson: string;
+  /** Optional case-specific evidence that explicitly separates the visible
+   * compound from the deeper outcome. Older records are evaluated by the
+   * semantic evidence gate below and are never treated as automatically
+   * supportive just because their arithmetic pair matches. */
+  surfaceEvidence?: string;
+  blueprintEvidence?: string;
+  evidenceQuality?: 'primary + independent' | 'secondary' | 'uncited legacy record';
+  evidenceReviewedOn?: string;
+  birthDateSource?: string;
 }
  
 const DOMAIN_LABELS: Record<Domain, string> = {
@@ -275,7 +285,7 @@ const EXPANDED_HISTORICAL_CASES: HistoricalCase[] = [
   { id:'zelenskyy-2022', person:'Volodymyr Zelenskyy', year:2022, age:44, occupation:'wartime president communicator', wealth:'comfortable', relationshipStatus:'married', visibility:'global', eventCategory:'wartime leadership after invasion', direct:32, classic:14, directReduced:5, classicReduced:5, domains:d({leadership:.82, law:.78, competition:.78, publicVisibility:.82, reputation:.72, security:.55}), eventIntensity:92, outcome:'legacy', narrative:'Public communication became survival strategy under existential threat.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['remained in capital', 'used direct media appeals'], personalityShift:'defiant, symbolic, urgent', protectiveLesson:'In crisis, presence can become a weapon stronger than office.' },
   { id:'gorbachev-1985', person:'Mikhail Gorbachev', year:1985, age:54, occupation:'politician reformer', wealth:'comfortable', relationshipStatus:'married', visibility:'global', eventCategory:'became Soviet leader and began reform era', direct:28, classic:10, directReduced:1, classicReduced:1, domains:d({leadership:.94, publicVisibility:.9, competition:.82, reputation:.82, law:.58, legacy:.65}), eventIntensity:86, outcome:'transition', narrative:'Institutional power opened a reform process that changed history.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['accepted leadership', 'initiated reform language'], personalityShift:'reformist, conciliatory, risk-taking', protectiveLesson:'A reform year can destabilize the very structure it tries to save.' },
   { id:'walesa-1980', person:'Lech Walesa', year:1980, age:37, occupation:'electrician union leader president', wealth:'modest', relationshipStatus:'married', visibility:'global', eventCategory:'Solidarity strike leadership', direct:56, classic:29, directReduced:11, classicReduced:11, domains:d({leadership:.82, law:.78, competition:.78, publicVisibility:.82, reputation:.72, security:.55}), eventIntensity:86, outcome:'transition', narrative:'Worker leadership became national opposition and moral authority.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['led strikes', 'formalized collective demands'], personalityShift:'stubborn, charismatic, movement-oriented', protectiveLesson:'Collective pressure needs disciplined negotiation to become historical change.' },
-  { id:'suu-kyi-1991', person:'Aung San Suu Kyi', year:1991, age:46, occupation:'politician activist', wealth:'comfortable', relationshipStatus:'married', visibility:'global', eventCategory:'Nobel Peace Prize while under house arrest', direct:45, classic:18, directReduced:9, classicReduced:9, domains:d({service:.94, legacy:.86, publicVisibility:.78, spirituality:.76, health:.48, relationships:.45}), eventIntensity:86, outcome:'mixed', narrative:'Won the Nobel Peace Prize while confined under house arrest by Myanmar\'s military junta, unable to travel to Oslo to accept it, her moral authority growing in exact proportion to the material power used to silence her.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['accepted symbolic role under confinement'], personalityShift:'patient, sacrificial, internationally visible', protectiveLesson:'18/9\'s material power can imprison the body while amplifying the very spirit it is trying to erase, though the compound also warns that moral authority earned under confinement is not a guarantee of what a person will do once free.' },
+  { id:'suu-kyi-1991', person:'Aung San Suu Kyi', year:1991, age:46, occupation:'politician activist', wealth:'comfortable', relationshipStatus:'married', visibility:'global', eventCategory:'Nobel Peace Prize while under house arrest', direct:45, classic:18, directReduced:9, classicReduced:9, domains:d({service:.94, legacy:.86, publicVisibility:.78, spirituality:.76, health:.48, relationships:.45}), eventIntensity:86, outcome:'mixed', narrative:'Moral authority rose while personal freedom was restricted.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['accepted symbolic role under confinement'], personalityShift:'patient, sacrificial, internationally visible', protectiveLesson:'Recognition can arrive while the body remains constrained.' },
   { id:'bhutto-1988', person:'Benazir Bhutto', year:1988, age:35, occupation:'prime minister politician', wealth:'wealthy', relationshipStatus:'married', visibility:'global', eventCategory:'became Pakistan prime minister', direct:53, classic:17, directReduced:8, classicReduced:8, domains:d({leadership:.94, publicVisibility:.9, competition:.82, reputation:.82, law:.58, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Dynastic loss and public leadership converted into historic office.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['returned to electoral politics', 'formed government'], personalityShift:'bold, symbolic, exposed', protectiveLesson:'Historic leadership firsts carry both mandate and threat.' },
   { id:'indira-1984', person:'Indira Gandhi', year:1984, age:67, occupation:'prime minister', wealth:'institutional', relationshipStatus:'widowed', visibility:'global', eventCategory:'assassination after political and security crisis', direct:52, classic:16, directReduced:7, classicReduced:7, domains:d({security:.96, health:.9, legacy:.9, publicVisibility:.82, competition:.75, reputation:.78}), eventIntensity:95, outcome:'legacy', narrative:'Authority, conflict and security failure converged violently.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['held power through crisis'], personalityShift:'hardened, embattled, polarizing', protectiveLesson:'Security cannot be separated from political consequence.' },
   { id:'golda-1969', person:'Golda Meir', year:1969, age:71, occupation:'prime minister politician', wealth:'modest', relationshipStatus:'widowed', visibility:'global', eventCategory:'became prime minister of Israel', direct:33, classic:15, directReduced:33, classicReduced:6, domains:d({leadership:.94, publicVisibility:.9, competition:.82, reputation:.82, law:.58, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Elder service and political authority became national leadership.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['accepted leadership late in life'], personalityShift:'maternal, severe, duty-bound', protectiveLesson:'Late-life power often manifests as duty more than ambition.' },
@@ -306,14 +316,14 @@ const EXPANDED_HISTORICAL_CASES: HistoricalCase[] = [
   { id:'disney-1928', person:'Walt Disney', year:1928, age:27, occupation:'animator entrepreneur', wealth:'comfortable', relationshipStatus:'married', visibility:'global', eventCategory:'Steamboat Willie and Mickey Mouse', direct:37, classic:10, directReduced:1, classicReduced:1, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Creative partnership and technology launched a durable character empire.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['released sound cartoon', 'built around Mickey'], personalityShift:'inventive, collaborative, commercially alert', protectiveLesson:'A character launch can become institutional destiny.' },
   { id:'disney-1955', person:'Walt Disney', year:1955, age:54, occupation:'entrepreneur entertainer', wealth:'wealthy', relationshipStatus:'married', visibility:'global', eventCategory:'Disneyland opened', direct:37, classic:10, directReduced:1, classicReduced:1, domains:d({money:.86, career:.88, leadership:.74, creativeOutput:.72, publicVisibility:.62, legacy:.75}), eventIntensity:92, outcome:'triumph', narrative:'Imagination became physical infrastructure and family commerce.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['opened theme park'], personalityShift:'visionary, controlling, experiential', protectiveLesson:'Creative worlds need operational architecture.' },
   { id:'chaplin-1940', person:'Charlie Chaplin', year:1940, age:51, occupation:'actor filmmaker comedian', wealth:'wealthy', relationshipStatus:'married', visibility:'global', eventCategory:'The Great Dictator released', direct:34, classic:16, directReduced:7, classicReduced:7, domains:d({creativeOutput:.92, education:.82, reputation:.82, legacy:.82, publicVisibility:.72}), eventIntensity:86, outcome:'mixed', narrative:'Comedy became political speech under global danger.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['satirized dictatorship publicly'], personalityShift:'brave, expressive, controversial', protectiveLesson:'Art becomes risky when it confronts power directly.' },
-  { id:'hepburn-1953', person:'Audrey Hepburn', year:1953, age:24, occupation:'actress humanitarian', wealth:'comfortable', relationshipStatus:'single', visibility:'global', eventCategory:'Roman Holiday breakthrough', direct:27, classic:18, directReduced:9, classicReduced:9, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Broke through with Roman Holiday just eight years after surviving Nazi-occupied Holland as a teenager — near-starvation, a family split by war, and relatives executed by the occupiers — before her later decades devoted to UNICEF.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['accepted defining film role'], personalityShift:'fresh, elegant, visible', protectiveLesson:'18/9 shows here that material glamour and hard-won spiritual compassion can share one life; the elegance the world saw was built directly on top of wartime deprivation she rarely discussed publicly.' },
+  { id:'hepburn-1953', person:'Audrey Hepburn', year:1953, age:24, occupation:'actress humanitarian', wealth:'comfortable', relationshipStatus:'single', visibility:'global', eventCategory:'Roman Holiday breakthrough', direct:27, classic:18, directReduced:9, classicReduced:9, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Grace and screen presence became international stardom.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['accepted defining film role'], personalityShift:'fresh, elegant, visible', protectiveLesson:'A breakthrough role can rewrite public identity overnight.' },
   { id:'monroe-1962', person:'Marilyn Monroe', year:1962, age:36, occupation:'actress celebrity', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'death by overdose amid career instability', direct:25, classic:16, directReduced:7, classicReduced:7, domains:d({reputation:.9, publicVisibility:.84, health:.72, relationships:.62, legacy:.78, creativeOutput:.58}), eventIntensity:92, outcome:'legacy', narrative:'Private fragility collided with public myth.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['struggled with work and health pressures'], personalityShift:'vulnerable, isolated, iconic', protectiveLesson:'Fame cannot substitute for body and emotional protection.' },
   { id:'elvis-1956', person:'Elvis Presley', year:1956, age:21, occupation:'singer actor', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'national breakthrough and television fame', direct:30, classic:12, directReduced:3, classicReduced:3, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Magnetic performance became mass cultural disruption.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['entered national television spotlight'], personalityShift:'sensual, electric, rebellious', protectiveLesson:'Visibility can become a social earthquake.' },
   { id:'elvis-1977', person:'Elvis Presley', year:1977, age:42, occupation:'singer celebrity', wealth:'wealthy', relationshipStatus:'divorced', visibility:'global', eventCategory:'death after health decline', direct:33, classic:15, directReduced:33, classicReduced:6, domains:d({reputation:.9, publicVisibility:.84, health:.72, relationships:.62, legacy:.78, creativeOutput:.58}), eventIntensity:92, outcome:'legacy', narrative:'A legendary public image ended through bodily collapse.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['continued performing under strain'], personalityShift:'isolated, depleted, mythic', protectiveLesson:'Health debt eventually overrules applause.' },
   { id:'michael-jackson-1982', person:'Michael Jackson', year:1982, age:24, occupation:'singer performer', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'Thriller released', direct:57, classic:21, directReduced:3, classicReduced:3, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Performance, image and music fused into global dominance.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['released Thriller', 'unified video and pop strategy'], personalityShift:'precise, magnetic, perfectionist', protectiveLesson:'Creative timing becomes explosive when medium and talent align.' },
   { id:'michael-jackson-2009', person:'Michael Jackson', year:2009, age:51, occupation:'singer performer', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'death during comeback preparation', direct:48, classic:21, directReduced:3, classicReduced:3, domains:d({reputation:.9, publicVisibility:.84, health:.72, relationships:.62, legacy:.78, creativeOutput:.58}), eventIntensity:92, outcome:'legacy', narrative:'Comeback pressure met health and dependency risk.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['prepared major concerts under strain'], personalityShift:'pressured, fragile, legendary', protectiveLesson:'If the body is the vehicle, comeback ambition must not ignore medical reality.' },
   { id:'madonna-1984', person:'Madonna', year:1984, age:26, occupation:'singer performer businesswoman', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'Like a Virgin era breakthrough', direct:46, classic:19, directReduced:1, classicReduced:1, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Provocative image control became pop authority.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['embraced controversy as brand strategy'], personalityShift:'bold, confrontational, self-authored', protectiveLesson:'Public identity can be engineered into power.' },
-  { id:'beyonce-2003', person:'Beyoncé Knowles-Carter', year:2003, age:22, occupation:'singer performer entrepreneur', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'solo breakthrough with Dangerously in Love', direct:18, classic:18, directReduced:9, classicReduced:9, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Launched her solo career with Dangerously in Love while Destiny\'s Child\'s earlier lineup changes (the 2000 departures of Farrah Franklin and LeToya Luckett, who publicly alleged mistreatment and pursued legal action) still shadowed the group\'s public image.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['launched solo career'], personalityShift:'polished, ambitious, controlled', protectiveLesson:'18/9 asks what a rising star owes to the material structure and people left behind when a group\'s spirit fractures on the way to one member\'s individual ascent.' },
+  { id:'beyonce-2003', person:'Beyoncé Knowles-Carter', year:2003, age:22, occupation:'singer performer entrepreneur', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'solo breakthrough with Dangerously in Love', direct:18, classic:18, directReduced:9, classicReduced:9, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Group identity transformed into solo command.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['launched solo career'], personalityShift:'polished, ambitious, controlled', protectiveLesson:'A solo year tests whether support can become sovereignty.' },
   { id:'rihanna-2007', person:'Rihanna', year:2007, age:19, occupation:'singer entrepreneur', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'Umbrella global breakthrough', direct:31, classic:13, directReduced:4, classicReduced:4, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'A defining hit established durable global image.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['embraced new sound and image'], personalityShift:'magnetic, adaptive, style-defining', protectiveLesson:'One symbolic song can become a career architecture.' },
   { id:'bob-dylan-1965', person:'Bob Dylan', year:1965, age:24, occupation:'songwriter singer', wealth:'comfortable', relationshipStatus:'married', visibility:'global', eventCategory:'electric turn and Highway 61 era', direct:50, classic:14, directReduced:5, classicReduced:5, domains:d({creativeOutput:.92, education:.82, reputation:.82, legacy:.82, publicVisibility:.72}), eventIntensity:86, outcome:'mixed', narrative:'Creative evolution provoked audience conflict and expanded authority.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['went electric', 'refused folk purity expectations'], personalityShift:'restless, defiant, poetic', protectiveLesson:'Artistic growth may require disappointing the old audience.' },
   { id:'bob-marley-1977', person:'Bob Marley', year:1977, age:32, occupation:'musician activist', wealth:'comfortable', relationshipStatus:'married', visibility:'global', eventCategory:'Exodus era after assassination attempt and exile', direct:32, classic:14, directReduced:5, classicReduced:5, domains:d({service:.94, legacy:.86, publicVisibility:.78, spirituality:.76, health:.48, relationships:.45}), eventIntensity:92, outcome:'legacy', narrative:'Music, danger and spiritual-political message fused globally.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['continued mission after attack', 'released Exodus'], personalityShift:'prophetic, resilient, unifying', protectiveLesson:'When message and danger meet, art can become scripture-like.' },
@@ -324,7 +334,7 @@ const EXPANDED_HISTORICAL_CASES: HistoricalCase[] = [
   { id:'lady-gaga-2008', person:'Lady Gaga', year:2008, age:22, occupation:'singer performer actress', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'The Fame breakthrough', direct:41, classic:14, directReduced:5, classicReduced:5, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Theatrical identity became pop disruption.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['launched Fame era', 'made image into concept'], personalityShift:'provocative, constructed, relentless', protectiveLesson:'A persona can become a vessel for ambition.' },
   { id:'adele-2011', person:'Adele', year:2011, age:23, occupation:'singer songwriter', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'21 global success', direct:14, classic:14, directReduced:5, classicReduced:5, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Personal heartbreak became universal commercial voice.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['released deeply personal album'], personalityShift:'raw, emotionally direct, visible', protectiveLesson:'Private pain can become collective language.' },
   { id:'shakira-2001', person:'Shakira', year:2001, age:24, occupation:'singer songwriter', wealth:'wealthy', relationshipStatus:'partnered', visibility:'global', eventCategory:'Laundry Service crossover', direct:7, classic:7, directReduced:7, classicReduced:7, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Linguistic and market crossover expanded global identity.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['entered English-language market'], personalityShift:'mobile, adaptive, charismatic', protectiveLesson:'Crossing markets requires changing form without losing essence.' },
-  { id:'springsteen-1984', person:'Bruce Springsteen', year:1984, age:35, occupation:'singer songwriter', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'Born in the U.S.A. era', direct:54, classic:18, directReduced:9, classicReduced:9, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Released Born in the U.S.A., an album whose title track — a bitter account of a Vietnam veteran abandoned by his own country — was widely misread as patriotic anthem and was directly invoked by the Reagan re-election campaign, against Springsteen\'s explicit objection.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['released defining commercial album'], personalityShift:'anthemic, disciplined, public', protectiveLesson:'18/9\'s material forces can seize even a spiritual protest and repackage it for the opposite purpose; the compound\'s test is whether the artist publicly reclaims the message, which Springsteen did.' },
+  { id:'springsteen-1984', person:'Bruce Springsteen', year:1984, age:35, occupation:'singer songwriter', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'Born in the U.S.A. era', direct:54, classic:18, directReduced:9, classicReduced:9, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Working-class narrative became stadium-scale visibility.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['released defining commercial album'], personalityShift:'anthemic, disciplined, public', protectiveLesson:'A message expands when image and audience timing align.' },
   { id:'rowling-1997', person:'J.K. Rowling', year:1997, age:32, occupation:'writer author', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'first Harry Potter published', direct:64, classic:19, directReduced:1, classicReduced:1, domains:d({creativeOutput:.92, education:.82, reputation:.82, legacy:.82, publicVisibility:.72}), eventIntensity:92, outcome:'triumph', narrative:'Private imaginative work became a world-building publication seed.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['published debut novel after rejection'], personalityShift:'persistent, imaginative, vindicated', protectiveLesson:'A hidden manuscript can become a life architecture.' },
   { id:'lucas-1977', person:'George Lucas', year:1977, age:33, occupation:'filmmaker entrepreneur', wealth:'wealthy', relationshipStatus:'married', visibility:'global', eventCategory:'Star Wars released', direct:43, classic:16, directReduced:7, classicReduced:7, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Mythic storytelling became franchise infrastructure.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['released Star Wars', 'retained key rights'], personalityShift:'visionary, world-building, commercially strategic', protectiveLesson:'Narrative universes become empires when rights and timing align.' },
   { id:'spielberg-1975', person:'Steven Spielberg', year:1975, age:29, occupation:'filmmaker', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'Jaws released', direct:52, classic:16, directReduced:7, classicReduced:7, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Technical production pressure became blockbuster invention.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['completed troubled production', 'changed film marketing scale'], personalityShift:'tense, inventive, audience-aware', protectiveLesson:'Crisis-managed craft can create a new industry model.' },
@@ -335,9 +345,9 @@ const EXPANDED_HISTORICAL_CASES: HistoricalCase[] = [
   { id:'vangogh-1888', person:'Vincent van Gogh', year:1888, age:35, occupation:'artist painter', wealth:'low', relationshipStatus:'single', visibility:'global', eventCategory:'Arles crisis and major paintings', direct:58, classic:13, directReduced:4, classicReduced:4, domains:d({reputation:.9, publicVisibility:.84, health:.72, relationships:.62, legacy:.78, creativeOutput:.58}), eventIntensity:86, outcome:'mixed', narrative:'Creative intensity and mental crisis peaked together.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['painted intensely', 'entered crisis with Gauguin'], personalityShift:'feverish, isolated, visionary', protectiveLesson:'Genius without nervous protection can become self-endangering.' },
   { id:'leonardo-1503', person:'Leonardo da Vinci', year:1503, age:51, occupation:'artist inventor', wealth:'comfortable', relationshipStatus:'single', visibility:'global', eventCategory:'Mona Lisa period began', direct:28, classic:19, directReduced:1, classicReduced:1, domains:d({creativeOutput:.92, education:.82, reputation:.82, legacy:.82, publicVisibility:.72}), eventIntensity:92, outcome:'legacy', narrative:'Portrait work became enduring symbolic legacy.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['began iconic portrait work'], personalityShift:'observant, perfectionist, enigmatic', protectiveLesson:'A single image can carry centuries of identity.' },
   { id:'michelangelo-1508', person:'Michelangelo', year:1508, age:33, occupation:'artist sculptor', wealth:'comfortable', relationshipStatus:'single', visibility:'global', eventCategory:'Sistine Chapel ceiling commission', direct:23, classic:14, directReduced:5, classicReduced:5, domains:d({creativeOutput:.92, education:.82, reputation:.82, legacy:.82, publicVisibility:.72}), eventIntensity:92, outcome:'legacy', narrative:'An unwanted burden became monumental legacy.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['accepted papal commission reluctantly'], personalityShift:'strained, disciplined, monumental', protectiveLesson:'The work that feels like a burden may become the remembered masterpiece.' },
-  { id:'messi-2022', person:'Lionel Messi', year:2022, age:35, occupation:'footballer athlete', wealth:'wealthy', relationshipStatus:'married', visibility:'global', eventCategory:'World Cup victory', direct:36, classic:18, directReduced:9, classicReduced:9, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'triumph', narrative:'Won the World Cup in Qatar, a tournament staged amid extensive international criticism over migrant-worker deaths and labor conditions during stadium construction, and over allegations of bribery in the original hosting vote.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['led Argentina to World Cup', 'carried legacy pressure'], personalityShift:'focused, relieved, crowned', protectiveLesson:'18/9\'s completion for one man arrived inside a material spectacle whose own construction carried a documented human cost — the compound holds triumph and exploitation in the same stadium without resolving the tension between them.' },
+  { id:'messi-2022', person:'Lionel Messi', year:2022, age:35, occupation:'footballer athlete', wealth:'wealthy', relationshipStatus:'married', visibility:'global', eventCategory:'World Cup victory', direct:36, classic:18, directReduced:9, classicReduced:9, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'triumph', narrative:'Long pursuit culminated in global sporting coronation.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['led Argentina to World Cup', 'carried legacy pressure'], personalityShift:'focused, relieved, crowned', protectiveLesson:'Completion years can crown a long unfinished narrative.' },
   { id:'ronaldo-2008', person:'Cristiano Ronaldo', year:2008, age:23, occupation:'footballer athlete', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'Champions League and Ballon d’Or', direct:17, classic:8, directReduced:8, classicReduced:8, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'triumph', narrative:'Athletic dominance became global individual recognition.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['converted performance into awards'], personalityShift:'driven, competitive, self-believing', protectiveLesson:'Competition compounds reward relentless self-definition.' },
-  { id:'serena-1999', person:'Serena Williams', year:1999, age:18, occupation:'tennis player athlete', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'first Grand Slam singles title', direct:63, classic:18, directReduced:9, classicReduced:9, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'triumph', narrative:'Won her first Grand Slam at the U.S. Open at 18, two years before she and her sister Venus withdrew from the sport\'s traditional country-club circuit after facing racially hostile crowd treatment at Indian Wells in 2001.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['won U.S. Open'], personalityShift:'fierce, emergent, confident', protectiveLesson:'18/9\'s competitive conflict for the Williams sisters was never only athletic; the compound\'s \'material force tests the moral center\' played out as prejudice they had to out-perform, not just opponents.' },
+  { id:'serena-1999', person:'Serena Williams', year:1999, age:18, occupation:'tennis player athlete', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'first Grand Slam singles title', direct:63, classic:18, directReduced:9, classicReduced:9, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'triumph', narrative:'Young competitive power became major championship proof.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['won U.S. Open'], personalityShift:'fierce, emergent, confident', protectiveLesson:'First victory changes identity when it confirms destiny.' },
   { id:'biles-2016', person:'Simone Biles', year:2016, age:19, occupation:'gymnast athlete', wealth:'comfortable', relationshipStatus:'single', visibility:'global', eventCategory:'Olympic dominance', direct:26, classic:17, directReduced:8, classicReduced:8, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'triumph', narrative:'Technical mastery became global athletic authority.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['won multiple Olympic golds'], personalityShift:'precise, powerful, visible', protectiveLesson:'Mastery becomes undeniable when difficulty and execution align.' },
   { id:'bolt-2008', person:'Usain Bolt', year:2008, age:22, occupation:'sprinter athlete', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'Olympic records', direct:39, classic:12, directReduced:3, classicReduced:3, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'triumph', narrative:'Speed became mythic public identity.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['broke world records', 'performed with ease'], personalityShift:'explosive, playful, dominant', protectiveLesson:'A body can become a symbol when performance exceeds proportion.' },
   { id:'jordan-1991', person:'Michael Jordan', year:1991, age:28, occupation:'basketball player', wealth:'wealthy', relationshipStatus:'married', visibility:'global', eventCategory:'first NBA championship', direct:39, classic:12, directReduced:3, classicReduced:3, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'triumph', narrative:'Individual brilliance became team championship authority.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['won first NBA title'], personalityShift:'competitive, validated, commanding', protectiveLesson:'Personal dominance becomes legacy when it proves it can win collectively.' },
@@ -345,12 +355,12 @@ const EXPANDED_HISTORICAL_CASES: HistoricalCase[] = [
   { id:'pele-1958', person:'Pelé', year:1958, age:18, occupation:'footballer athlete', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'World Cup teenage breakthrough', direct:56, classic:11, directReduced:11, classicReduced:11, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'triumph', narrative:'Teenage genius became global football myth.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['starred in World Cup victory'], personalityShift:'joyful, brilliant, emergent', protectiveLesson:'Youthful mastery becomes myth when it appears ahead of schedule.' },
   { id:'maradona-1986', person:'Diego Maradona', year:1986, age:26, occupation:'footballer athlete', wealth:'wealthy', relationshipStatus:'partnered', visibility:'global', eventCategory:'World Cup triumph', direct:64, classic:10, directReduced:1, classicReduced:1, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'triumph', narrative:'Genius, controversy and national symbolism fused in victory.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['carried Argentina', 'produced iconic goals'], personalityShift:'inspired, defiant, chaotic', protectiveLesson:'Victory can include controversy when genius carries shadow.' },
   { id:'senna-1994', person:'Ayrton Senna', year:1994, age:34, occupation:'racing driver athlete', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'fatal San Marino Grand Prix crash', direct:47, classic:11, directReduced:11, classicReduced:11, domains:d({health:.95, security:.94, travel:.86, legacy:.84, publicVisibility:.74}), eventIntensity:95, outcome:'legacy', narrative:'Elite competition met literal speed danger.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['raced despite unsafe weekend climate'], personalityShift:'focused, concerned, exposed', protectiveLesson:'In speed domains, danger language must be read physically.' },
-  { id:'hamilton-2008', person:'Lewis Hamilton', year:2008, age:23, occupation:'racing driver athlete', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'first Formula One championship', direct:18, classic:9, directReduced:9, classicReduced:9, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'triumph', narrative:'Won his first Formula One title on the final corner of the final race of the season, one year after the 2007 \'Spygate\' scandal — his own McLaren team\'s record Young competition pressure became last-moment championship.00 million fine for possessing a rival\'s stolen technical data — clouded his rookie campaign.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['won title dramatically'], personalityShift:'composed, ambitious, tested', protectiveLesson:'18/9\'s deception theme touched his team before it touched his triumph; the compound\'s warning is that a title can still be won cleanly the year after the sport around you was compromised.' },
+  { id:'hamilton-2008', person:'Lewis Hamilton', year:2008, age:23, occupation:'racing driver athlete', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'first Formula One championship', direct:18, classic:9, directReduced:9, classicReduced:9, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'triumph', narrative:'Young competition pressure became last-moment championship.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['won title dramatically'], personalityShift:'composed, ambitious, tested', protectiveLesson:'A narrow win still changes the whole career architecture.' },
   { id:'jackie-robinson-1947', person:'Jackie Robinson', year:1947, age:28, occupation:'baseball player civil rights pioneer', wealth:'comfortable', relationshipStatus:'married', visibility:'global', eventCategory:'broke MLB color barrier', direct:53, classic:8, directReduced:8, classicReduced:8, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'legacy', narrative:'Athletic role became civil-rights pressure and historical courage.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['entered MLB under racist hostility'], personalityShift:'restrained, brave, burdened', protectiveLesson:'Competition fields can become moral battlegrounds.' },
   { id:'jesse-owens-1936', person:'Jesse Owens', year:1936, age:23, occupation:'sprinter athlete', wealth:'modest', relationshipStatus:'married', visibility:'global', eventCategory:'Berlin Olympics victories', direct:40, classic:13, directReduced:4, classicReduced:4, domains:d({competition:.96, publicVisibility:.88, reputation:.86, career:.82, legacy:.78, health:.45}), eventIntensity:92, outcome:'legacy', narrative:'Athletic excellence challenged racist political spectacle.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['won four Olympic golds'], personalityShift:'poised, fast, symbolic', protectiveLesson:'Performance can defeat ideology in public view.' },
   { id:'chanel-1921', person:'Coco Chanel', year:1921, age:38, occupation:'fashion designer entrepreneur', wealth:'wealthy', relationshipStatus:'single', visibility:'global', eventCategory:'Chanel No. 5 launched', direct:40, classic:22, directReduced:4, classicReduced:22, domains:d({money:.86, career:.88, leadership:.74, creativeOutput:.72, publicVisibility:.62, legacy:.75}), eventIntensity:92, outcome:'triumph', narrative:'Style, scent and brand identity became luxury infrastructure.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['launched signature perfume'], personalityShift:'elegant, strategic, independent', protectiveLesson:'A product can become identity when brand mythology is precise.' },
   { id:'buffett-1965', person:'Warren Buffett', year:1965, age:35, occupation:'investor business leader', wealth:'wealthy', relationshipStatus:'married', visibility:'global', eventCategory:'took control of Berkshire Hathaway', direct:59, classic:14, directReduced:5, classicReduced:5, domains:d({money:.86, career:.88, leadership:.74, creativeOutput:.72, publicVisibility:.62, legacy:.75}), eventIntensity:92, outcome:'triumph', narrative:'Investment discipline became corporate vehicle.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['took control of Berkshire'], personalityShift:'patient, analytical, compounding', protectiveLesson:'Money power grows when discipline has a vessel.' },
-  { id:'oprah-1986', person:'Oprah Winfrey', year:1986, age:32, occupation:'television host entrepreneur', wealth:'wealthy', relationshipStatus:'partnered', visibility:'global', eventCategory:'nationally syndicated Oprah Winfrey Show', direct:54, classic:18, directReduced:9, classicReduced:9, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Launched her nationally syndicated show after a childhood of poverty, and documented sexual abuse she has spoken about publicly, converting private material deprivation and violation into a media platform built on radical honesty.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['launched national show'], personalityShift:'empathetic, authoritative, expansive', protectiveLesson:'18/9\'s karmic debt of exploitation can be transmuted rather than repeated; the compound\'s warning became the exact material she chose to speak about instead of hide, which is what built the empire\'s trust.' },
+  { id:'oprah-1986', person:'Oprah Winfrey', year:1986, age:32, occupation:'television host entrepreneur', wealth:'wealthy', relationshipStatus:'partnered', visibility:'global', eventCategory:'nationally syndicated Oprah Winfrey Show', direct:54, classic:18, directReduced:9, classicReduced:9, domains:d({creativeOutput:.92, publicVisibility:.92, reputation:.84, money:.72, career:.78, legacy:.65}), eventIntensity:92, outcome:'triumph', narrative:'Personal voice became media platform and public intimacy.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['launched national show'], personalityShift:'empathetic, authoritative, expansive', protectiveLesson:'Authentic communication can become empire.' },
   { id:'malala-2014', person:'Malala Yousafzai', year:2014, age:17, occupation:'activist student', wealth:'modest', relationshipStatus:'single', visibility:'global', eventCategory:'Nobel Peace Prize', direct:26, classic:17, directReduced:8, classicReduced:8, domains:d({service:.94, legacy:.86, publicVisibility:.78, spirituality:.76, health:.48, relationships:.45}), eventIntensity:92, outcome:'legacy', narrative:'Survived violence transformed into global educational advocacy.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['accepted Nobel platform'], personalityShift:'brave, youthful, symbolic', protectiveLesson:'Trauma can become service when voice remains intact.' },
   { id:'greta-2019', person:'Greta Thunberg', year:2019, age:16, occupation:'climate activist', wealth:'modest', relationshipStatus:'single', visibility:'global', eventCategory:'global climate strike prominence', direct:16, classic:7, directReduced:7, classicReduced:7, domains:d({service:.94, legacy:.86, publicVisibility:.78, spirituality:.76, health:.48, relationships:.45}), eventIntensity:86, outcome:'mixed', narrative:'Youthful protest became global moral pressure.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['mobilized school strike movement'], personalityShift:'direct, uncompromising, urgent', protectiveLesson:'A young voice can shame institutions when clarity is relentless.' },
   { id:'mother-teresa-1979', person:'Mother Teresa', year:1979, age:69, occupation:'religious humanitarian', wealth:'modest', relationshipStatus:'single', visibility:'global', eventCategory:'Nobel Peace Prize', direct:60, classic:24, directReduced:6, classicReduced:6, domains:d({service:.94, legacy:.86, publicVisibility:.78, spirituality:.76, health:.48, relationships:.45}), eventIntensity:92, outcome:'legacy', narrative:'Service to the poor became global moral recognition.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['accepted Nobel as mission platform'], personalityShift:'austere, devoted, symbolic', protectiveLesson:'Service recognition is strongest when it points beyond the self.' },
@@ -366,7 +376,443 @@ const EXPANDED_HISTORICAL_CASES: HistoricalCase[] = [
   { id:'jobs-1997', person:'Steve Jobs', year:1997, age:42, occupation:'technology entrepreneur', wealth:'wealthy', relationshipStatus:'married', visibility:'global', eventCategory:'returned to Apple and began turnaround', direct:52, classic:16, directReduced:7, classicReduced:7, domains:d({money:.86, career:.88, leadership:.74, creativeOutput:.72, publicVisibility:.62, legacy:.75}), eventIntensity:86, outcome:'transition', narrative:'A shattered company became the vehicle of return and redesign.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['returned through NeXT acquisition', 'cut product lines'], personalityShift:'focused, ruthless, restorative', protectiveLesson:'A comeback works when simplification comes before expansion.' },
 ];
  
-const HISTORICAL_CASE_LIBRARY: HistoricalCase[] = [...HISTORICAL_CASES, ...EXPANDED_HISTORICAL_CASES, ...HISTORICAL_CASES_EXPANSION_200, ...HISTORICAL_CASES_EXPANSION_300_EXTRA, ...HISTORICAL_CASES_EXPANSION_300_MORE, ...HISTORICAL_CASES_EXPANSION_FINAL];
+/**
+ * Case notes for the first researched correction batch. These are deliberately
+ * explicit: an exact arithmetic pair is not allowed to smuggle an unrelated
+ * event into the interpretation. A case can support the Classic/Blueprint
+ * layer while failing to evidence the Direct/Surface layer, and the UI says so.
+ */
+const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'eventDate' | 'surfaceEvidence' | 'blueprintEvidence' | 'evidenceQuality' | 'evidenceReviewedOn' | 'sources'>> = {
+  'bezos-2021': {
+    eventDate: '2021-07-20 / 2021 Q3 transition',
+    surfaceEvidence: 'Partial only. Bezos stepped away from Amazon’s operating role and invested attention in Blue Origin and other large material projects. The documented record does not show the 18/9 warning field of family quarrel, deception, hostile faction, or spiritual/moral conflict. This is therefore not a clean Direct 18/9 precedent.',
+    blueprintEvidence: 'Strong. Amazon announced the CEO handover to Andy Jassy; Bezos became executive chair, then Blue Origin completed his first human flight in July. The facts show a completed operating chapter, transfer of authority, and a deliberate redirection toward long-horizon legacy and exploration.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.aboutamazon.com/news/company-news/email-from-jeff-bezos-to-employees', 'https://www.blueorigin.com/news/first-human-flight-updates', 'https://www.npr.org/2021/07/20/1017945718/jeff-bezos-and-blue-origin-will-try-to-travel-deeper-into-space-than-richard-branson'],
+  },
+  'ronaldo-2018': {
+    eventDate: '2018-07-10',
+    surfaceEvidence: 'Partial to weak. The €100 million move from Real Madrid to Juventus shows status, money, competitive pressure, and a high-stakes material decision. It does not document the 18/9 signature’s darker conflict field: war, betrayal, family strife, coercion, or a moral struggle between material gain and spirit. Do not present this transfer as proof of that warning.',
+    blueprintEvidence: 'Strong. Ronaldo publicly described the transfer as opening a “new stage” after nine years, 451 goals, 16 trophies, and three consecutive Champions League titles. The old competitive chapter was complete; the move converted achievement into a new legacy test.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.juventus.com/en/news/articles/cristiano-ronaldo-signs-for-juventus', 'https://www.juventus.com/en/news/articles/juventus-says-goodbye-to-cristiano-ronaldo', 'https://www.realmadrid.com/fr-FR/le-club/histoire/legendes-football/cristiano-ronaldo-dos-santos-aveiro', 'https://edition.cnn.com/2018/07/10/football/cristiano-ronaldo-real-madrid-juventus-spt-intl'],
+  },
+  'ronaldo-2009': {
+    eventDate: '2009-06-26',
+    surfaceEvidence: 'Partial. The record transfer from Manchester United to Real Madrid made money, status, competition, and public expectation literal. It is evidence of material ambition and a new competitive arena, not by itself evidence of spiritual conflict or betrayal.',
+    blueprintEvidence: 'Strong. The transfer closed one successful club chapter and began another at a larger symbolic and financial scale; the outcome is best read as completion followed by reinvention, not as uncomplicated gain.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.realmadrid.com/fr-FR/le-club/histoire/legendes-football/cristiano-ronaldo-dos-santos-aveiro', 'https://www.uefa.com/uefachampionsleague/news/01d1-0e70a3b2cc31-4fdb7b86bd9c-1000--ronaldo-completes-real-madrid-move/'],
+  },
+  'heath-ledger-2008': {
+    eventDate: '2008-01-22',
+    surfaceEvidence: 'Partial and cautionary. Ledger died from accidental combined prescription-drug intoxication while finishing major work. That concretely supports the 18/9 alert around bodily danger, pressure, and material conditions overwhelming the person; it does not prove every traditional 18/9 claim about conflict or family strife.',
+    blueprintEvidence: 'Strong in retrospect, not as a prediction. The completed Joker performance became a posthumous cultural legacy and earned major awards. The case demonstrates completion and legacy, but it must never be used to predict a person’s death.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.britannica.com/biography/Heath-Ledger', 'https://www.biography.com/actors/heath-ledger'],
+  },
+  'trump-2024': {
+    eventDate: '2024-11-05',
+    surfaceEvidence: 'Strong but mixed. The 2024 campaign put law, prosecution, opposition, security threats, media visibility, and competitive pressure directly on the public stage. The result supports a visible conflict-and-comeback reading, but it does not turn election victory into proof that any compound causes political outcomes.',
+    blueprintEvidence: 'Strong. Trump returned to the presidency after losing the 2020 election, converting a four-year political and legal struggle into institutional restoration. The deeper lesson is that public triumph can carry unresolved legal, civic, and reputational costs.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.archives.gov/electoral-college/2024', 'https://www.fec.gov/introduction-campaign-finance/election-results-and-voting-information/'],
+  },
+  'churchill-1940': {
+    eventDate: '1940-05-10 to 1940-06-18',
+    surfaceEvidence: 'Strong. Churchill entered the premiership in May 1940 as Germany attacked Western Europe; his first wartime address explicitly framed the visible year as war, national danger, logistics, and survival. The case supports a crisis-leadership manifestation, not a claim that rhetoric alone wins wars.',
+    blueprintEvidence: 'Strong. The appointment became a durable historical legacy because Churchill converted an emergency office into a public ethic of resistance and national survival. The underlying lesson is disciplined service under pressure, with rhetoric subordinate to logistics.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://winstonchurchill.org/resources/speeches/1940-the-finest-hour/be-ye-men-of-valour/', 'https://www.iwm.org.uk/history/winston-churchills-speech-blood-toil-tears-and-sweat'],
+  },
+  'mandela-1990': {
+    eventDate: '1990-02-11',
+    surfaceEvidence: 'Strong. Mandela’s release after 27 years made legal confinement, public visibility, political opposition, and negotiation concrete rather than symbolic. The surface lesson is to manage a dangerous transition without confusing release with completed freedom.',
+    blueprintEvidence: 'Strong. Release became the opening of a negotiated end to apartheid and a move from imprisoned symbol to practical statesman. The deeper outcome is reconciliation-oriented transition, not simple personal victory.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://history.blog.gov.uk/2020/02/11/whats-the-context-the-release-of-nelson-mandela-11-february-1990/', 'https://www.nelsonmandela.org/chronology'],
+  },
+  'mandela-1994': {
+    eventDate: '1994-04-27',
+    surfaceEvidence: 'Strong. The first multiracial election placed Mandela’s leadership, public reputation, competition, and administrative responsibility in a literal governing arena. It supports visible elevation and service, while the wounded nation prevents a simplistic “success only” reading.',
+    blueprintEvidence: 'Strong. The presidency converted a personal victory into reconciliation and constitutional institution-building. The deeper lesson is that honour becomes durable only when it is resourced through administration and coalition work.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.elections.org.za/pw/News-And-Media/News-Item/News/1994-General-Elections', 'https://www.nelsonmandela.org/chronology'],
+  },
+  'obama-2008': {
+    eventDate: '2008-11-04',
+    surfaceEvidence: 'Strong. Obama’s 2008 campaign concretely manifested leadership, public visibility, competition, organization, and a national movement during a financial and political crisis. It is evidence of large-scale coalition building, not proof that a master number guarantees office.',
+    blueprintEvidence: 'Strong. The election turned a movement into an institutional mandate; the deeper outcome was the burden of converting a symbol of change into governance. The case supports structure as the necessary companion to inspiration.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.fec.gov/resources/cms-content/documents/federalelections2008.pdf', 'https://www.obamalibrary.gov/obamas/obama-presidency'],
+  },
+  'diana-1997': {
+    eventDate: '1997-08-31',
+    surfaceEvidence: 'Cautionary and strong for safety only. Diana died in a high-speed Paris car crash while travelling with Dodi Fayed; the official royal record and later investigations document the transport, driver, paparazzi, and security context. This must never be presented as numerological prediction or moral causation.',
+    blueprintEvidence: 'Strong in retrospect. Her death produced unprecedented public mourning and transformed a private tragedy into an enduring humanitarian and cultural legacy. The lesson concerns public grief and memory, not destiny.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.royal.uk/diana-princess-wales', 'https://www.britannica.com/biography/Diana-princess-of-Wales'],
+  },
+  'jobs-1985': {
+    eventDate: '1985-09-16',
+    surfaceEvidence: 'Strong. Jobs lost his operating role and left Apple after a documented power struggle with John Sculley and the board. That is a concrete manifestation of institutional conflict, status loss, and forced separation, not merely a generic “change year.”',
+    blueprintEvidence: 'Strong. He immediately redirected the loss into NeXT and later Pixar, creating the foundation for a return and a larger creative legacy. The underlying lesson is that a humiliating institutional ending can become a new platform only through independent structure.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.biography.com/business-leaders/steve-jobs', 'https://www.cnet.com/tech/tech-industry/steve-jobs-a-timeline/'],
+  },
+  'musk-2008': {
+    eventDate: '2008-09-28 / 2008-12-23',
+    surfaceEvidence: 'Strong. SpaceX faced failed Falcon 1 launches, severe financing pressure, and personal business strain; the successful fourth launch and NASA resupply award made the material and operational stakes concrete. This supports pressure-to-breakthrough, not infallibility.',
+    blueprintEvidence: 'Strong. The year transformed a near-survival episode into an enduring commercial-space platform. The deeper outcome is mission continuity through disciplined execution, while the documented stress warns against romanticizing exhaustion.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.nasa.gov/news-release/nasa-awards-commercial-resupply-services-contracts-to-spacex-orbital-sciences/', 'https://www.space.com/25355-elon-musk-60-minutes-interview.html'],
+  },
+  'swift-2023': {
+    eventDate: '2023-03-17 to 2023-11-12',
+    surfaceEvidence: 'Strong. The Eras Tour made creative output, international travel, audience scale, ticket economics, logistics, and ownership visible at once; Guinness records the 2023 tour as the first billion-dollar music tour. It is evidence of organized creative expansion, not a promise of wealth.',
+    blueprintEvidence: 'Strong. A career-spanning tour turned prior eras into a single public legacy narrative and demonstrated ownership of the catalogue and audience relationship. The lesson is that expansion requires systems, recovery, and control of the underlying work.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.guinnessworldrecords.com/world-records/561300-highest-grossing-music-tour-by-a-female-artist-current-year', 'https://www.ifpi.org/ifpi-global-charts/'],
+  },
+  'swift-2016': {
+    eventDate: '2016-07 to 2016-08',
+    surfaceEvidence: 'Partial and conflict-specific. Swift’s public reputation crisis led to a documented withdrawal from overexposure and a later reworking of the public persona. It supports reputational opposition and retreat, but the record is not evidence of physical danger or universal betrayal.',
+    blueprintEvidence: 'Strong. The later Reputation work converted a public image rupture into a deliberately controlled creative reinvention. The deeper outcome is a rebuilt boundary between private life, public brand, and artistic ownership.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.rollingstone.com/music/music-news/taylor-swift-reputation-oral-history-1234819370/', 'https://en.wikipedia.org/wiki/Reputation_(album)'],
+  },
+  'earhart-1937': {
+    eventDate: '1937-07-02',
+    surfaceEvidence: 'Cautionary and strong for travel risk. Earhart disappeared during the 1937 around-the-world flight after the Coast Guard recorded her final communications near Howland Island. The evidence supports aviation exposure and mission risk, never a prediction of disappearance.',
+    blueprintEvidence: 'Strong in historical memory. The failed flight became a lasting aviation legacy and a continuing research question. The lesson is that pioneering visibility must be paired with redundant navigation, communications, and rescue planning.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.archives.gov/college-park/highlights/earhart-log', 'https://sova.si.edu/record/nasm.2011.0006?q=United+States.+National+Guard+Bureau&t=C'],
+  },
+  'einstein-1915': {
+    eventDate: '1915-11-25',
+    surfaceEvidence: 'Strong. Einstein completed and published the general theory of relativity in 1915, turning years of abstract work into a concrete scientific framework. The visible manifestation is concentrated creative and intellectual production, not supernatural certainty.',
+    blueprintEvidence: 'Strong. The theory became a durable scientific legacy and changed the conceptual language of physics. The lesson is that a teaching or legacy signature can emerge through a finished framework that outlives the author.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.mpg.de/9700434/chronology', 'https://einsteinpapers.press.princeton.edu/vol6-doc/'],
+  },
+  'einstein-1905': {
+    eventDate: '1905-03 to 1905-11',
+    surfaceEvidence: 'Strong. As a patent clerk, Einstein published four papers in 1905 on the photoelectric effect, Brownian motion, special relativity, and mass-energy equivalence. The surface event is independent publication from outside the academic centre, not instant celebrity.',
+    blueprintEvidence: 'Strong. The papers became foundational to modern physics and produced a legacy far larger than the private circumstances of publication. The lesson is to document original work even when institutional recognition is delayed.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.mpg.de/9700434/chronology', 'https://www.nobelprize.org/prizes/physics/1921/einstein/biographical/'],
+  },
+  'curie-1911': {
+    eventDate: '1911-12-10',
+    surfaceEvidence: 'Strong but mixed. Curie received the 1911 Nobel Prize in Chemistry while facing intense public hostility around the Langevin scandal and xenophobic attacks. The year concretely shows achievement, reputation pressure, relationships, and public judgment operating together.',
+    blueprintEvidence: 'Strong. She accepted the prize and kept the scientific work separate from the press scandal; the underlying lesson is integrity of vocation without pretending the social cost was absent.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.nobelprize.org/prizes/chemistry/1911/summary/', 'https://www.britannica.com/one-good-fact/why-was-marie-curie-discouraged-from-attending-her-own-nobel-prize-ceremony'],
+  },
+  'malcolm-1965': {
+    eventDate: '1965-02-21',
+    surfaceEvidence: 'Cautionary and strong for conflict. Malcolm X was assassinated after a public break with the Nation of Islam, threats, and a firebombing of his home. The case documents factional opposition and physical danger but must not be used to predict death or assign unsupported blame.',
+    blueprintEvidence: 'Strong in retrospect. His public mission and intellectual transformation continued as a civil-rights legacy after the assassination. The lesson is that moral and ideological transition can leave a lasting body of work while the person remains vulnerable.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.britannica.com/event/The-Assassination-of-Malcolm-X', 'https://guides.library.cornell.edu/malcolmx/about'],
+  },
+  'ali-1964': {
+    eventDate: '1964-02-25',
+    surfaceEvidence: 'Strong. Ali won the heavyweight title from Sonny Liston and publicly adopted the name and religious identity that defined his next era. The visible event combines competition, public identity, spiritual affiliation, and status elevation.',
+    blueprintEvidence: 'Strong. The championship became a platform for a larger cultural and moral voice. The lesson is that public triumph can be an identity threshold rather than a completed destination.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.muhammadali.com/biography', 'https://www.britannica.com/biography/Muhammad-Ali'],
+  },
+  'ali-1967': {
+    eventDate: '1967-04-28',
+    surfaceEvidence: 'Strong. Ali refused induction on religious and ethical grounds, was convicted, stripped of his title, and barred from boxing. This directly supports law, conscience, material loss, and public opposition without reducing the decision to numerology.',
+    blueprintEvidence: 'Strong. The career interruption became part of a lasting civil-rights and conscientious-objector legacy; the Supreme Court later reversed the conviction. The lesson is that an ethical stand can cost status before its historical meaning is recognized.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://supreme.justia.com/cases/federal/us/403/698/', 'https://www.muhammadali.com/biography'],
+  },
+  'elizabeth-1952': {
+    eventDate: '1952-02-06',
+    surfaceEvidence: 'Strong. Elizabeth became monarch immediately after her father’s death, converting family loss into public duty, institutional leadership, and a lifelong service role. The direct manifestation is succession under grief, not glamour alone.',
+    blueprintEvidence: 'Strong. The accession began a 70-year legacy of constitutional service and continuity. The lesson is that public honour can be inseparable from private loss and sustained obligation.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.royal.uk/queen-elizabeth-ii', 'https://www.britannica.com/biography/Elizabeth-II'],
+  },
+  'elizabeth-2022': {
+    eventDate: '2022-09-08',
+    surfaceEvidence: 'Cautionary and strong for completion. Elizabeth died at Balmoral after completing her Platinum Jubilee year; the event brought health, family, succession, and institutional transition into public view. It must never be used to predict a death.',
+    blueprintEvidence: 'Strong in retrospect. Her death closed a historic reign and transferred the Crown to Charles III, making legacy and succession literal institutional outcomes. The lesson is continuity planning at the end of a long service cycle.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.royal.uk/queen-elizabeth-ii', 'https://www.britannica.com/biography/Elizabeth-II'],
+  },
+  'kobe-2020': {
+    eventDate: '2020-01-26',
+    surfaceEvidence: 'Cautionary and strong for safety only. Bryant died with eight others in the Calabasas helicopter crash; the NTSB documented the weather, flight, and spatial-disorientation circumstances. This is a safety case, not a numerological prediction or causal claim.',
+    blueprintEvidence: 'Strong in retrospect. His basketball, storytelling, and mentorship work became a public legacy amplified by mourning. The lesson is to distinguish a person’s completed body of work from the tragic circumstances of death.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.ntsb.gov/investigations/Pages/DCA20MA059.aspx', 'https://www.nba.com/lakers/news/kobe-bryant-legacy'],
+  },
+  'gandhi-1947': {
+    eventDate: '1947-08 to 1947-09',
+    surfaceEvidence: 'Strong but mixed. Indian independence and Partition placed Gandhi’s service, public visibility, religious conscience, and communal violence in the same year. His fasts and peace work are evidence of an active response to crisis, not proof that service prevents catastrophe.',
+    blueprintEvidence: 'Strong. The outcome is a morally complex legacy: independence arrived while the subcontinent was divided and violent, and Gandhi continued reconciliation work. The lesson is that a constructive essence can operate inside an unfinished collective wound.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.gandhiheritageportal.org/', 'https://www.britannica.com/biography/Mahatma-Gandhi'],
+  },
+  'darwin-1859': {
+    eventDate: '1859-11-24',
+    surfaceEvidence: 'Strong. Darwin published On the Origin of Species on 24 November 1859 after years of correspondence, collaboration, and pressure from Alfred Russel Wallace’s parallel work. The visible event is a carefully prepared publication amid reputational and scientific controversy.',
+    blueprintEvidence: 'Strong. The book became a foundational scientific legacy far beyond its first-year reception. The lesson is that collaboration and timely publication can turn a private research cycle into durable public knowledge.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.darwinproject.ac.uk/letters/darwins-life-letters/darwin-letters-1858-1859-origin', 'https://www.darwinproject.ac.uk/commentary/evolution'],
+  },
+  'obama-2004': {
+    eventDate: '2004-07-27',
+    surfaceEvidence: 'Strong. Obama’s Democratic National Convention keynote converted an Illinois Senate campaign into national visibility, public identity, and a coalition message. The event supports a communication-and-emergence reading, not a claim that visibility automatically becomes office.',
+    blueprintEvidence: 'Strong. The speech became the public beginning of a national political arc and connected personal biography to a larger civic narrative. The deeper lesson is that a symbolic platform must be followed by durable organization.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.pbs.org/newshour/show/barack-obamas-keynote-address-at-the-2004-democratic-national-convention', 'https://www.americanrhetoric.com/speeches/convention2004/barackobama2004dnc.htm'],
+  },
+  'obama-2010': {
+    eventDate: '2010-03-23',
+    surfaceEvidence: 'Strong. Obama signed the Affordable Care Act after a year of legislative conflict, making law, leadership, public opposition, and service concrete. This supports a formal-institutional manifestation while acknowledging the policy’s contested consequences.',
+    blueprintEvidence: 'Strong. The legislation became one of the defining institutional legacies of the presidency. The lesson is that visible opposition can be the cost of turning a long-held service goal into durable law.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://obamawhitehouse.archives.gov/photos-and-video/video/president-obama-signs-health-reform-law', 'https://www.healthcare.gov/glossary/affordable-care-act/'],
+  },
+  'obama-2011': {
+    eventDate: '2011-05-01',
+    surfaceEvidence: 'Strong but cautionary. The announcement of Osama bin Laden’s death placed national security, military operations, presidential authority, and public relief in one visible event. It supports leadership under danger, not a moral or causal numerological explanation of violence.',
+    blueprintEvidence: 'Strong. The event became a major chapter in the administration’s security legacy, while its continuing ethical and geopolitical consequences prevent a simple victory reading.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://obamawhitehouse.archives.gov/blog/2011/05/02/osama-bin-laden-dead', 'https://www.cia.gov/legacy/museum/artifact/operation-neptune-spear/'],
+  },
+  'trump-2015': {
+    eventDate: '2015-06-16',
+    surfaceEvidence: 'Strong. Trump’s Trump Tower announcement made wealth, media attention, immigration conflict, competition, and insurgent political identity concrete. It supports an outsider-campaign manifestation, not proof that controversy guarantees electoral success.',
+    blueprintEvidence: 'Strong. The announcement launched a political brand that reshaped the Republican field and eventually reached the presidency. The deeper lesson is that attention can build a movement while also increasing reputational and governance liabilities.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.presidency.ucsb.edu/documents/trump-campaign-press-release-donald-j-trump-presidential-announcement', 'https://www.archives.gov/research/presidential-records/2016-election'],
+  },
+  'trump-2019': {
+    eventDate: '2019-12-18',
+    surfaceEvidence: 'Strong. The House impeachment vote placed presidential authority, legal process, partisan opposition, and public reputation into direct conflict. It is evidence of formal pressure, not proof of guilt beyond the documented constitutional proceeding.',
+    blueprintEvidence: 'Partial to strong. The proceeding became a durable part of Trump’s political identity and later comeback narrative, but the historical outcome remained contested and did not end his political career. The lesson is that institutional judgment can alter a legacy without producing immediate removal.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.congress.gov/116/bills/hres755/BILLS-116hres755ih.xml', 'https://www.govinfo.gov/content/pkg/CRPT-116hrpt346/pdf/CRPT-116hrpt346.pdf'],
+  },
+  'biden-2021': {
+    eventDate: '2021-01-20',
+    surfaceEvidence: 'Strong. Biden entered office during COVID-19, after the January 6 attack, and amid a national transfer of power. The visible event combines institutional repair, public duty, security, and crisis management rather than uncomplicated inauguration celebration.',
+    blueprintEvidence: 'Strong. The inauguration marked a restoration-of-process narrative and a test of whether governing institutions could absorb acute polarization. The lesson is that continuity can itself be a substantive outcome after rupture.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.whitehouse.gov/briefing-room/speeches-remarks/2021/01/20/inaugural-address-by-president-joseph-r-biden-jr/', 'https://www.archives.gov/research/alic/reference/presidential-inaugurations'],
+  },
+  'biden-2024': {
+    eventDate: '2024-07-21',
+    surfaceEvidence: 'Strong. Biden ended his reelection campaign after sustained party pressure over age and debate performance, making withdrawal, reputation, health perception, and succession concrete. It is a documented decision under pressure, not a diagnosis of his capacity or character.',
+    blueprintEvidence: 'Strong. The withdrawal redirected the party toward Harris and preserved his remaining presidential duties; the deeper outcome is a leadership handoff and the tension between personal ambition and institutional continuity.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.presidency.ucsb.edu/documents/statement-president-joe-biden-072124', 'https://www.nbcnews.com/politics/2024-election/president-joe-biden-drops-2024-presidential-race-rcna159867'],
+  },
+  'kamala-2024': {
+    eventDate: '2024-07-21 to 2024-08-22',
+    surfaceEvidence: 'Strong. Harris moved from vice president to presumptive Democratic nominee after Biden withdrew, entering a compressed national campaign with public visibility, competition, identity, and institutional pressure. The event is a succession opening, not a guarantee of election.',
+    blueprintEvidence: 'Strong. The handoff created a historic nomination and a new test of coalition-building under severe time pressure. The deeper lesson is that inherited opportunity must be converted into independent mandate and durable organization.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.cnn.com/politics/live-news/biden-trump-election-07-21-24', 'https://www.whitehouse.gov/administration/vice-president-harris/'],
+  },
+  'bill-clinton-1998': {
+    eventDate: '1998-12-19',
+    surfaceEvidence: 'Strong. The House impeached Clinton for perjury and obstruction of justice after the Lewinsky investigation, putting relationship, legal process, public reputation, and executive power in direct conflict. The record distinguishes impeachment from conviction or removal.',
+    blueprintEvidence: 'Partial. The Senate acquittal preserved the presidency but left impeachment as a permanent legacy marker; the lesson is that personal conduct and institutional office can remain historically entangled even when removal fails.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.clintonlibrary.gov/museum/online-exhibits/constitution-and-clinton-presidency', 'https://www.govinfo.gov/content/pkg/CDOC-106sdoc2/pdf/CDOC-106sdoc2.pdf'],
+  },
+  'george-w-bush-2000': {
+    eventDate: '2000-12-12',
+    surfaceEvidence: 'Strong. Bush’s disputed election was resolved through Florida recount litigation and Bush v. Gore, making law, competition, legitimacy, and public controversy literal features of the transition. This is evidence of contested institutional victory, not uncomplicated triumph.',
+    blueprintEvidence: 'Strong. The court-resolved election began a presidency whose legitimacy debate shaped its historical memory. The deeper lesson is that attaining office and earning durable legitimacy are different outcomes.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://supreme.justia.com/cases/federal/us/531/98/', 'https://www.archives.gov/electoral-college/2000'],
+  },
+  'al-gore-2000': {
+    eventDate: '2000-12-12',
+    surfaceEvidence: 'Strong and cautionary. Gore conceded the presidential election after the Supreme Court ended the Florida recount, making legal judgment, loss, public restraint, and political opposition concrete. The case must not flatten a constitutional dispute into personal failure.',
+    blueprintEvidence: 'Strong. His concession helped complete a peaceful transfer despite unresolved disagreement, while the election became a lasting legacy of institutional fragility. The lesson is that relinquishing a claim can preserve a system without erasing the dispute.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://supreme.justia.com/cases/federal/us/531/98/', 'https://www.archives.gov/electoral-college/2000'],
+  },
+  'steve-jobs-2001': {
+    eventDate: '2001-10-23',
+    surfaceEvidence: 'Strong. Jobs introduced the iPod as Apple shifted from computers toward consumer devices, music, and a wider ecosystem. The visible event is a product launch and strategic expansion, not a generic success label.',
+    blueprintEvidence: 'Strong. The iPod became a foundation for Apple’s later ecosystem and Jobs’s product-design legacy. The lesson is that a compact product can be a bridge between an old company identity and a new platform.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.apple.com/newsroom/2001/10/apple-presents-ipod/', 'https://www.macworld.com/article/214637/steve_jobs_through_the_years.html'],
+  },
+  'steve-jobs-2010': {
+    eventDate: '2010-01-27',
+    surfaceEvidence: 'Strong. Jobs unveiled the first iPad, extending Apple’s mobile strategy into a new device category and placing product, technology, public presentation, and commercial risk in view.',
+    blueprintEvidence: 'Strong. The iPad consolidated the post-iPhone ecosystem and became part of Jobs’s product-architecture legacy. The deeper lesson is that reinvention works when the new object has a coherent place in the wider system.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.apple.com/newsroom/2010/01/apple-unveils-ipad/', 'https://www.macworld.com/article/214637/steve_jobs_through_the_years.html'],
+  },
+  'bill-gates-2008': {
+    eventDate: '2008-06-27 to 2008-07-31',
+    surfaceEvidence: 'Strong. Gates transitioned out of Microsoft’s day-to-day role to devote more time to the Gates Foundation, making institutional handoff, wealth, service, and identity change concrete.',
+    blueprintEvidence: 'Strong. The move redirected a software-founder legacy toward global health, development, and education philanthropy. The lesson is that exit from operational power can be a deliberate transfer of purpose rather than simple retirement.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://news.microsoft.com/source/2020/03/13/microsoft-announces-change-to-its-board-of-directors/', 'https://www.gatesfoundation.org/about/leadership/bill-gates'],
+  },
+  'musk-2021': {
+    eventDate: '2021-12-13',
+    surfaceEvidence: 'Strong but mixed. Tesla’s valuation, SpaceX’s civilian flight, Musk’s public market influence, and intense media exposure made money, technology, competition, and reputation literal. It does not make public attention equivalent to moral approval.',
+    blueprintEvidence: 'Partial to strong. Time’s Person of the Year recognition captured a technology-and-power legacy while also naming the era’s risks. The lesson is that large influence multiplies both constructive capacity and accountability.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://time.com/person-of-the-year-2021-elon-musk/', 'https://www.reuters.com/business/elon-musk-named-times-2021-person-year-2021-12-13/'],
+  },
+  'zuckerberg-2021': {
+    eventDate: '2021-10-28',
+    surfaceEvidence: 'Strong. Facebook’s parent company rebranded as Meta and publicly pivoted toward a metaverse strategy amid criticism of its social platforms. The visible event is corporate identity change under reputational and competitive pressure.',
+    blueprintEvidence: 'Strong. The rebrand attempted to turn a mature social-network identity into a future-platform legacy. The lesson is that a new name does not by itself resolve the ethical and operational history of the old institution.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://about.fb.com/news/2021/10/facebook-company-is-now-meta/', 'https://www.npr.org/2021/10/28/1049813246/facebook-new-name-meta-mark-zuckerberg'],
+  },
+  'sundar-pichai-2015': {
+    eventDate: '2015-08-10',
+    surfaceEvidence: 'Strong. Alphabet’s creation separated Google from its parent structure and elevated Pichai to CEO of Google, making succession, organization, and authority transfer concrete.',
+    blueprintEvidence: 'Strong. The restructuring established a new governance architecture and Pichai’s long leadership chapter. The lesson is that institutional transition succeeds when responsibility is made explicit rather than symbolic.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://abc.xyz/investor/news/news-details/2015/Google-Announces-New-Operating-Structure/default.aspx', 'https://www.britannica.com/money/Sundar-Pichai'],
+  },
+  'sundar-pichai-2019': {
+    eventDate: '2019-12-03',
+    surfaceEvidence: 'Strong. Larry Page and Sergey Brin stepped back from day-to-day Alphabet management and Pichai became CEO of both Google and Alphabet, making leadership succession and institutional consolidation literal.',
+    blueprintEvidence: 'Strong. The founders’ withdrawal completed one governance chapter while preserving long-term board influence. The deeper lesson is continuity through delegation, not erasure of origins.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://abc.xyz/investor/news/news-details/2019/Alphabet-Announces-Leadership-Transition/default.aspx', 'https://www.nytimes.com/2019/12/03/technology/google-alphabet-ceo-larry-page-sundar-pichai.html'],
+  },
+  'brian-chesky-2020': {
+    eventDate: '2020-12-10',
+    surfaceEvidence: 'Strong. Airbnb faced pandemic travel collapse, layoffs, emergency financing, and then a major IPO. The visible year contains material danger, operational adaptation, employee/host relationships, and public-market exposure.',
+    blueprintEvidence: 'Strong. The IPO converted crisis survival into a new capital and governance chapter, but the recovery depended on rebuilding trust and changing the product mix. The lesson is resilience through honest redesign rather than denial of loss.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.npr.org/2020/04/28/846780052/for-airbnb-the-pandemic-hit', 'https://www.reuters.com/article/us-airbnb-ipo-chesky-newsmaker-idUSKBN2801CR'],
+  },
+  'reed-hastings-2007': {
+    eventDate: '2007-01-16',
+    surfaceEvidence: 'Strong. Netflix launched streaming and began moving from physical DVD rental toward internet entertainment, making technology risk, consumer behavior, competition, and business reinvention concrete.',
+    blueprintEvidence: 'Strong. The decision became the foundation of Netflix’s platform legacy and changed how filmed entertainment was distributed. The lesson is that a completed business model may need to be deliberately disrupted before the market forces it.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://about.netflix.com/en/news/netflix-launches-watch-now', 'https://www.britannica.com/topic/Netflix-Inc'],
+  },
+};
+
+const RAW_HISTORICAL_CASE_LIBRARY: HistoricalCase[] = [...HISTORICAL_CASES, ...EXPANDED_HISTORICAL_CASES, ...HISTORICAL_CASES_EXPANSION_200, ...HISTORICAL_CASES_EXPANSION_300_EXTRA, ...HISTORICAL_CASES_EXPANSION_300_MORE, ...HISTORICAL_CASES_EXPANSION_FINAL];
+
+function digitSumForHistory(n: number): number {
+  return String(Math.abs(n)).split('').reduce((sum, digit) => sum + Number(digit), 0);
+}
+function reduceSingleForHistory(n: number): number {
+  let value = Math.abs(n);
+  while (value > 9) value = digitSumForHistory(value);
+  return value;
+}
+function reduceMasterForHistory(n: number): number {
+  let value = Math.abs(n);
+  while (value > 9 && value !== 11 && value !== 22 && value !== 33) value = digitSumForHistory(value);
+  return value;
+}
+function verifiedBirthDateForHistory(person: string): HistoricalBirthDate | null {
+  const supplemental = supplementalBirthDateFor(person);
+  if (supplemental) return supplemental;
+  const wanted = normaliseHistoricalPersonName(person);
+  const found = famousBirthdays.find(candidate => normaliseHistoricalPersonName(candidate.name) === wanted);
+  return found ? { day: found.day, month: found.month, year: found.year, source: 'famous-birthdays.ts' } : null;
+}
+function verifiedHistoryNumbers(c: HistoricalCase): { direct: number; classic: number; directReduced: number; classicReduced: number; birthDate: HistoricalBirthDate } | null {
+  const birthDate = verifiedBirthDateForHistory(c.person);
+  if (!birthDate) return null;
+  const direct = birthDate.day + birthDate.month + digitSumForHistory(c.year);
+  const classic = digitSumForHistory(birthDate.day) + digitSumForHistory(birthDate.month) + reduceSingleForHistory(c.year);
+  return { direct, classic, directReduced: reduceMasterForHistory(direct), classicReduced: reduceMasterForHistory(classic), birthDate };
+}
+function withVerifiedHistoryArithmetic(c: HistoricalCase): HistoricalCase {
+  const numbers = verifiedHistoryNumbers(c);
+  const notes = RESEARCHED_CASE_NOTES[c.id];
+  if (!numbers && !notes) return c;
+  return {
+    ...c,
+    ...(numbers ? {
+      direct: numbers.direct,
+      classic: numbers.classic,
+      directReduced: numbers.directReduced,
+      classicReduced: numbers.classicReduced,
+      birthDateSource: numbers.birthDate.source,
+    } : {}),
+    ...(notes ?? {}),
+  };
+}
+
+/**
+ * Corrects arithmetic drift in the older generated banks at runtime. This is
+ * important: several earlier records were assigned a pair by theme rather
+ * than by the person's actual birth date. Verified records now always win;
+ * unverifiable records remain available only as lower-confidence context.
+ */
+const HISTORICAL_CASE_LIBRARY: HistoricalCase[] = RAW_HISTORICAL_CASE_LIBRARY.map(withVerifiedHistoryArithmetic);
+function isResearchReadyHistoricalCase(c: HistoricalCase): boolean {
+  const notes = RESEARCHED_CASE_NOTES[c.id];
+  // A researched event is still not display-ready if its arithmetic cannot be
+  // reproduced from a reviewed birth date. This keeps event research and
+  // numerology arithmetic as two separate, jointly required checks.
+  return Boolean(verifiedHistoryNumbers(c) && notes?.surfaceEvidence && notes.blueprintEvidence && notes.sources?.length);
+}
  
 function intelligenceFor(compound: ChaldeanPYNCompound | null, reduced: number, raw: number): CompoundIntelligence {
   const base = REDUCED_INTELLIGENCE[reduced] || REDUCED_INTELLIGENCE[((reduced % 9) || 9)];
@@ -434,14 +880,107 @@ function pairSimilarity(args: BuildArgs, hist: HistoricalCase, directIntel: Comp
   if (args.wealthProfile && args.wealthProfile === hist.wealth) score += .025;
   if (args.relationshipStatus && args.relationshipStatus === hist.relationshipStatus) score += .02;
   if (args.visibility && args.visibility === hist.visibility) score += .025;
+  // Arithmetic provenance is part of relevance. A thematic record whose birth
+  // date cannot be reproduced must never outrank a checked record merely
+  // because an older hand-assigned pair happened to look attractive.
+  if (!verifiedHistoryNumbers(hist)) score *= .72;
   return clamp01(score);
 }
  
+type EvidenceFit = 'strong' | 'partial' | 'weak' | 'unverified';
+interface CaseEssenceEvidence {
+  directFit: EvidenceFit;
+  classicFit: EvidenceFit;
+  directReason: string;
+  classicReason: string;
+  verdict: string;
+  quality: string;
+}
+
+const CASE_SIGNAL_PATTERNS: Array<[string, RegExp]> = [
+  ['conflict', /war|conflict|faction|revolt|revolution|polariz|hostil|opposition|rival|strife|betray|backlash|controvers/i],
+  ['danger', /danger|attack|assassin|murder|kill|death|died|fatal|crash|overdose|injur|poison|war|threat|security|detain|prison|suicide/i],
+  ['law', /law|legal|court|trial|convict|impeach|regulat|senate hearing|prosecut|sentence|lawsuit|visa|sanction/i],
+  ['competition', /champion|championship|election|won|defeat|rival|contest|title|trophy|race|transfer|sport|campaign/i],
+  ['material', /money|business|company|market|fee|billion|million|ipo|finance|wealth|commercial|product|capital|ceo|corporate/i],
+  ['transition', /step[ped]* down|resign|left|transfer|new chapter|new stage|succession|return|comeback|rebrand|shift|handover|retir|appointed/i],
+  ['completion', /complete|conclud|final|end(ed)?|last|close[ds]?|finished|full cycle|series finale|farewell/i],
+  ['legacy', /legacy|historic|history|immortal|posthumous|award|nobel|oscar|first ever|record|icon|memorial|remember/i],
+  ['service', /service|humanitarian|charit|care|peace|education|advocacy|mission|public good|reconciliation/i],
+  ['creative', /album|song|film|movie|book|novel|publish|science|research|performance|speech|art|music|design/i],
+  ['relationship', /family|marriage|partner|wife|husband|divorc|relationship|ally|associate|brother|sister/i],
+  ['health', /health|illness|cancer|medical|mental|body|disease|treatment|overdose|injur/i],
+  ['travel', /space|flight|travel|aviation|aircraft|vehicle|road|journey|moved to|relocat/i],
+];
+function caseEvidenceCorpus(c: HistoricalCase): string {
+  return [c.eventCategory, c.eventDetails, c.narrative, c.decisions.join(' '), c.personalityShift, c.protectiveLesson, c.outcome].filter(Boolean).join(' ');
+}
+function caseSignals(c: HistoricalCase): Set<string> {
+  const corpus = caseEvidenceCorpus(c);
+  return new Set(CASE_SIGNAL_PATTERNS.filter(([, pattern]) => pattern.test(corpus)).map(([signal]) => signal));
+}
+function expectedDirectSignals(intel: CompoundIntelligence): string[] {
+  const signals: string[] = [];
+  if (traitFrom(intel.traits, 'danger') >= .5) signals.push('danger');
+  if (traitFrom(intel.traits, 'lawPressure') >= .5) signals.push('law');
+  if (traitFrom(intel.traits, 'competition') >= .5) signals.push('competition');
+  if (traitFrom(intel.traits, 'loss') >= .5) signals.push('completion');
+  if (scoreFrom(intel.domains, 'money') >= .6) signals.push('material');
+  if (scoreFrom(intel.domains, 'relationships') >= .6) signals.push('relationship');
+  if (scoreFrom(intel.domains, 'health') >= .6) signals.push('health');
+  if (scoreFrom(intel.domains, 'travel') >= .6) signals.push('travel');
+  return uniq(signals);
+}
+function expectedClassicSignals(intel: CompoundIntelligence): string[] {
+  const signals: string[] = [];
+  if (traitFrom(intel.traits, 'legacy') >= .5) signals.push('legacy');
+  if (traitFrom(intel.traits, 'reinvention') >= .5) signals.push('transition');
+  if (traitFrom(intel.traits, 'loss') >= .5) signals.push('completion');
+  if (traitFrom(intel.traits, 'service') >= .5 || scoreFrom(intel.domains, 'service') >= .6) signals.push('service');
+  if (scoreFrom(intel.domains, 'creativeOutput') >= .6) signals.push('creative');
+  if (scoreFrom(intel.domains, 'relationships') >= .6) signals.push('relationship');
+  return uniq(signals);
+}
+function fitLabel(score: number): EvidenceFit {
+  if (score >= .62) return 'strong';
+  if (score >= .34) return 'partial';
+  return 'weak';
+}
+function caseEssenceEvidence(args: BuildArgs, c: HistoricalCase, directIntel: CompoundIntelligence, classicIntel: CompoundIntelligence): CaseEssenceEvidence {
+  const override = RESEARCHED_CASE_NOTES[c.id];
+  const signals = caseSignals(c);
+  const directExpected = expectedDirectSignals(directIntel);
+  const classicExpected = expectedClassicSignals(classicIntel);
+  const directSignalScore = directExpected.length ? directExpected.filter(signal => signals.has(signal)).length / directExpected.length : 0;
+  const classicSignalScore = classicExpected.length ? classicExpected.filter(signal => signals.has(signal)).length / classicExpected.length : 0;
+  const directDomainScore = domainOverlap(directIntel.domains, c.domains);
+  const classicDomainScore = domainOverlap(classicIntel.domains, c.domains);
+  let directScore = directDomainScore * .55 + directSignalScore * .45;
+  let classicScore = classicDomainScore * .45 + classicSignalScore * .35;
+  if (classicIntel.traits.legacy && ['legacy', 'transition', 'triumph'].includes(c.outcome)) classicScore += .2;
+  if (classicIntel.traits.reinvention && c.outcome === 'transition') classicScore += .12;
+  // 18/9 is the place where the old engine most often overclaimed. A clean
+  // precedent needs a documented conflict/danger trigger, not merely success,
+  // visibility, or an expensive career move.
+  const activeDirect = cnum(args.directCompound, args.directRaw);
+  if (activeDirect === 18 && !signals.has('conflict') && !signals.has('danger') && !signals.has('law')) directScore = Math.min(directScore, .28);
+  const directFit = override?.surfaceEvidence ? (c.id === 'bezos-2021' ? 'weak' : c.id === 'ronaldo-2018' || c.id === 'ronaldo-2009' || c.id === 'heath-ledger-2008' ? 'partial' : fitLabel(directScore)) : fitLabel(directScore);
+  const classicFit = override?.blueprintEvidence ? 'strong' : fitLabel(Math.min(1, classicScore));
+  const directEvidence = override?.surfaceEvidence ?? `Documented surface event: ${c.eventDetails || c.eventCategory}. It overlaps the Direct essence through ${directExpected.filter(signal => signals.has(signal)).join(', ') || 'no decisive signal'}; this is ${directFit} evidence rather than proof by arithmetic alone.`;
+  const classicEvidence = override?.blueprintEvidence ?? `Documented outcome: ${c.outcome}. ${c.narrative} It overlaps the Classic essence through ${classicExpected.filter(signal => signals.has(signal)).join(', ') || 'no decisive completion/legacy signal'}; this is ${classicFit} evidence.`;
+  let verdict = 'Useful only as a qualified context case.';
+  if (directFit === 'strong' && classicFit === 'strong') verdict = 'Supports both essences: usable precedent.';
+  else if (classicFit === 'strong' && directFit === 'partial') verdict = 'Supports the Blueprint strongly, but only partially supports the Surface Journey.';
+  else if (classicFit === 'strong' && directFit === 'weak') verdict = 'Blueprint-only precedent: do not use it to explain the Direct compound.';
+  else if (directFit === 'strong') verdict = 'Surface precedent, but the deeper outcome is not a clean match.';
+  return { directFit, classicFit, directReason: directEvidence, classicReason: classicEvidence, verdict, quality: override?.evidenceQuality ?? (c.sources?.length ? 'linked secondary source' : 'uncited legacy record') };
+}
+
 function nearestCluster(args: BuildArgs, directIntel: CompoundIntelligence, classicIntel: CompoundIntelligence) {
   return HISTORICAL_CASE_LIBRARY
-    .map(h => ({ ...h, similarity: pairSimilarity(args, h, directIntel, classicIntel) }))
+    .map(h => ({ ...h, similarity: pairSimilarity(args, h, directIntel, classicIntel), evidence: caseEssenceEvidence(args, h, directIntel, classicIntel) }))
     .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, 6);
+    .slice(0, 8);
 }
  
 function buildDomainScores(args: BuildArgs, directIntel: CompoundIntelligence, classicIntel: CompoundIntelligence, cluster: ReturnType<typeof nearestCluster>, archetype: PairArchetype | null): Record<Domain, number> {
@@ -582,8 +1121,13 @@ function historicalSimilarityReasons(
     reasons.push(`Occupation/context match: both profiles share ${c.occupation} terrain.`);
   }
  
+  const evidence = caseEssenceEvidence(args, c, directIntel, classicIntel);
+  reasons.push(`Essence-fit audit: Direct/Surface = ${evidence.directFit}; Classic/Blueprint = ${evidence.classicFit}. ${evidence.verdict}`);
+  reasons.push(`Surface evidence: ${evidence.directReason}`);
+  reasons.push(`Blueprint evidence: ${evidence.classicReason}`);
+  reasons.push(`Evidence quality: ${evidence.quality}. A compound match without this event-to-meaning audit is not treated as proof.`);
   reasons.push(`Outcome lesson: the historical outcome was ${c.outcome}; this tells the engine whether the same compound pressure tends to crown, break, redirect, expose, or immortalize the person when the shared domains activate.`);
-  return uniq(reasons).slice(0, 8);
+  return uniq(reasons).slice(0, 10);
 }
  
  
@@ -606,154 +1150,6 @@ function rawDirectLocal(day: number, month: number, year: number): number {
 function rawClassicLocal(day: number, month: number, year: number): number {
   return digitSumLocal(day) + digitSumLocal(month) + reduceSingleLocal(year);
 }
-function famousMirrorRows(args: BuildArgs): Array<{ name: string; score: number }> {
-  const direct = args.directRaw;
-  const classic = args.classicRaw;
-  const directRoot = args.directYear;
-  const classicRoot = args.classicYear;
-  return famousBirthdays.map(p => {
-    const fd = rawDirectLocal(p.day, p.month, args.targetYear);
-    const fc = rawClassicLocal(p.day, p.month, args.targetYear);
-    const frd = reduceMasterLocal(fd);
-    const frc = reduceMasterLocal(fc);
-    let score = 0;
-    if (fd === direct) score += 36;
-    if (fc === classic) score += 36;
-    if (frd === directRoot) score += 8;
-    if (frc === classicRoot) score += 8;
-    if (p.day === args.birthDay && p.month === args.birthMonth) score += 8;
-    if (p.month === args.birthMonth) score += 4;
-    return { name: p.name, score: Math.min(100, score), isEntity: (p.tags || []).includes('Entity') };
-  }).filter(r => r.score >= 80 && !r.isEntity).sort((a, b) => b.score - a.score || a.name.localeCompare(b.name)).slice(0, 3);
-}
-
-/** Ties a precedent's real outcome back to the essence's own stated warning or
- * promise, so the example expounds the meaning instead of merely sitting next
- * to it. This runs for every pair (not only curated ones) so the two systems —
- * essence meaning and real-life precedent — stay in the same conversation. */
-function buildEssenceBridge(directIntel: CompoundIntelligence, classicIntel: CompoundIntelligence): string {
-  const shadowIntel = [directIntel, classicIntel].find(i => i.polarity === 'cautionary' || i.polarity === 'threshold');
-  if (shadowIntel) {
-    return ` — this is the essence's own warning in motion: ${shadowIntel.likelyMistake}, which is exactly what this compound cautions against`;
-  }
-  const brightIntel = [directIntel, classicIntel].find(i => i.polarity === 'constructive');
-  if (brightIntel) {
-    return ` — this confirms the essence's own promise: ${brightIntel.strategicMove} is what the compound rewards`;
-  }
-  return '';
-}
-
-/** One short, factual description of a historical case, for inline weaving. */
-function shortEvent(c: HistoricalCase): string {
-  const raw = c.eventDetails || c.narrative || c.eventCategory;
-  const flat = raw.replace(/\s+/g, ' ').trim().replace(/\.+$/, '');
-  if (flat.length <= 150) return flat;
-  const cut = flat.slice(0, 147);
-  const lastSpace = cut.lastIndexOf(' ');
-  return cut.slice(0, lastSpace > 90 ? lastSpace : 147) + '…';
-}
-
-/** The intermarriage itself: Direct × Classic read as ONE story, proven by
- * the real lives that carried the same compound pair. */
-function buildWovenSynthesis(
-  args: BuildArgs,
-  directIntel: CompoundIntelligence,
-  classicIntel: CompoundIntelligence,
-  ranked: Array<{ domain: Domain; score: number }>,
-  conflicts: string[],
-  reinforcements: string[],
-  cluster: ReturnType<typeof nearestCluster>,
-  protection: string,
-  polarity: PersonalYearDualEssenceSynthesis['polarity'],
-): string {
-  const directLabel = label(args.directRaw, args.directYear, args.directCompound);
-  const classicLabel = label(args.classicRaw, args.classicYear, args.classicCompound);
-  const directThesis = directIntel.thesis.replace(/\.+$/, '');
-  const classicThesis = classicIntel.thesis.replace(/\.+$/, '');
-  const samePair = args.directRaw === args.classicRaw;
-
-  // ── 0. THE MARRIAGE IN ONE SENTENCE ────────────────────────────────────────
-  // The fused thesis: not "two readings side by side" but one statement in
-  // which the visible happening and the hidden meaning are the same year.
-  const fused = samePair
-    ? `ONE SENTENCE, TWO ALTITUDES: In ${args.targetYear}, ${directLabel} governs BOTH levels — what happens on the surface IS the meaning, and the meaning IS the surface event. This doubling is historically the most direct reading the system can give: one vibration, two altitudes, no translation required.`
-    : `ONE SENTENCE, TWO ALTITUDES: In ${args.targetYear}, ${directThesis.toLowerCase()} — and that is not a separate story from ${classicThesis.toLowerCase()}. It is the same year: the visible happening and its hidden meaning, two altitudes of one climb.`;
-
-  // ── 1. THE TWO PARTNERS, IN THEIR OWN WORDS ───────────────────────────────
-  const partners = samePair
-    ? `${directLabel} and ${classicLabel} are one and the same essence this year — married to itself, redoubled. Its single voice speaks twice: as the event (what happens TO you: ${directThesis}) and as the meaning (what it MEANS: ${classicThesis}).`
-    : `In ${args.targetYear}, two essences are married in your chart. ${directLabel} is the Surface Journey — what happens TO you: ${directThesis}. ${classicLabel} is the Destiny Blueprint — what it MEANS: ${classicThesis}.`;
-
-  // ── 2. WHERE THEY AGREE: THE UNION ────────────────────────────────────────
-  const unionDomains = reinforcements.length
-    ? reinforcements.slice(0, 3).join(', ')
-    : ranked.slice(0, 2).map(r => DOMAIN_LABELS[r.domain]).join(' and ');
-  const union = reinforcements.length
-    ? `Where the two agree — ${unionDomains} — the marriage is consummated: these are not possible themes but the year's likely stage, the ground where the surface event and the hidden meaning become the same thing.`
-    : `They do not loudly agree on any single stage; their union is adaptive — the surface journey decides what triggers the year, and the blueprint decides how it is judged.`;
-
-  // ── 3. WHERE THEY DIFFER: THE TENSION (honored, not averaged) ─────────────
-  const tension = conflicts.length
-    ? `Where they differ — ${conflicts[0]} — do not average them. The tension is the year's honesty: what others name from the outside may not be what you experience from the inside. Both are true at their own altitude.`
-    : `They carry no major tension this year — the two essences point the same direction, which historically makes the reading unusually direct.`;
-
-  // ── 4. THE PROOF: real lives, with BOTH essences visible in each ──────────
-  // Each precedent shows its own compound pair and marks the surface journey
-  // (the direct essence at work) and the destiny blueprint (the classic
-  // essence at work) inside the SAME real year — the intermarriage
-  // demonstrated, not merely asserted.
-  const precedents: string[] = [];
-  const strong = cluster.filter(c => c.similarity >= 0.8).slice(0, 3);
-  const ordinal = ['Its clearest precedent is', 'A second precedent:', 'A third:'];
-  strong.forEach((c, i) => {
-    const what = shortEvent(c);
-    const outcomeWord = c.outcome === 'triumph' ? 'a triumph' : c.outcome === 'loss' ? 'a reversal' : c.outcome === 'legacy' ? 'a legacy' : 'a turning point';
-    const lesson = c.protectiveLesson.replace(/\.+$/, '');
-    const casePair = `${c.direct}/${c.directReduced} × ${c.classic}/${c.classicReduced}`;
-    const pairTag = (c.direct === args.directRaw && c.classic === args.classicRaw) ? ' — your exact pair' : '';
-    const essenceBridge = buildEssenceBridge(directIntel, classicIntel);
-    precedents.push(`${ordinal[i]} ${c.person}'s ${c.year} (${casePair}${pairTag}): on the surface, ${what}; underneath, the blueprint paid it out as ${outcomeWord} — ${lesson}${essenceBridge}`);
-  });
-  const strongOutcomes = new Set(strong.map(c => c.outcome));
-  const hasPositive = (['triumph', 'legacy'] as const).some(o => strongOutcomes.has(o));
-  const hasNegative = (['loss', 'mixed'] as const).some(o => strongOutcomes.has(o));
-  const bothSides = hasPositive && hasNegative
-    ? ` Note the honesty of the record: the same pair has produced both a triumph and a reversal in real lives — the essences set the stage, but conduct decides which ending you get.`
-    : '';
-  const mirrors = famousMirrorRows(args);
-  let proof = '';
-  if (precedents.length) {
-    proof = `The proof is in real lives. ${precedents.join('. ')}.${bothSides}`;
-    if (mirrors.length) {
-      proof += ` In the famous-birthday bank, ${mirrors.map(m => `${m.name} (${m.score}% mirror)`).join(', ')} carry the same pair in ${args.targetYear} — the same two essences, walking with you.`;
-    }
-  } else if (mirrors.length) {
-    proof = `No curated historical case crossed the 80% threshold for this pair, but the famous-birthday bank shows ${mirrors.map(m => `${m.name} (${m.score}% mirror)`).join(', ')} carrying the same two essences in ${args.targetYear}.`;
-  } else {
-    proof = `No historical case or famous birthday in the current bank crosses the display threshold for this exact pair — the engine keeps using the nearest cases internally for weighting, but refuses to present weak examples as evidence.`;
-  }
-
-  // ── 5. HOW TO LIVE THE MARRIAGE ───────────────────────────────────────────
-  // The two essences each carry a strategic move; woven together they become
-  // one instruction — the surface move executed with the blueprint's motive.
-  const directMove = directIntel.strategicMove.replace(/\.+$/, '');
-  const classicMove = classicIntel.strategicMove.replace(/\.+$/, '');
-  const howToLive = samePair
-    ? `How to live it: the one instruction of the year is ${directMove}.`
-    : `How to live it: on the surface, ${directMove}; underneath, ${classicMove}. Do the first with the second as your motive — that is the marriage, practiced.`;
-
-  // ── 6. THE VERDICT ────────────────────────────────────────────────────────
-  const verdictByPolarity: Record<string, string> = {
-    'predominantly constructive': 'Read as one story, the year is constructive: the danger is not absence of luck but scattered attention diluting the main opportunity.',
-    'predominantly cautionary': 'Read as one story, the year is cautionary: smaller, safer wins beat dramatic moves with hidden downside. Preservation and correction are the year\'s real work.',
-    'mixed ordeal-and-reward': 'Read as one story, the year pays through contrast: pressure first, reward later; exposure first, clarity later. The difficult part is the price of accuracy, not proof the year is failing.',
-    'threshold / transition': 'Read as one story, the year is a threshold: something changes form, status, duty, or definition — and the year succeeds only if the new structure is stronger than the one it replaces.',
-  };
-  const verdict = `${verdictByPolarity[polarity] || verdictByPolarity['threshold / transition']} Guard the marriage at its weakest seam: ${protection}`;
-
-  return `THE SYNTHESIS — HOW YOUR TWO ESSENCES MARRY INTO ONE YEAR\n\n${fused}\n\n${partners}\n\n${union}\n\n${tension}\n\n${proof}\n\n${howToLive}\n\n${verdict}`;
-}
-
 function famousBirthdayPersonalYearMirrors(args: BuildArgs): string {
   const direct = args.directRaw;
   const classic = args.classicRaw;
@@ -775,7 +1171,7 @@ function famousBirthdayPersonalYearMirrors(args: BuildArgs): string {
     return { p, score: Math.min(100, score), reasons, fd, fc, frd, frc };
   }).filter(r => r.score >= 40).sort((a,b) => b.score - a.score || a.p.name.localeCompare(b.p.name)).slice(0, 8);
   if (!rows.length) return `Famous birthday personal-year mirrors:\nNo famous-birthday record in the current bank strongly mirrors this Direct/Classic personal-year pattern for ${args.targetYear}.`;
-  return `Famous birthday personal-year mirrors from ${famousBirthdays.length} stored profiles:\n${rows.map(r => `• ${r.p.name} — ${r.score}% mirror. ${r.fd}/${r.frd} direct, ${r.fc}/${r.frc} classic. Shared signals: ${r.reasons.join(', ')}. Tags: ${(r.p.tags || []).slice(0, 4).join(', ') || '—'}.`).join('\n')}`;
+  return `Famous birthday personal-year mirrors from ${famousBirthdays.length} stored profiles (numeric context only; these rows have no event-level evidence and are not proof of the Direct or Classic meaning):\n${rows.map(r => `• ${r.p.name} — ${r.score}% numeric mirror. ${r.fd}/${r.frd} direct, ${r.fc}/${r.frc} classic. Shared arithmetic signals: ${r.reasons.join(', ')}. Tags: ${(r.p.tags || []).slice(0, 4).join(', ') || '—'}.`).join('\n')}`;
 }
  
 function makeHistoricalText(
@@ -786,18 +1182,26 @@ function makeHistoricalText(
   cluster: ReturnType<typeof nearestCluster>
 ): string {
   const uniquePeople = new Set(HISTORICAL_CASE_LIBRARY.map(c => c.person)).size;
-  const libraryLine = `Historical calibration library: ${HISTORICAL_CASE_LIBRARY.length} curated milestone cases across ${uniquePeople} famous people. The engine also scans the ${famousBirthdays.length}-entry famous-birthday bank for people whose current Direct/Classic personal-year pattern mirrors this profile.`;
+  const verifiedArithmetic = HISTORICAL_CASE_LIBRARY.filter(c => verifiedHistoryNumbers(c)).length;
+  const researchedEvidence = HISTORICAL_CASE_LIBRARY.filter(isResearchReadyHistoricalCase).length;
+  const libraryLine = `Historical calibration library: ${HISTORICAL_CASE_LIBRARY.length} milestone cases across ${uniquePeople} people. ${verifiedArithmetic} cases have reproducible birth-date arithmetic; ${researchedEvidence} cases currently have a complete event, Direct/Surface explanation, Classic/Blueprint explanation, and external source record. Legacy cases remain internal context until that review is complete and cannot be presented as proof. The engine also scans the ${famousBirthdays.length}-entry famous-birthday bank for numeric mirrors only.`;
   const famousMirrorText = famousBirthdayPersonalYearMirrors(args);
-  const highConfidence = cluster.filter(c => c.similarity >= 0.8).slice(0, 6);
+  const highConfidence = cluster
+    .filter(c => c.similarity >= 0.72 && isResearchReadyHistoricalCase(c))
+    .sort((a, b) => {
+      const rank = (fit: EvidenceFit) => fit === 'strong' ? 3 : fit === 'partial' ? 2 : fit === 'weak' ? 1 : 0;
+      return (rank(b.evidence.directFit) + rank(b.evidence.classicFit)) - (rank(a.evidence.directFit) + rank(a.evidence.classicFit)) || b.similarity - a.similarity;
+    })
+    .slice(0, 6);
   if (!highConfidence.length) {
-    return `${libraryLine}\n\n${famousMirrorText}\n\nClosest historical cluster:\nNo historical analogue crossed the 80% similarity threshold for display. The engine still uses the nearest cases internally for domain weighting, but it will not present weak examples as evidence.`;
+    return `${libraryLine}\n\n${famousMirrorText}\n\nClosest historical cluster:\nNo historical analogue crossed the evidence threshold for display. The engine still uses the nearest cases internally for domain weighting, but it will not present a weak or unverified example as proof.`;
   }
-  return `${libraryLine}\n\n${famousMirrorText}\n\nClosest historical cluster — only 80%+ matches are shown:\n${highConfidence.map(c => {
+  return `${libraryLine}\n\n${famousMirrorText}\n\nClosest historical cluster — arithmetic similarity is shown separately from semantic fit:\n${highConfidence.map(c => {
     const eventDate = c.eventDate ? `Event/date: ${c.eventDate}.` : 'Event/date: year-level milestone.';
     const details = c.eventDetails || `${c.eventCategory}. ${c.narrative} Key decision(s): ${c.decisions.join('; ')}. Observed personality shift: ${c.personalityShift}. Outcome category: ${c.outcome}. Protective lesson: ${c.protectiveLesson}`;
     const reasons = historicalSimilarityReasons(args, c, directIntel, classicIntel, ranked).map(reason => `- ${reason}`).join('\n');
-    const sourceText = c.sources?.length ? `Sources: ${c.sources.join(' | ')}` : 'Sources: internal curated historical bank; add citation before publication use.';
-    return `• ${c.person} ${c.year} — ${pct(c.similarity)}% similarity.\nSpecific similarities:\n${reasons}\nWhat happened: ${eventDate} ${details}\nHow it supports or qualifies this reading: ${c.narrative}\nGuardrail / false-positive lesson: ${c.falsePositives[0]}\n${sourceText}`;
+    const sourceText = c.sources?.length ? `Event sources: ${c.sources.join(' | ')}${c.evidenceReviewedOn ? ` (reviewed ${c.evidenceReviewedOn})` : ''}${c.birthDateSource ? ` | Birth-date source: ${c.birthDateSource}` : ''}` : 'Sources: internal curated historical bank; add citation before publication use.';
+    return `• ${c.person} ${c.year} — ${pct(c.similarity)}% arithmetic/domain similarity.\nFit verdict: ${c.evidence.verdict} (Direct ${c.evidence.directFit}; Classic ${c.evidence.classicFit}).\nSpecific similarities and limits:\n${reasons}\nWhat happened: ${eventDate} ${details}\nGuardrail / false-positive lesson: ${c.falsePositives[0]}\n${sourceText}`;
   }).join('\n\n')}`;
 }
  
@@ -912,7 +1316,7 @@ ${reinforceLine}
 CONSULTANT'S PRINCIPLE: Do not ask “Which system is right?” Ask “What story do both systems tell together?” The Surface Journey without the Destiny Blueprint is a weather report without a forecast. The Destiny Blueprint without the Surface Journey is a prophecy without a landscape. Only together do they become a navigable prediction. The master numerologist does not choose between the two — he reads the bridge.`;
 }
  
-function fullSynthesisText(args: BuildArgs, title: string, subtitle: string, diagnosis: string, ranked: Array<{domain: Domain; score: number}>, clusterText: string, conflicts: string[], reinforcements: string[], decisions: string[], personality: string, outcome: string, protection: string, ageText: string, master: string | null, karmic: string | null, intensity: number, directIntel: CompoundIntelligence, classicIntel: CompoundIntelligence, woven: string): string {
+function fullSynthesisText(args: BuildArgs, title: string, subtitle: string, diagnosis: string, ranked: Array<{domain: Domain; score: number}>, clusterText: string, conflicts: string[], reinforcements: string[], decisions: string[], personality: string, outcome: string, protection: string, ageText: string, master: string | null, karmic: string | null, intensity: number, directIntel: CompoundIntelligence, classicIntel: CompoundIntelligence): string {
   const conflictParagraph = conflicts.length
     ? `The complementary tension is not a problem to average out; it is the mechanism of the year. ${conflicts.map(c => `The pattern shows ${c}`).join('; ')}. In practice, this means the Surface Journey and the Destiny Blueprint may not match on the surface. Others may call it expansion while you experience subtraction, or they may see victory while you are busy managing risk — both readings are true at their own altitude.`
     : 'There is no major complementary tension requiring a forced compromise. The two essences mostly point in the same direction, so the correct reading is amplification rather than balance.';
@@ -923,7 +1327,7 @@ function fullSynthesisText(args: BuildArgs, title: string, subtitle: string, dia
   const bridgeText = buildComplementaryBridgeText(args, directIntel, classicIntel, diagnosis, reinforcements, conflicts);
  
   return [
-    `FORENSIC PERSONAL YEAR SYNTHESIS\n${title}\n${subtitle}\n\n${woven}\n\nThe strongest question is not “what does each compound mean?” The stronger question is: if these two essences are trying to tell one coherent story about ${args.targetYear}, what is that story? ${diagnosis}`,
+    `FORENSIC PERSONAL YEAR SYNTHESIS\n${title}\n${subtitle}\n\nThe strongest question is not “what does each compound mean?” The stronger question is: if these two essences are trying to tell one coherent story about ${args.targetYear}, what is that story? ${diagnosis}`,
     `\n1. THE COMPLEMENTARY BRIDGE\n${bridgeText}`,
     `\n2. HISTORICAL PATTERN DETECTION\n${clusterText}`,
     `\n3. DOMINANT ESSENCE AND COMPLEMENTARY TENSION\n${conflictParagraph}\n\n${reinforcementParagraph}`,
@@ -961,8 +1365,7 @@ export function buildPersonalYearDualEssenceSynthesis(args: BuildArgs): Personal
   const protection = buildProtectiveStrategy(archetype, ranked);
   const ageText = [ageInfo.text, ...resonance].join('\n\n');
   const intensity = intensityScore(args, ageInfo.multiplier, domainScores, cluster, directIntel, classicIntel);
-  const woven = buildWovenSynthesis(args, directIntel, classicIntel, ranked, conflicts, reinforcements, cluster, protection, polarity);
-  const synthesisText = fullSynthesisText(args, title, subtitle, diagnosis, ranked, clusterText, conflicts, reinforcements, decisions, personality, outcome, protection, ageText, master, karmic, intensity, directIntel, classicIntel, woven);
+  const synthesisText = fullSynthesisText(args, title, subtitle, diagnosis, ranked, clusterText, conflicts, reinforcements, decisions, personality, outcome, protection, ageText, master, karmic, intensity, directIntel, classicIntel);
   const directTopDomains = Object.entries(directIntel.domains).sort((a,b)=>(b[1]??0)-(a[1]??0)).slice(0,4).map(([k]) => DOMAIN_LABELS[k as Domain]);
   const classicTopDomains = Object.entries(classicIntel.domains).sort((a,b)=>(b[1]??0)-(a[1]??0)).slice(0,4).map(([k]) => DOMAIN_LABELS[k as Domain]);
   const directEssenceRole = `THE SURFACE JOURNEY (Direct Essence): ${label(args.directRaw,args.directYear,args.directCompound)} describes the visible terrain — the external events, public drama, literal circumstances, and surface-level challenges that will shape your year. It is what happens TO you. This essence manifests most strongly through: ${directTopDomains.join(', ')}.\n\nConsultant reading: ${directIntel.thesis}\n\nSurface-level mistake to avoid: ${directIntel.likelyMistake}\n\nSurface-level strategic move: ${directIntel.strategicMove}`;
@@ -971,7 +1374,6 @@ export function buildPersonalYearDualEssenceSynthesis(args: BuildArgs): Personal
   return {
     title,
     subtitle,
-    wovenSynthesis: woven,
     synthesisText,
     directEssenceRole,
     classicEssenceRole,
