@@ -382,8 +382,9 @@ const EXPANDED_HISTORICAL_CASES: HistoricalCase[] = [
  * event into the interpretation. A case can support the Classic/Blueprint
  * layer while failing to evidence the Direct/Surface layer, and the UI says so.
  */
-const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidence' | 'blueprintEvidence' | 'evidenceQuality' | 'evidenceReviewedOn' | 'sources'>> = {
+const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'eventDate' | 'surfaceEvidence' | 'blueprintEvidence' | 'evidenceQuality' | 'evidenceReviewedOn' | 'sources'>> = {
   'bezos-2021': {
+    eventDate: '2021-07-20 / 2021 Q3 transition',
     surfaceEvidence: 'Partial only. Bezos stepped away from Amazon’s operating role and invested attention in Blue Origin and other large material projects. The documented record does not show the 18/9 warning field of family quarrel, deception, hostile faction, or spiritual/moral conflict. This is therefore not a clean Direct 18/9 precedent.',
     blueprintEvidence: 'Strong. Amazon announced the CEO handover to Andy Jassy; Bezos became executive chair, then Blue Origin completed his first human flight in July. The facts show a completed operating chapter, transfer of authority, and a deliberate redirection toward long-horizon legacy and exploration.',
     evidenceQuality: 'primary + independent',
@@ -391,6 +392,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.aboutamazon.com/news/company-news/email-from-jeff-bezos-to-employees', 'https://www.blueorigin.com/news/first-human-flight-updates', 'https://www.npr.org/2021/07/20/1017945718/jeff-bezos-and-blue-origin-will-try-to-travel-deeper-into-space-than-richard-branson'],
   },
   'ronaldo-2018': {
+    eventDate: '2018-07-10',
     surfaceEvidence: 'Partial to weak. The €100 million move from Real Madrid to Juventus shows status, money, competitive pressure, and a high-stakes material decision. It does not document the 18/9 signature’s darker conflict field: war, betrayal, family strife, coercion, or a moral struggle between material gain and spirit. Do not present this transfer as proof of that warning.',
     blueprintEvidence: 'Strong. Ronaldo publicly described the transfer as opening a “new stage” after nine years, 451 goals, 16 trophies, and three consecutive Champions League titles. The old competitive chapter was complete; the move converted achievement into a new legacy test.',
     evidenceQuality: 'primary + independent',
@@ -398,6 +400,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.juventus.com/en/news/articles/cristiano-ronaldo-signs-for-juventus', 'https://www.juventus.com/en/news/articles/juventus-says-goodbye-to-cristiano-ronaldo', 'https://www.realmadrid.com/fr-FR/le-club/histoire/legendes-football/cristiano-ronaldo-dos-santos-aveiro', 'https://edition.cnn.com/2018/07/10/football/cristiano-ronaldo-real-madrid-juventus-spt-intl'],
   },
   'ronaldo-2009': {
+    eventDate: '2009-06-26',
     surfaceEvidence: 'Partial. The record transfer from Manchester United to Real Madrid made money, status, competition, and public expectation literal. It is evidence of material ambition and a new competitive arena, not by itself evidence of spiritual conflict or betrayal.',
     blueprintEvidence: 'Strong. The transfer closed one successful club chapter and began another at a larger symbolic and financial scale; the outcome is best read as completion followed by reinvention, not as uncomplicated gain.',
     evidenceQuality: 'secondary',
@@ -405,6 +408,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.realmadrid.com/fr-FR/le-club/histoire/legendes-football/cristiano-ronaldo-dos-santos-aveiro', 'https://www.uefa.com/uefachampionsleague/news/01d1-0e70a3b2cc31-4fdb7b86bd9c-1000--ronaldo-completes-real-madrid-move/'],
   },
   'heath-ledger-2008': {
+    eventDate: '2008-01-22',
     surfaceEvidence: 'Partial and cautionary. Ledger died from accidental combined prescription-drug intoxication while finishing major work. That concretely supports the 18/9 alert around bodily danger, pressure, and material conditions overwhelming the person; it does not prove every traditional 18/9 claim about conflict or family strife.',
     blueprintEvidence: 'Strong in retrospect, not as a prediction. The completed Joker performance became a posthumous cultural legacy and earned major awards. The case demonstrates completion and legacy, but it must never be used to predict a person’s death.',
     evidenceQuality: 'secondary',
@@ -412,6 +416,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.britannica.com/biography/Heath-Ledger', 'https://www.biography.com/actors/heath-ledger'],
   },
   'trump-2024': {
+    eventDate: '2024-11-05',
     surfaceEvidence: 'Strong but mixed. The 2024 campaign put law, prosecution, opposition, security threats, media visibility, and competitive pressure directly on the public stage. The result supports a visible conflict-and-comeback reading, but it does not turn election victory into proof that any compound causes political outcomes.',
     blueprintEvidence: 'Strong. Trump returned to the presidency after losing the 2020 election, converting a four-year political and legal struggle into institutional restoration. The deeper lesson is that public triumph can carry unresolved legal, civic, and reputational costs.',
     evidenceQuality: 'primary + independent',
@@ -419,6 +424,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.archives.gov/electoral-college/2024', 'https://www.fec.gov/introduction-campaign-finance/election-results-and-voting-information/'],
   },
   'churchill-1940': {
+    eventDate: '1940-05-10 to 1940-06-18',
     surfaceEvidence: 'Strong. Churchill entered the premiership in May 1940 as Germany attacked Western Europe; his first wartime address explicitly framed the visible year as war, national danger, logistics, and survival. The case supports a crisis-leadership manifestation, not a claim that rhetoric alone wins wars.',
     blueprintEvidence: 'Strong. The appointment became a durable historical legacy because Churchill converted an emergency office into a public ethic of resistance and national survival. The underlying lesson is disciplined service under pressure, with rhetoric subordinate to logistics.',
     evidenceQuality: 'primary + independent',
@@ -426,6 +432,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://winstonchurchill.org/resources/speeches/1940-the-finest-hour/be-ye-men-of-valour/', 'https://www.iwm.org.uk/history/winston-churchills-speech-blood-toil-tears-and-sweat'],
   },
   'mandela-1990': {
+    eventDate: '1990-02-11',
     surfaceEvidence: 'Strong. Mandela’s release after 27 years made legal confinement, public visibility, political opposition, and negotiation concrete rather than symbolic. The surface lesson is to manage a dangerous transition without confusing release with completed freedom.',
     blueprintEvidence: 'Strong. Release became the opening of a negotiated end to apartheid and a move from imprisoned symbol to practical statesman. The deeper outcome is reconciliation-oriented transition, not simple personal victory.',
     evidenceQuality: 'primary + independent',
@@ -433,6 +440,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://history.blog.gov.uk/2020/02/11/whats-the-context-the-release-of-nelson-mandela-11-february-1990/', 'https://www.nelsonmandela.org/chronology'],
   },
   'mandela-1994': {
+    eventDate: '1994-04-27',
     surfaceEvidence: 'Strong. The first multiracial election placed Mandela’s leadership, public reputation, competition, and administrative responsibility in a literal governing arena. It supports visible elevation and service, while the wounded nation prevents a simplistic “success only” reading.',
     blueprintEvidence: 'Strong. The presidency converted a personal victory into reconciliation and constitutional institution-building. The deeper lesson is that honour becomes durable only when it is resourced through administration and coalition work.',
     evidenceQuality: 'primary + independent',
@@ -440,6 +448,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.elections.org.za/pw/News-And-Media/News-Item/News/1994-General-Elections', 'https://www.nelsonmandela.org/chronology'],
   },
   'obama-2008': {
+    eventDate: '2008-11-04',
     surfaceEvidence: 'Strong. Obama’s 2008 campaign concretely manifested leadership, public visibility, competition, organization, and a national movement during a financial and political crisis. It is evidence of large-scale coalition building, not proof that a master number guarantees office.',
     blueprintEvidence: 'Strong. The election turned a movement into an institutional mandate; the deeper outcome was the burden of converting a symbol of change into governance. The case supports structure as the necessary companion to inspiration.',
     evidenceQuality: 'primary + independent',
@@ -447,6 +456,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.fec.gov/resources/cms-content/documents/federalelections2008.pdf', 'https://www.obamalibrary.gov/obamas/obama-presidency'],
   },
   'diana-1997': {
+    eventDate: '1997-08-31',
     surfaceEvidence: 'Cautionary and strong for safety only. Diana died in a high-speed Paris car crash while travelling with Dodi Fayed; the official royal record and later investigations document the transport, driver, paparazzi, and security context. This must never be presented as numerological prediction or moral causation.',
     blueprintEvidence: 'Strong in retrospect. Her death produced unprecedented public mourning and transformed a private tragedy into an enduring humanitarian and cultural legacy. The lesson concerns public grief and memory, not destiny.',
     evidenceQuality: 'primary + independent',
@@ -454,6 +464,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.royal.uk/diana-princess-wales', 'https://www.britannica.com/biography/Diana-princess-of-Wales'],
   },
   'jobs-1985': {
+    eventDate: '1985-09-16',
     surfaceEvidence: 'Strong. Jobs lost his operating role and left Apple after a documented power struggle with John Sculley and the board. That is a concrete manifestation of institutional conflict, status loss, and forced separation, not merely a generic “change year.”',
     blueprintEvidence: 'Strong. He immediately redirected the loss into NeXT and later Pixar, creating the foundation for a return and a larger creative legacy. The underlying lesson is that a humiliating institutional ending can become a new platform only through independent structure.',
     evidenceQuality: 'secondary',
@@ -461,6 +472,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.biography.com/business-leaders/steve-jobs', 'https://www.cnet.com/tech/tech-industry/steve-jobs-a-timeline/'],
   },
   'musk-2008': {
+    eventDate: '2008-09-28 / 2008-12-23',
     surfaceEvidence: 'Strong. SpaceX faced failed Falcon 1 launches, severe financing pressure, and personal business strain; the successful fourth launch and NASA resupply award made the material and operational stakes concrete. This supports pressure-to-breakthrough, not infallibility.',
     blueprintEvidence: 'Strong. The year transformed a near-survival episode into an enduring commercial-space platform. The deeper outcome is mission continuity through disciplined execution, while the documented stress warns against romanticizing exhaustion.',
     evidenceQuality: 'primary + independent',
@@ -468,6 +480,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.nasa.gov/news-release/nasa-awards-commercial-resupply-services-contracts-to-spacex-orbital-sciences/', 'https://www.space.com/25355-elon-musk-60-minutes-interview.html'],
   },
   'swift-2023': {
+    eventDate: '2023-03-17 to 2023-11-12',
     surfaceEvidence: 'Strong. The Eras Tour made creative output, international travel, audience scale, ticket economics, logistics, and ownership visible at once; Guinness records the 2023 tour as the first billion-dollar music tour. It is evidence of organized creative expansion, not a promise of wealth.',
     blueprintEvidence: 'Strong. A career-spanning tour turned prior eras into a single public legacy narrative and demonstrated ownership of the catalogue and audience relationship. The lesson is that expansion requires systems, recovery, and control of the underlying work.',
     evidenceQuality: 'secondary',
@@ -475,6 +488,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.guinnessworldrecords.com/world-records/561300-highest-grossing-music-tour-by-a-female-artist-current-year', 'https://www.ifpi.org/ifpi-global-charts/'],
   },
   'swift-2016': {
+    eventDate: '2016-07 to 2016-08',
     surfaceEvidence: 'Partial and conflict-specific. Swift’s public reputation crisis led to a documented withdrawal from overexposure and a later reworking of the public persona. It supports reputational opposition and retreat, but the record is not evidence of physical danger or universal betrayal.',
     blueprintEvidence: 'Strong. The later Reputation work converted a public image rupture into a deliberately controlled creative reinvention. The deeper outcome is a rebuilt boundary between private life, public brand, and artistic ownership.',
     evidenceQuality: 'secondary',
@@ -482,6 +496,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.rollingstone.com/music/music-news/taylor-swift-reputation-oral-history-1234819370/', 'https://en.wikipedia.org/wiki/Reputation_(album)'],
   },
   'earhart-1937': {
+    eventDate: '1937-07-02',
     surfaceEvidence: 'Cautionary and strong for travel risk. Earhart disappeared during the 1937 around-the-world flight after the Coast Guard recorded her final communications near Howland Island. The evidence supports aviation exposure and mission risk, never a prediction of disappearance.',
     blueprintEvidence: 'Strong in historical memory. The failed flight became a lasting aviation legacy and a continuing research question. The lesson is that pioneering visibility must be paired with redundant navigation, communications, and rescue planning.',
     evidenceQuality: 'primary + independent',
@@ -489,6 +504,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.archives.gov/college-park/highlights/earhart-log', 'https://sova.si.edu/record/nasm.2011.0006?q=United+States.+National+Guard+Bureau&t=C'],
   },
   'einstein-1915': {
+    eventDate: '1915-11-25',
     surfaceEvidence: 'Strong. Einstein completed and published the general theory of relativity in 1915, turning years of abstract work into a concrete scientific framework. The visible manifestation is concentrated creative and intellectual production, not supernatural certainty.',
     blueprintEvidence: 'Strong. The theory became a durable scientific legacy and changed the conceptual language of physics. The lesson is that a teaching or legacy signature can emerge through a finished framework that outlives the author.',
     evidenceQuality: 'primary + independent',
@@ -496,6 +512,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.mpg.de/9700434/chronology', 'https://einsteinpapers.press.princeton.edu/vol6-doc/'],
   },
   'einstein-1905': {
+    eventDate: '1905-03 to 1905-11',
     surfaceEvidence: 'Strong. As a patent clerk, Einstein published four papers in 1905 on the photoelectric effect, Brownian motion, special relativity, and mass-energy equivalence. The surface event is independent publication from outside the academic centre, not instant celebrity.',
     blueprintEvidence: 'Strong. The papers became foundational to modern physics and produced a legacy far larger than the private circumstances of publication. The lesson is to document original work even when institutional recognition is delayed.',
     evidenceQuality: 'primary + independent',
@@ -503,6 +520,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.mpg.de/9700434/chronology', 'https://www.nobelprize.org/prizes/physics/1921/einstein/biographical/'],
   },
   'curie-1911': {
+    eventDate: '1911-12-10',
     surfaceEvidence: 'Strong but mixed. Curie received the 1911 Nobel Prize in Chemistry while facing intense public hostility around the Langevin scandal and xenophobic attacks. The year concretely shows achievement, reputation pressure, relationships, and public judgment operating together.',
     blueprintEvidence: 'Strong. She accepted the prize and kept the scientific work separate from the press scandal; the underlying lesson is integrity of vocation without pretending the social cost was absent.',
     evidenceQuality: 'primary + independent',
@@ -510,6 +528,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.nobelprize.org/prizes/chemistry/1911/summary/', 'https://www.britannica.com/one-good-fact/why-was-marie-curie-discouraged-from-attending-her-own-nobel-prize-ceremony'],
   },
   'malcolm-1965': {
+    eventDate: '1965-02-21',
     surfaceEvidence: 'Cautionary and strong for conflict. Malcolm X was assassinated after a public break with the Nation of Islam, threats, and a firebombing of his home. The case documents factional opposition and physical danger but must not be used to predict death or assign unsupported blame.',
     blueprintEvidence: 'Strong in retrospect. His public mission and intellectual transformation continued as a civil-rights legacy after the assassination. The lesson is that moral and ideological transition can leave a lasting body of work while the person remains vulnerable.',
     evidenceQuality: 'secondary',
@@ -517,6 +536,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.britannica.com/event/The-Assassination-of-Malcolm-X', 'https://guides.library.cornell.edu/malcolmx/about'],
   },
   'ali-1964': {
+    eventDate: '1964-02-25',
     surfaceEvidence: 'Strong. Ali won the heavyweight title from Sonny Liston and publicly adopted the name and religious identity that defined his next era. The visible event combines competition, public identity, spiritual affiliation, and status elevation.',
     blueprintEvidence: 'Strong. The championship became a platform for a larger cultural and moral voice. The lesson is that public triumph can be an identity threshold rather than a completed destination.',
     evidenceQuality: 'secondary',
@@ -524,6 +544,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.muhammadali.com/biography', 'https://www.britannica.com/biography/Muhammad-Ali'],
   },
   'ali-1967': {
+    eventDate: '1967-04-28',
     surfaceEvidence: 'Strong. Ali refused induction on religious and ethical grounds, was convicted, stripped of his title, and barred from boxing. This directly supports law, conscience, material loss, and public opposition without reducing the decision to numerology.',
     blueprintEvidence: 'Strong. The career interruption became part of a lasting civil-rights and conscientious-objector legacy; the Supreme Court later reversed the conviction. The lesson is that an ethical stand can cost status before its historical meaning is recognized.',
     evidenceQuality: 'primary + independent',
@@ -531,6 +552,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://supreme.justia.com/cases/federal/us/403/698/', 'https://www.muhammadali.com/biography'],
   },
   'elizabeth-1952': {
+    eventDate: '1952-02-06',
     surfaceEvidence: 'Strong. Elizabeth became monarch immediately after her father’s death, converting family loss into public duty, institutional leadership, and a lifelong service role. The direct manifestation is succession under grief, not glamour alone.',
     blueprintEvidence: 'Strong. The accession began a 70-year legacy of constitutional service and continuity. The lesson is that public honour can be inseparable from private loss and sustained obligation.',
     evidenceQuality: 'primary + independent',
@@ -538,6 +560,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.royal.uk/queen-elizabeth-ii', 'https://www.britannica.com/biography/Elizabeth-II'],
   },
   'elizabeth-2022': {
+    eventDate: '2022-09-08',
     surfaceEvidence: 'Cautionary and strong for completion. Elizabeth died at Balmoral after completing her Platinum Jubilee year; the event brought health, family, succession, and institutional transition into public view. It must never be used to predict a death.',
     blueprintEvidence: 'Strong in retrospect. Her death closed a historic reign and transferred the Crown to Charles III, making legacy and succession literal institutional outcomes. The lesson is continuity planning at the end of a long service cycle.',
     evidenceQuality: 'primary + independent',
@@ -545,6 +568,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.royal.uk/queen-elizabeth-ii', 'https://www.britannica.com/biography/Elizabeth-II'],
   },
   'kobe-2020': {
+    eventDate: '2020-01-26',
     surfaceEvidence: 'Cautionary and strong for safety only. Bryant died with eight others in the Calabasas helicopter crash; the NTSB documented the weather, flight, and spatial-disorientation circumstances. This is a safety case, not a numerological prediction or causal claim.',
     blueprintEvidence: 'Strong in retrospect. His basketball, storytelling, and mentorship work became a public legacy amplified by mourning. The lesson is to distinguish a person’s completed body of work from the tragic circumstances of death.',
     evidenceQuality: 'primary + independent',
@@ -552,6 +576,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.ntsb.gov/investigations/Pages/DCA20MA059.aspx', 'https://www.nba.com/lakers/news/kobe-bryant-legacy'],
   },
   'gandhi-1947': {
+    eventDate: '1947-08 to 1947-09',
     surfaceEvidence: 'Strong but mixed. Indian independence and Partition placed Gandhi’s service, public visibility, religious conscience, and communal violence in the same year. His fasts and peace work are evidence of an active response to crisis, not proof that service prevents catastrophe.',
     blueprintEvidence: 'Strong. The outcome is a morally complex legacy: independence arrived while the subcontinent was divided and violent, and Gandhi continued reconciliation work. The lesson is that a constructive essence can operate inside an unfinished collective wound.',
     evidenceQuality: 'secondary',
@@ -559,6 +584,7 @@ const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidenc
     sources: ['https://www.gandhiheritageportal.org/', 'https://www.britannica.com/biography/Mahatma-Gandhi'],
   },
   'darwin-1859': {
+    eventDate: '1859-11-24',
     surfaceEvidence: 'Strong. Darwin published On the Origin of Species on 24 November 1859 after years of correspondence, collaboration, and pressure from Alfred Russel Wallace’s parallel work. The visible event is a carefully prepared publication amid reputational and scientific controversy.',
     blueprintEvidence: 'Strong. The book became a foundational scientific legacy far beyond its first-year reception. The lesson is that collaboration and timely publication can turn a private research cycle into durable public knowledge.',
     evidenceQuality: 'primary + independent',
@@ -622,7 +648,10 @@ function withVerifiedHistoryArithmetic(c: HistoricalCase): HistoricalCase {
 const HISTORICAL_CASE_LIBRARY: HistoricalCase[] = RAW_HISTORICAL_CASE_LIBRARY.map(withVerifiedHistoryArithmetic);
 function isResearchReadyHistoricalCase(c: HistoricalCase): boolean {
   const notes = RESEARCHED_CASE_NOTES[c.id];
-  return Boolean(notes?.surfaceEvidence && notes.blueprintEvidence && notes.sources?.length);
+  // A researched event is still not display-ready if its arithmetic cannot be
+  // reproduced from a reviewed birth date. This keeps event research and
+  // numerology arithmetic as two separate, jointly required checks.
+  return Boolean(verifiedHistoryNumbers(c) && notes?.surfaceEvidence && notes.blueprintEvidence && notes.sources?.length);
 }
  
 function intelligenceFor(compound: ChaldeanPYNCompound | null, reduced: number, raw: number): CompoundIntelligence {
