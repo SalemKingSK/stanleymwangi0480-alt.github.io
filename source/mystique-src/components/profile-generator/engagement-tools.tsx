@@ -1203,7 +1203,7 @@ function relationshipSeason(
       8: "harvest",
       9: "completion",
     } as const
-  )[n];
+  )[n] ?? "launch";
 }
 function getCompoundTone(s: StoredSoul, year: number): string {
   const direct = getCompoundForPYN(s.day, s.month, year);

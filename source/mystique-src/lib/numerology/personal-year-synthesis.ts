@@ -10,6 +10,11 @@
  
 import type { ChaldeanPYNCompound } from '@/lib/numerology/chaldean-pyn-compounds';
 import { famousBirthdays } from '@/lib/famous-birthdays';
+import {
+  normaliseHistoricalPersonName,
+  supplementalBirthDateFor,
+  type HistoricalBirthDate,
+} from '@/lib/numerology/personal-year-history-birthdates';
 import { HISTORICAL_CASES_EXPANSION_200 } from '@/lib/numerology/personal-year-history-expanded';
 import { HISTORICAL_CASES_EXPANSION_300_EXTRA } from '@/lib/numerology/personal-year-history-expanded-2';
 import { HISTORICAL_CASES_EXPANSION_FINAL } from '@/lib/numerology/personal-year-history-expanded-4';
@@ -109,6 +114,15 @@ export interface HistoricalCase {
   decisions: string[];
   personalityShift: string;
   protectiveLesson: string;
+  /** Optional case-specific evidence that explicitly separates the visible
+   * compound from the deeper outcome. Older records are evaluated by the
+   * semantic evidence gate below and are never treated as automatically
+   * supportive just because their arithmetic pair matches. */
+  surfaceEvidence?: string;
+  blueprintEvidence?: string;
+  evidenceQuality?: 'primary + independent' | 'secondary' | 'uncited legacy record';
+  evidenceReviewedOn?: string;
+  birthDateSource?: string;
 }
  
 const DOMAIN_LABELS: Record<Domain, string> = {
@@ -362,7 +376,100 @@ const EXPANDED_HISTORICAL_CASES: HistoricalCase[] = [
   { id:'jobs-1997', person:'Steve Jobs', year:1997, age:42, occupation:'technology entrepreneur', wealth:'wealthy', relationshipStatus:'married', visibility:'global', eventCategory:'returned to Apple and began turnaround', direct:52, classic:16, directReduced:7, classicReduced:7, domains:d({money:.86, career:.88, leadership:.74, creativeOutput:.72, publicVisibility:.62, legacy:.75}), eventIntensity:86, outcome:'transition', narrative:'A shattered company became the vehicle of return and redesign.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['returned through NeXT acquisition', 'cut product lines'], personalityShift:'focused, ruthless, restorative', protectiveLesson:'A comeback works when simplification comes before expansion.' },
 ];
  
-const HISTORICAL_CASE_LIBRARY: HistoricalCase[] = [...HISTORICAL_CASES, ...EXPANDED_HISTORICAL_CASES, ...HISTORICAL_CASES_EXPANSION_200, ...HISTORICAL_CASES_EXPANSION_300_EXTRA, ...HISTORICAL_CASES_EXPANSION_300_MORE, ...HISTORICAL_CASES_EXPANSION_FINAL];
+/**
+ * Case notes for the first researched correction batch. These are deliberately
+ * explicit: an exact arithmetic pair is not allowed to smuggle an unrelated
+ * event into the interpretation. A case can support the Classic/Blueprint
+ * layer while failing to evidence the Direct/Surface layer, and the UI says so.
+ */
+const RESEARCHED_CASE_NOTES: Record<string, Pick<HistoricalCase, 'surfaceEvidence' | 'blueprintEvidence' | 'evidenceQuality' | 'evidenceReviewedOn' | 'sources'>> = {
+  'bezos-2021': {
+    surfaceEvidence: 'Partial only. Bezos stepped away from Amazon’s operating role and invested attention in Blue Origin and other large material projects. The documented record does not show the 18/9 warning field of family quarrel, deception, hostile faction, or spiritual/moral conflict. This is therefore not a clean Direct 18/9 precedent.',
+    blueprintEvidence: 'Strong. Amazon announced the CEO handover to Andy Jassy; Bezos became executive chair, then Blue Origin completed his first human flight in July. The facts show a completed operating chapter, transfer of authority, and a deliberate redirection toward long-horizon legacy and exploration.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.aboutamazon.com/news/company-news/email-from-jeff-bezos-to-employees', 'https://www.blueorigin.com/news/first-human-flight-updates', 'https://www.npr.org/2021/07/20/1017945718/jeff-bezos-and-blue-origin-will-try-to-travel-deeper-into-space-than-richard-branson'],
+  },
+  'ronaldo-2018': {
+    surfaceEvidence: 'Partial to weak. The €100 million move from Real Madrid to Juventus shows status, money, competitive pressure, and a high-stakes material decision. It does not document the 18/9 signature’s darker conflict field: war, betrayal, family strife, coercion, or a moral struggle between material gain and spirit. Do not present this transfer as proof of that warning.',
+    blueprintEvidence: 'Strong. Ronaldo publicly described the transfer as opening a “new stage” after nine years, 451 goals, 16 trophies, and three consecutive Champions League titles. The old competitive chapter was complete; the move converted achievement into a new legacy test.',
+    evidenceQuality: 'primary + independent',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.juventus.com/en/news/articles/cristiano-ronaldo-signs-for-juventus', 'https://www.juventus.com/en/news/articles/juventus-says-goodbye-to-cristiano-ronaldo', 'https://www.realmadrid.com/fr-FR/le-club/histoire/legendes-football/cristiano-ronaldo-dos-santos-aveiro', 'https://edition.cnn.com/2018/07/10/football/cristiano-ronaldo-real-madrid-juventus-spt-intl'],
+  },
+  'ronaldo-2009': {
+    surfaceEvidence: 'Partial. The record transfer from Manchester United to Real Madrid made money, status, competition, and public expectation literal. It is evidence of material ambition and a new competitive arena, not by itself evidence of spiritual conflict or betrayal.',
+    blueprintEvidence: 'Strong. The transfer closed one successful club chapter and began another at a larger symbolic and financial scale; the outcome is best read as completion followed by reinvention, not as uncomplicated gain.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.realmadrid.com/fr-FR/le-club/histoire/legendes-football/cristiano-ronaldo-dos-santos-aveiro', 'https://www.uefa.com/uefachampionsleague/news/01d1-0e70a3b2cc31-4fdb7b86bd9c-1000--ronaldo-completes-real-madrid-move/'],
+  },
+  'heath-ledger-2008': {
+    surfaceEvidence: 'Partial and cautionary. Ledger died from accidental combined prescription-drug intoxication while finishing major work. That concretely supports the 18/9 alert around bodily danger, pressure, and material conditions overwhelming the person; it does not prove every traditional 18/9 claim about conflict or family strife.',
+    blueprintEvidence: 'Strong in retrospect, not as a prediction. The completed Joker performance became a posthumous cultural legacy and earned major awards. The case demonstrates completion and legacy, but it must never be used to predict a person’s death.',
+    evidenceQuality: 'secondary',
+    evidenceReviewedOn: '2026-09-18',
+    sources: ['https://www.britannica.com/biography/Heath-Ledger', 'https://www.biography.com/actors/heath-ledger'],
+  },
+};
+
+const RAW_HISTORICAL_CASE_LIBRARY: HistoricalCase[] = [...HISTORICAL_CASES, ...EXPANDED_HISTORICAL_CASES, ...HISTORICAL_CASES_EXPANSION_200, ...HISTORICAL_CASES_EXPANSION_300_EXTRA, ...HISTORICAL_CASES_EXPANSION_300_MORE, ...HISTORICAL_CASES_EXPANSION_FINAL];
+
+function digitSumForHistory(n: number): number {
+  return String(Math.abs(n)).split('').reduce((sum, digit) => sum + Number(digit), 0);
+}
+function reduceSingleForHistory(n: number): number {
+  let value = Math.abs(n);
+  while (value > 9) value = digitSumForHistory(value);
+  return value;
+}
+function reduceMasterForHistory(n: number): number {
+  let value = Math.abs(n);
+  while (value > 9 && value !== 11 && value !== 22 && value !== 33) value = digitSumForHistory(value);
+  return value;
+}
+function verifiedBirthDateForHistory(person: string): HistoricalBirthDate | null {
+  const supplemental = supplementalBirthDateFor(person);
+  if (supplemental) return supplemental;
+  const wanted = normaliseHistoricalPersonName(person);
+  const found = famousBirthdays.find(candidate => normaliseHistoricalPersonName(candidate.name) === wanted);
+  return found ? { day: found.day, month: found.month, year: found.year, source: 'famous-birthdays.ts' } : null;
+}
+function verifiedHistoryNumbers(c: HistoricalCase): { direct: number; classic: number; directReduced: number; classicReduced: number; birthDate: HistoricalBirthDate } | null {
+  const birthDate = verifiedBirthDateForHistory(c.person);
+  if (!birthDate) return null;
+  const direct = birthDate.day + birthDate.month + digitSumForHistory(c.year);
+  const classic = digitSumForHistory(birthDate.day) + digitSumForHistory(birthDate.month) + reduceSingleForHistory(c.year);
+  return { direct, classic, directReduced: reduceMasterForHistory(direct), classicReduced: reduceMasterForHistory(classic), birthDate };
+}
+function withVerifiedHistoryArithmetic(c: HistoricalCase): HistoricalCase {
+  const numbers = verifiedHistoryNumbers(c);
+  const notes = RESEARCHED_CASE_NOTES[c.id];
+  if (!numbers && !notes) return c;
+  return {
+    ...c,
+    ...(numbers ? {
+      direct: numbers.direct,
+      classic: numbers.classic,
+      directReduced: numbers.directReduced,
+      classicReduced: numbers.classicReduced,
+      birthDateSource: numbers.birthDate.source,
+    } : {}),
+    ...(notes ?? {}),
+  };
+}
+
+/**
+ * Corrects arithmetic drift in the older generated banks at runtime. This is
+ * important: several earlier records were assigned a pair by theme rather
+ * than by the person's actual birth date. Verified records now always win;
+ * unverifiable records remain available only as lower-confidence context.
+ */
+const HISTORICAL_CASE_LIBRARY: HistoricalCase[] = RAW_HISTORICAL_CASE_LIBRARY.map(withVerifiedHistoryArithmetic);
+function isResearchReadyHistoricalCase(c: HistoricalCase): boolean {
+  const notes = RESEARCHED_CASE_NOTES[c.id];
+  return Boolean(notes?.surfaceEvidence && notes.blueprintEvidence && notes.sources?.length);
+}
  
 function intelligenceFor(compound: ChaldeanPYNCompound | null, reduced: number, raw: number): CompoundIntelligence {
   const base = REDUCED_INTELLIGENCE[reduced] || REDUCED_INTELLIGENCE[((reduced % 9) || 9)];
@@ -430,14 +537,107 @@ function pairSimilarity(args: BuildArgs, hist: HistoricalCase, directIntel: Comp
   if (args.wealthProfile && args.wealthProfile === hist.wealth) score += .025;
   if (args.relationshipStatus && args.relationshipStatus === hist.relationshipStatus) score += .02;
   if (args.visibility && args.visibility === hist.visibility) score += .025;
+  // Arithmetic provenance is part of relevance. A thematic record whose birth
+  // date cannot be reproduced must never outrank a checked record merely
+  // because an older hand-assigned pair happened to look attractive.
+  if (!verifiedHistoryNumbers(hist)) score *= .72;
   return clamp01(score);
 }
  
+type EvidenceFit = 'strong' | 'partial' | 'weak' | 'unverified';
+interface CaseEssenceEvidence {
+  directFit: EvidenceFit;
+  classicFit: EvidenceFit;
+  directReason: string;
+  classicReason: string;
+  verdict: string;
+  quality: string;
+}
+
+const CASE_SIGNAL_PATTERNS: Array<[string, RegExp]> = [
+  ['conflict', /war|conflict|faction|revolt|revolution|polariz|hostil|opposition|rival|strife|betray|backlash|controvers/i],
+  ['danger', /danger|attack|assassin|murder|kill|death|died|fatal|crash|overdose|injur|poison|war|threat|security|detain|prison|suicide/i],
+  ['law', /law|legal|court|trial|convict|impeach|regulat|senate hearing|prosecut|sentence|lawsuit|visa|sanction/i],
+  ['competition', /champion|championship|election|won|defeat|rival|contest|title|trophy|race|transfer|sport|campaign/i],
+  ['material', /money|business|company|market|fee|billion|million|ipo|finance|wealth|commercial|product|capital|ceo|corporate/i],
+  ['transition', /step[ped]* down|resign|left|transfer|new chapter|new stage|succession|return|comeback|rebrand|shift|handover|retir|appointed/i],
+  ['completion', /complete|conclud|final|end(ed)?|last|close[ds]?|finished|full cycle|series finale|farewell/i],
+  ['legacy', /legacy|historic|history|immortal|posthumous|award|nobel|oscar|first ever|record|icon|memorial|remember/i],
+  ['service', /service|humanitarian|charit|care|peace|education|advocacy|mission|public good|reconciliation/i],
+  ['creative', /album|song|film|movie|book|novel|publish|science|research|performance|speech|art|music|design/i],
+  ['relationship', /family|marriage|partner|wife|husband|divorc|relationship|ally|associate|brother|sister/i],
+  ['health', /health|illness|cancer|medical|mental|body|disease|treatment|overdose|injur/i],
+  ['travel', /space|flight|travel|aviation|aircraft|vehicle|road|journey|moved to|relocat/i],
+];
+function caseEvidenceCorpus(c: HistoricalCase): string {
+  return [c.eventCategory, c.eventDetails, c.narrative, c.decisions.join(' '), c.personalityShift, c.protectiveLesson, c.outcome].filter(Boolean).join(' ');
+}
+function caseSignals(c: HistoricalCase): Set<string> {
+  const corpus = caseEvidenceCorpus(c);
+  return new Set(CASE_SIGNAL_PATTERNS.filter(([, pattern]) => pattern.test(corpus)).map(([signal]) => signal));
+}
+function expectedDirectSignals(intel: CompoundIntelligence): string[] {
+  const signals: string[] = [];
+  if (traitFrom(intel.traits, 'danger') >= .5) signals.push('danger');
+  if (traitFrom(intel.traits, 'lawPressure') >= .5) signals.push('law');
+  if (traitFrom(intel.traits, 'competition') >= .5) signals.push('competition');
+  if (traitFrom(intel.traits, 'loss') >= .5) signals.push('completion');
+  if (scoreFrom(intel.domains, 'money') >= .6) signals.push('material');
+  if (scoreFrom(intel.domains, 'relationships') >= .6) signals.push('relationship');
+  if (scoreFrom(intel.domains, 'health') >= .6) signals.push('health');
+  if (scoreFrom(intel.domains, 'travel') >= .6) signals.push('travel');
+  return uniq(signals);
+}
+function expectedClassicSignals(intel: CompoundIntelligence): string[] {
+  const signals: string[] = [];
+  if (traitFrom(intel.traits, 'legacy') >= .5) signals.push('legacy');
+  if (traitFrom(intel.traits, 'reinvention') >= .5) signals.push('transition');
+  if (traitFrom(intel.traits, 'loss') >= .5) signals.push('completion');
+  if (traitFrom(intel.traits, 'service') >= .5 || scoreFrom(intel.domains, 'service') >= .6) signals.push('service');
+  if (scoreFrom(intel.domains, 'creativeOutput') >= .6) signals.push('creative');
+  if (scoreFrom(intel.domains, 'relationships') >= .6) signals.push('relationship');
+  return uniq(signals);
+}
+function fitLabel(score: number): EvidenceFit {
+  if (score >= .62) return 'strong';
+  if (score >= .34) return 'partial';
+  return 'weak';
+}
+function caseEssenceEvidence(args: BuildArgs, c: HistoricalCase, directIntel: CompoundIntelligence, classicIntel: CompoundIntelligence): CaseEssenceEvidence {
+  const override = RESEARCHED_CASE_NOTES[c.id];
+  const signals = caseSignals(c);
+  const directExpected = expectedDirectSignals(directIntel);
+  const classicExpected = expectedClassicSignals(classicIntel);
+  const directSignalScore = directExpected.length ? directExpected.filter(signal => signals.has(signal)).length / directExpected.length : 0;
+  const classicSignalScore = classicExpected.length ? classicExpected.filter(signal => signals.has(signal)).length / classicExpected.length : 0;
+  const directDomainScore = domainOverlap(directIntel.domains, c.domains);
+  const classicDomainScore = domainOverlap(classicIntel.domains, c.domains);
+  let directScore = directDomainScore * .55 + directSignalScore * .45;
+  let classicScore = classicDomainScore * .45 + classicSignalScore * .35;
+  if (classicIntel.traits.legacy && ['legacy', 'transition', 'triumph'].includes(c.outcome)) classicScore += .2;
+  if (classicIntel.traits.reinvention && c.outcome === 'transition') classicScore += .12;
+  // 18/9 is the place where the old engine most often overclaimed. A clean
+  // precedent needs a documented conflict/danger trigger, not merely success,
+  // visibility, or an expensive career move.
+  const activeDirect = cnum(args.directCompound, args.directRaw);
+  if (activeDirect === 18 && !signals.has('conflict') && !signals.has('danger') && !signals.has('law')) directScore = Math.min(directScore, .28);
+  const directFit = override?.surfaceEvidence ? (c.id === 'bezos-2021' ? 'weak' : c.id === 'ronaldo-2018' || c.id === 'ronaldo-2009' || c.id === 'heath-ledger-2008' ? 'partial' : fitLabel(directScore)) : fitLabel(directScore);
+  const classicFit = override?.blueprintEvidence ? 'strong' : fitLabel(Math.min(1, classicScore));
+  const directEvidence = override?.surfaceEvidence ?? `Documented surface event: ${c.eventDetails || c.eventCategory}. It overlaps the Direct essence through ${directExpected.filter(signal => signals.has(signal)).join(', ') || 'no decisive signal'}; this is ${directFit} evidence rather than proof by arithmetic alone.`;
+  const classicEvidence = override?.blueprintEvidence ?? `Documented outcome: ${c.outcome}. ${c.narrative} It overlaps the Classic essence through ${classicExpected.filter(signal => signals.has(signal)).join(', ') || 'no decisive completion/legacy signal'}; this is ${classicFit} evidence.`;
+  let verdict = 'Useful only as a qualified context case.';
+  if (directFit === 'strong' && classicFit === 'strong') verdict = 'Supports both essences: usable precedent.';
+  else if (classicFit === 'strong' && directFit === 'partial') verdict = 'Supports the Blueprint strongly, but only partially supports the Surface Journey.';
+  else if (classicFit === 'strong' && directFit === 'weak') verdict = 'Blueprint-only precedent: do not use it to explain the Direct compound.';
+  else if (directFit === 'strong') verdict = 'Surface precedent, but the deeper outcome is not a clean match.';
+  return { directFit, classicFit, directReason: directEvidence, classicReason: classicEvidence, verdict, quality: override?.evidenceQuality ?? (c.sources?.length ? 'linked secondary source' : 'uncited legacy record') };
+}
+
 function nearestCluster(args: BuildArgs, directIntel: CompoundIntelligence, classicIntel: CompoundIntelligence) {
   return HISTORICAL_CASE_LIBRARY
-    .map(h => ({ ...h, similarity: pairSimilarity(args, h, directIntel, classicIntel) }))
+    .map(h => ({ ...h, similarity: pairSimilarity(args, h, directIntel, classicIntel), evidence: caseEssenceEvidence(args, h, directIntel, classicIntel) }))
     .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, 6);
+    .slice(0, 8);
 }
  
 function buildDomainScores(args: BuildArgs, directIntel: CompoundIntelligence, classicIntel: CompoundIntelligence, cluster: ReturnType<typeof nearestCluster>, archetype: PairArchetype | null): Record<Domain, number> {
@@ -578,8 +778,13 @@ function historicalSimilarityReasons(
     reasons.push(`Occupation/context match: both profiles share ${c.occupation} terrain.`);
   }
  
+  const evidence = caseEssenceEvidence(args, c, directIntel, classicIntel);
+  reasons.push(`Essence-fit audit: Direct/Surface = ${evidence.directFit}; Classic/Blueprint = ${evidence.classicFit}. ${evidence.verdict}`);
+  reasons.push(`Surface evidence: ${evidence.directReason}`);
+  reasons.push(`Blueprint evidence: ${evidence.classicReason}`);
+  reasons.push(`Evidence quality: ${evidence.quality}. A compound match without this event-to-meaning audit is not treated as proof.`);
   reasons.push(`Outcome lesson: the historical outcome was ${c.outcome}; this tells the engine whether the same compound pressure tends to crown, break, redirect, expose, or immortalize the person when the shared domains activate.`);
-  return uniq(reasons).slice(0, 8);
+  return uniq(reasons).slice(0, 10);
 }
  
  
@@ -623,7 +828,7 @@ function famousBirthdayPersonalYearMirrors(args: BuildArgs): string {
     return { p, score: Math.min(100, score), reasons, fd, fc, frd, frc };
   }).filter(r => r.score >= 40).sort((a,b) => b.score - a.score || a.p.name.localeCompare(b.p.name)).slice(0, 8);
   if (!rows.length) return `Famous birthday personal-year mirrors:\nNo famous-birthday record in the current bank strongly mirrors this Direct/Classic personal-year pattern for ${args.targetYear}.`;
-  return `Famous birthday personal-year mirrors from ${famousBirthdays.length} stored profiles:\n${rows.map(r => `• ${r.p.name} — ${r.score}% mirror. ${r.fd}/${r.frd} direct, ${r.fc}/${r.frc} classic. Shared signals: ${r.reasons.join(', ')}. Tags: ${(r.p.tags || []).slice(0, 4).join(', ') || '—'}.`).join('\n')}`;
+  return `Famous birthday personal-year mirrors from ${famousBirthdays.length} stored profiles (numeric context only; these rows have no event-level evidence and are not proof of the Direct or Classic meaning):\n${rows.map(r => `• ${r.p.name} — ${r.score}% numeric mirror. ${r.fd}/${r.frd} direct, ${r.fc}/${r.frc} classic. Shared arithmetic signals: ${r.reasons.join(', ')}. Tags: ${(r.p.tags || []).slice(0, 4).join(', ') || '—'}.`).join('\n')}`;
 }
  
 function makeHistoricalText(
@@ -634,18 +839,26 @@ function makeHistoricalText(
   cluster: ReturnType<typeof nearestCluster>
 ): string {
   const uniquePeople = new Set(HISTORICAL_CASE_LIBRARY.map(c => c.person)).size;
-  const libraryLine = `Historical calibration library: ${HISTORICAL_CASE_LIBRARY.length} curated milestone cases across ${uniquePeople} famous people. The engine also scans the ${famousBirthdays.length}-entry famous-birthday bank for people whose current Direct/Classic personal-year pattern mirrors this profile.`;
+  const verifiedArithmetic = HISTORICAL_CASE_LIBRARY.filter(c => verifiedHistoryNumbers(c)).length;
+  const researchedEvidence = HISTORICAL_CASE_LIBRARY.filter(isResearchReadyHistoricalCase).length;
+  const libraryLine = `Historical calibration library: ${HISTORICAL_CASE_LIBRARY.length} milestone cases across ${uniquePeople} people. ${verifiedArithmetic} cases have reproducible birth-date arithmetic; ${researchedEvidence} cases currently have a complete event, Direct/Surface explanation, Classic/Blueprint explanation, and external source record. Legacy cases remain internal context until that review is complete and cannot be presented as proof. The engine also scans the ${famousBirthdays.length}-entry famous-birthday bank for numeric mirrors only.`;
   const famousMirrorText = famousBirthdayPersonalYearMirrors(args);
-  const highConfidence = cluster.filter(c => c.similarity >= 0.8).slice(0, 6);
+  const highConfidence = cluster
+    .filter(c => c.similarity >= 0.72 && isResearchReadyHistoricalCase(c))
+    .sort((a, b) => {
+      const rank = (fit: EvidenceFit) => fit === 'strong' ? 3 : fit === 'partial' ? 2 : fit === 'weak' ? 1 : 0;
+      return (rank(b.evidence.directFit) + rank(b.evidence.classicFit)) - (rank(a.evidence.directFit) + rank(a.evidence.classicFit)) || b.similarity - a.similarity;
+    })
+    .slice(0, 6);
   if (!highConfidence.length) {
-    return `${libraryLine}\n\n${famousMirrorText}\n\nClosest historical cluster:\nNo historical analogue crossed the 80% similarity threshold for display. The engine still uses the nearest cases internally for domain weighting, but it will not present weak examples as evidence.`;
+    return `${libraryLine}\n\n${famousMirrorText}\n\nClosest historical cluster:\nNo historical analogue crossed the evidence threshold for display. The engine still uses the nearest cases internally for domain weighting, but it will not present a weak or unverified example as proof.`;
   }
-  return `${libraryLine}\n\n${famousMirrorText}\n\nClosest historical cluster — only 80%+ matches are shown:\n${highConfidence.map(c => {
+  return `${libraryLine}\n\n${famousMirrorText}\n\nClosest historical cluster — arithmetic similarity is shown separately from semantic fit:\n${highConfidence.map(c => {
     const eventDate = c.eventDate ? `Event/date: ${c.eventDate}.` : 'Event/date: year-level milestone.';
     const details = c.eventDetails || `${c.eventCategory}. ${c.narrative} Key decision(s): ${c.decisions.join('; ')}. Observed personality shift: ${c.personalityShift}. Outcome category: ${c.outcome}. Protective lesson: ${c.protectiveLesson}`;
     const reasons = historicalSimilarityReasons(args, c, directIntel, classicIntel, ranked).map(reason => `- ${reason}`).join('\n');
-    const sourceText = c.sources?.length ? `Sources: ${c.sources.join(' | ')}` : 'Sources: internal curated historical bank; add citation before publication use.';
-    return `• ${c.person} ${c.year} — ${pct(c.similarity)}% similarity.\nSpecific similarities:\n${reasons}\nWhat happened: ${eventDate} ${details}\nHow it supports or qualifies this reading: ${c.narrative}\nGuardrail / false-positive lesson: ${c.falsePositives[0]}\n${sourceText}`;
+    const sourceText = c.sources?.length ? `Event sources: ${c.sources.join(' | ')}${c.evidenceReviewedOn ? ` (reviewed ${c.evidenceReviewedOn})` : ''}${c.birthDateSource ? ` | Birth-date source: ${c.birthDateSource}` : ''}` : 'Sources: internal curated historical bank; add citation before publication use.';
+    return `• ${c.person} ${c.year} — ${pct(c.similarity)}% arithmetic/domain similarity.\nFit verdict: ${c.evidence.verdict} (Direct ${c.evidence.directFit}; Classic ${c.evidence.classicFit}).\nSpecific similarities and limits:\n${reasons}\nWhat happened: ${eventDate} ${details}\nGuardrail / false-positive lesson: ${c.falsePositives[0]}\n${sourceText}`;
   }).join('\n\n')}`;
 }
  
