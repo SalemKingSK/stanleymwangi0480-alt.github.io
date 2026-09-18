@@ -35,6 +35,8 @@ import { lookupCompound } from "@/lib/numerology/chaldean-pyn-compounds";
 import { calculatePsychomatrix } from "@/lib/numerology/data/psychomatrixData";
 import { getChineseZodiacSign, getWesternZodiacSign } from "@/lib/astrology";
 import { famousBirthdays, type FamousPerson } from "@/lib/famous-birthdays";
+import { zodiacData } from "@/lib/zodiac";
+import { NEW_ASTROLOGY_DATA } from "@/lib/new-astrology";
  
 // ---------------------------------------------------------------------
 // Types
@@ -111,6 +113,20 @@ export interface SoulResonanceReport {
     destinyPair: JohariPairCompat | null;
     crossPairAB: JohariPairCompat | null;  // A's psychic ↔ B's destiny
     crossPairBA: JohariPairCompat | null;  // B's psychic ↔ A's destiny
+    /** Psychic-number view: A's psychic sees B's psychic as friend/enemy */
+    aPsychicViewOfBPsychic: "Friendly" | "Neutral" | "Enemy";
+    /** Destiny-number view: A's destiny sees B's destiny as friend/enemy */
+    aDestinyViewOfBDestiny: "Friendly" | "Neutral" | "Enemy";
+    /** Life-path view: A's life path sees B's life path as friend/enemy */
+    aLifePathViewOfBLifePath: "Friendly" | "Neutral" | "Enemy";
+    bPsychicViewOfAPsychic: "Friendly" | "Neutral" | "Enemy";
+    bDestinyViewOfADestiny: "Friendly" | "Neutral" | "Enemy";
+    bLifePathViewOfALifePath: "Friendly" | "Neutral" | "Enemy";
+    /** Composite verdict synthesizing all three dimensions */
+    compositeVerdict: "Strongly Friendly" | "Generally Friendly" | "Mixed" | "Generally Tense" | "Strongly Tense";
+    /** Brief explanation of the composite verdict */
+    compositeExplanation: string;
+    // Legacy fields kept for backward compatibility with existing UI code
     aViewOfB: "Friendly" | "Neutral" | "Enemy";
     bViewOfA: "Friendly" | "Neutral" | "Enemy";
   };
@@ -119,6 +135,48 @@ export interface SoulResonanceReport {
    * real personal-year numbers so callers don't have to recompute them.
    */
   combinedWeather?: CombinedWeatherReport;
+  /**
+   * Full verbatim Chinese zodiac compatibility paragraph for the
+   * animal pair, sourced from Suzanne White's zodiacData. E.g. the
+   * Dog entry's compatibilities["Rat"] paragraph placed here
+   * verbatim (no edits, no summary).
+   */
+  chineseZodiacCompatText?: string;
+  /**
+   * Codified Western/Chinese (New Astrology) compatibility analysis:
+   * each soul's Suzanne White compatibilities paragraph plus structured
+   * appreciation/dissatisfaction indicators derived from whether the
+   * partner's actual Western sign and Chinese animal appear in the
+   * positive or avoidance portions of the paragraph.
+   */
+  newAstrologyCompat?: {
+    aCompatText: string;
+    bCompatText: string;
+    aAppreciationOfB: {
+      westernSignMatch: boolean;
+      chineseAnimalMatch: boolean;
+      combinedSignMatch: boolean;
+      details: string;
+    };
+    aDissatisfactionWithB: {
+      westernSignMatch: boolean;
+      chineseAnimalMatch: boolean;
+      combinedSignMatch: boolean;
+      details: string;
+    };
+    bAppreciationOfA: {
+      westernSignMatch: boolean;
+      chineseAnimalMatch: boolean;
+      combinedSignMatch: boolean;
+      details: string;
+    };
+    bDissatisfactionWithA: {
+      westernSignMatch: boolean;
+      chineseAnimalMatch: boolean;
+      combinedSignMatch: boolean;
+      details: string;
+    };
+  };
 }
 
 // ---------------------------------------------------------------------
@@ -489,6 +547,206 @@ export function analyzePYInteraction(a: SoulVitals, b: SoulVitals, targetYear = 
 // Main entry point
 // ---------------------------------------------------------------------
  
+// ---------------------------------------------------------------------
+// Codify Suzanne White: parse the compatibilities paragraph to detect
+// whether a partner's actual Western sign and Chinese animal appear in
+// the positive (appreciation) or negative (dissatisfaction/avoidance)
+// portion of the text.
+//
+// Classification model (single source of truth for every Suzanne White
+// indicator in the app — the Compatibility Outlook badges AND the
+// suzanneWhiteScore lens in engagement-tools.tsx must both go through
+// classifySuzanneWhiteMentions so they can never contradict each other):
+//
+//   1. Split the paragraph into sentences.
+//   2. Find every positive-marker and avoid-marker position in the
+//      sentence (POSITIVE_OVERRIDE_PATTERN / CLEAR_AVOID_PATTERN).
+//   3. For each sign mention in the sentence, the verdict is decided by
+//      the NEAREST marker (by character distance; ties prefer positive).
+//      This correctly handles sentences that mix both verdicts, e.g.
+//      "Erase Horses from your mind altogether, and prefer the solid
+//      Aries/Ox", and list sentences like
+//      "No Virgo/Rats or Virgo/Roosters for you." where the only marker
+//      ("No …") is at the start of the sentence.
+//   4. Aggregate across sentences: positive-only => positive,
+//      avoid-only => avoid, both => mixed, neither => unstated.
+//
+// The pattern sets below were validated against all 144 combined-sign
+// compatibilities paragraphs in lib/new-astrology (see the regression
+// script in the project notes: validate-compat). Do not edit the text
+// data or these patterns without re-running that validation.
+
+// Phase 1 — unmistakably POSITIVE phrases (override any negation words)
+const POSITIVE_OVERRIDE_PATTERN = /can\u2019t go wrong|can't go wrong|won\u2019t be disappointed|won't be disappointed|won\u2019t regret|won't regret|won\u2019t have any trouble|won't have any trouble|particularly happy|you\u2019ll find a good|you'll find a good|you\u2019ll find happiness|you'll find happiness|best bet|ideal match|great couple|perfect mate|blissfully|harmonious|recommended match|advised to seek|i see you with|you get on with|you get on especially well|you get along with|normally you get along with|should be compatible|good match|fine mate|happy alliance|harmony incarnate|sound love|durable|solid relationship|enduring love|great passion|not to be excluded|can\u2019t resist|can't resist|you\u2019ll be particularly|you'll be particularly|won\u2019t have any trouble cohabiting|won't have any trouble cohabiting|excellent|will be happy|in your future|make sure you choose|prefer the solid|why not invite|will enhance your existence|crushes on|will make you laugh|pep up your|stay close to|don\u2019t hesitate to choose|don't hesitate to choose|don\u2019t forget that|don't forget that|who adore you|don\u2019t be surprised if|don't be surprised if|you\u2019re fond of|you're fond of|fond of|you\u2019ll fall for|you'll fall for|fall for|work well|winner mates|swell bedfellows|bedfellows|are cute|cute, too|excite you|attract you|stand by you|please you|confront well|for your pleasure|advise you to look into|bring you joy|bring you their|make you happy, too|a wide choice/gi;
+
+// Phase 2 — unmistakably NEGATIVE phrases: imperative commands AND
+// descriptive disdain characterizations, including the corpus structures
+// the old classifier missed ("No X or Y for you.", "Nor do I suggest X",
+// "Erase X from your mind", "give up on", "nix on", "don't hang around
+// with", "less compatible are", "too X for you/to your/to ...", etc.).
+// Includes both curly (U+2019) and straight (U+0027) apostrophe variants.
+const CLEAR_AVOID_PATTERN = /stay away|avoid|shun|steer clear|steer around|give wide berth|wide berth|flee|poison|disastrous|don\u2019t pick|don't pick|don\u2019t marry|don't marry|don\u2019t go getting|don't go getting|don\u2019t bother with|don't bother with|don\u2019t go getting yourself involved|don't go getting yourself involved|refrain|leave.*alone|leave.*if you can|too like you.*too.*different|worse than.*bark|bite is worse|won\u2019t last|won't last|won\u2019t work|won't work|won\u2019t work for|won't work for|don\u2019t work for|don't work for|never work|dissonance|ugly duo|no marriage|not for you|not really suited|ill-suited|don\u2019t see eye to eye|don't see eye to eye|polarized outlooks|too cool to keep.*fascinated|exasperate you|unnerve you|unnerve.*the most|annoy you|frustrate you|irritat|you.*hate|they.*hate|hate inertia|disappointments aplenty|disappointment.*await|too.*different.*other|not much love|boredom|stodgy|gloomy|killjoy|beware|watch out for|^no\b|^nor\b|^not so\b|nix\b|except,? perhaps|erase .* from your mind|forget about|give up on|get on your nerves|never get on with|never ideal|don\u2019t make it for you|don't make it for you|don\u2019t get along with|don't get along with|do not get along|don\u2019t get on with|don't get on with|don\u2019t get much out of|don't get much out of|don\u2019t have much affinity|don't have much affinity|don\u2019t hang around with|don't hang around with|don\u2019t be led down the aisle by|don't be led down the aisle by|don\u2019t be flattered by|don't be flattered by|don\u2019t trifle with|don't trifle with|don\u2019t set your heart on|don't set your heart on|don\u2019t try coupling with|don't try coupling with|don\u2019t take up with|don't take up with|don\u2019t be in a hurry to marry|don't be in a hurry to marry|don\u2019t promote any long-standing relationships with|don't promote any long-standing relationships with|don\u2019t even think about marrying|don't even think about marrying|don\u2019t even entertain the thought|don't even entertain the thought|don\u2019t get caught up in|don't get caught up in|don\u2019t get involved with|don't get involved with|don\u2019t get mixed up with|don't get mixed up with|don\u2019t chase after|don't chase after|don\u2019t go getting involved with|don't go getting involved with|don\u2019t get tangled up in|don't get tangled up in|don\u2019t bank on|don't bank on|i don\u2019t advise|i don't advise|i don\u2019t vote for|i don't vote for|i don\u2019t see you taking up with|i don't see you taking up with|i don\u2019t believe you can be happy forever with|i don't believe you can be happy forever with|i\u2019d leave|i'd leave|i would leave|you are advised to forget|incompatible signs|don\u2019t always have .* best interests|don't always have .* best interests|stay clear|stay out of the way of|you clash with|clash with your own|you don\u2019t seem to think alike|you don't seem to think alike|less compatible|i warn you|make yourself scarce|give you trouble|overpower you|drive you mad|drive you crazy|demand too much|demand far too much|far too much stability|too much of a challenge|too tightly|for the pig\u2019s own good|not funky enough|too harsh|too\s+[a-z-]+(?:\s+(?:and|or)\s+[a-z-]+)?\s*(?:for you|for your|for the|to\b|[,.!]|$)/gi;
+
+export type SuzanneWhiteVerdict = "positive" | "avoid" | "mixed" | "unstated";
+
+export interface SuzanneWhiteMentionVerdicts {
+  combined: SuzanneWhiteVerdict;
+  western: SuzanneWhiteVerdict;
+  animal: SuzanneWhiteVerdict;
+  details: {
+    combined: string;
+    western: string;
+    animal: string;
+  };
+}
+
+function markerIndices(re: RegExp, sentence: string): number[] {
+  re.lastIndex = 0;
+  const out: number[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(sentence)) !== null) {
+    out.push(m.index);
+    if (m.index === re.lastIndex) re.lastIndex++;
+  }
+  return out;
+}
+
+/** Verdict for one token mention in one sentence: nearest marker wins; ties prefer positive. */
+function sentenceMentionVerdict(sentence: string, token: string): "positive" | "avoid" | null {
+  const first = sentence.indexOf(token);
+  if (first === -1) return null;
+  const posIdx = markerIndices(POSITIVE_OVERRIDE_PATTERN, sentence);
+  const avoidIdx = markerIndices(CLEAR_AVOID_PATTERN, sentence);
+  let verdict: "positive" | "avoid" | null = null;
+  let bestD = Number.POSITIVE_INFINITY;
+  for (const p of posIdx) {
+    const d = Math.abs(p - first);
+    if (d < bestD) {
+      bestD = d;
+      verdict = "positive";
+    }
+  }
+  for (const av of avoidIdx) {
+    const d = Math.abs(av - first);
+    if (d < bestD || (d === bestD && verdict === "avoid")) {
+      bestD = d;
+      verdict = "avoid";
+    }
+  }
+  return verdict;
+}
+
+/**
+ * Single source of truth for Suzanne White (New Astrology) compatibility
+ * classification. Returns per-dimension verdicts (combined sign, Western
+ * sign alone, Chinese animal alone) plus human-readable evidence details.
+ */
+export function classifySuzanneWhiteMentions(
+  sourceText: string,
+  partnerCombinedSign: string,
+  partnerWestern: string,
+  partnerAnimal: string,
+): SuzanneWhiteMentionVerdicts {
+  const lower = sourceText.toLowerCase();
+  const lowerCombined = partnerCombinedSign.toLowerCase();
+  const lowerWestern = partnerWestern.toLowerCase();
+  const lowerAnimal = partnerAnimal.toLowerCase();
+  const sentences = (lower.match(/[^.!?]+[.!?]+/g) || [lower]).map((s) => s.trim());
+
+  let cPos = false;
+  let cAvoid = false;
+  let wPos = false;
+  let wAvoid = false;
+  let aPos = false;
+  let aAvoid = false;
+  const cPositive: string[] = [];
+  const cNegative: string[] = [];
+  const wPositive: string[] = [];
+  const wNegative: string[] = [];
+  const aPositive: string[] = [];
+  const aNegative: string[] = [];
+
+  for (const s of sentences) {
+    const jc = sentenceMentionVerdict(s, lowerCombined);
+    const jw = sentenceMentionVerdict(s, lowerWestern);
+    const ja = sentenceMentionVerdict(s, lowerAnimal);
+
+    if (jc === "positive") {
+      cPos = true;
+      cPositive.push(`${partnerCombinedSign} is recommended (\"${s.slice(0, 80)}…\")`);
+    } else if (jc === "avoid") {
+      cAvoid = true;
+      cNegative.push(`${partnerCombinedSign} is cautioned against (\"${s.slice(0, 80)}…\")`);
+    }
+    if (jw === "positive") {
+      wPos = true;
+      wPositive.push(`${partnerWestern} appears in a recommendation (\"${s.slice(0, 80)}…\")`);
+    } else if (jw === "avoid") {
+      wAvoid = true;
+      wNegative.push(`${partnerWestern} appears in a caution (\"${s.slice(0, 80)}…\")`);
+    }
+    if (ja === "positive") {
+      aPos = true;
+      aPositive.push(`${partnerAnimal} appears in a recommendation (\"${s.slice(0, 80)}…\")`);
+    } else if (ja === "avoid") {
+      aAvoid = true;
+      aNegative.push(`${partnerAnimal} appears in a caution (\"${s.slice(0, 80)}…\")`);
+    }
+  }
+
+  const reduce = (pos: boolean, avoid: boolean): SuzanneWhiteVerdict =>
+    pos && avoid ? "mixed" : pos ? "positive" : avoid ? "avoid" : "unstated";
+
+  return {
+    combined: reduce(cPos, cAvoid),
+    western: reduce(wPos, wAvoid),
+    animal: reduce(aPos, aAvoid),
+    details: {
+      combined:
+        cPositive.concat(cNegative).join("; ") ||
+        `No explicit mention of ${partnerCombinedSign} found`,
+      western:
+        wPositive.concat(wNegative).join("; ") ||
+        `No explicit mention of ${partnerWestern} found`,
+      animal:
+        aPositive.concat(aNegative).join("; ") ||
+        `No explicit mention of ${partnerAnimal} found`,
+    },
+  };
+}
+
+function codifySuzanneWhite(
+  sourceText: string,
+  partnerCombinedSign: string,
+  partnerWestern: string,
+  partnerAnimal: string,
+): {
+  appreciation: { westernSignMatch: boolean; chineseAnimalMatch: boolean; combinedSignMatch: boolean; details: string };
+  dissatisfaction: { westernSignMatch: boolean; chineseAnimalMatch: boolean; combinedSignMatch: boolean; details: string };
+} {
+  const v = classifySuzanneWhiteMentions(sourceText, partnerCombinedSign, partnerWestern, partnerAnimal);
+
+  const isAppreciated = (verdict: SuzanneWhiteVerdict) =>
+    verdict === "positive" || verdict === "mixed";
+  const isCautioned = (verdict: SuzanneWhiteVerdict) =>
+    verdict === "avoid" || verdict === "mixed";
+
+  return {
+    appreciation: {
+      westernSignMatch: isAppreciated(v.western),
+      chineseAnimalMatch: isAppreciated(v.animal),
+      combinedSignMatch: isAppreciated(v.combined),
+      details: [v.details.western, v.details.animal, v.details.combined].join("; "),
+    },
+    dissatisfaction: {
+      westernSignMatch: isCautioned(v.western),
+      chineseAnimalMatch: isCautioned(v.animal),
+      combinedSignMatch: isCautioned(v.combined),
+      details: [v.details.western, v.details.animal, v.details.combined].join("; "),
+    },
+  };
+}
+
 export function generateSoulResonance(a: SoulVitals, b: SoulVitals, targetYear = new Date().getFullYear()): SoulResonanceReport {
   const psychicHarmony = cheiroHarmony(a.psychic, b.psychic);
   const destinyHarmony = cheiroHarmony(a.destiny, b.destiny);
@@ -504,6 +762,41 @@ export function generateSoulResonance(a: SoulVitals, b: SoulVitals, targetYear =
     const profileA = JOHARI_PSYCHIC_PROFILES[reduceSingle(a.psychic)];
     const profileB = JOHARI_PSYCHIC_PROFILES[reduceSingle(b.psychic)];
     if (!profileA || !profileB) return undefined;
+
+    // Multi-dimensional friend/enemy analysis (psychic, destiny, life path)
+    const aPsyViewBPsy = johariViewOf(reduceSingle(a.psychic), reduceSingle(b.psychic));
+    const bPsyViewAPsy = johariViewOf(reduceSingle(b.psychic), reduceSingle(a.psychic));
+    const aDestViewBDest = johariViewOf(reduceSingle(a.destiny), reduceSingle(b.destiny));
+    const bDestViewADest = johariViewOf(reduceSingle(b.destiny), reduceSingle(a.destiny));
+    const aLPViewBLP = johariViewOf(reduceSingle(a.lifePath), reduceSingle(b.lifePath));
+    const bLPViewALP = johariViewOf(reduceSingle(b.lifePath), reduceSingle(a.lifePath));
+
+    // Composite verdict: count friendly vs enemy across all 6 directional views
+    const allViews = [aPsyViewBPsy, bPsyViewAPsy, aDestViewBDest, bDestViewADest, aLPViewBLP, bLPViewALP];
+    const friendlyCount = allViews.filter(v => v === "Friendly").length;
+    const enemyCount = allViews.filter(v => v === "Enemy").length;
+    const neutralCount = allViews.filter(v => v === "Neutral").length;
+
+    let compositeVerdict: "Strongly Friendly" | "Generally Friendly" | "Mixed" | "Generally Tense" | "Strongly Tense";
+    let compositeExplanation: string;
+
+    if (friendlyCount >= 5) {
+      compositeVerdict = "Strongly Friendly";
+      compositeExplanation = `${friendlyCount} of 6 number dimensions show mutual friendliness — ${profileA.planet} (${a.psychic}/${a.destiny}/${a.lifePath}) and ${profileB.planet} (${b.psychic}/${b.destiny}/${b.lifePath}) are naturally drawn to each other across almost every dimension. A deeply supportive bond.`;
+    } else if (friendlyCount >= 3 && enemyCount <= 1) {
+      compositeVerdict = "Generally Friendly";
+      compositeExplanation = `${friendlyCount} friendly, ${neutralCount} neutral, ${enemyCount} tense dimensions. The bond has a natural warmth in most areas, with only minor friction points that conscious effort can smooth over.`;
+    } else if (enemyCount >= 5) {
+      compositeVerdict = "Strongly Tense";
+      compositeExplanation = `${enemyCount} of 6 number dimensions show mutual tension — ${profileA.planet} and ${profileB.planet} energies clash across psychic, destiny and life path. This demands significant awareness and compromise to sustain.`;
+    } else if (enemyCount >= 3) {
+      compositeVerdict = "Generally Tense";
+      compositeExplanation = `${enemyCount} tense, ${neutralCount} neutral, ${friendlyCount} friendly dimensions. The relationship encounters structural resistance in key areas. Areas of friendliness exist but need active cultivation.`;
+    } else {
+      compositeVerdict = "Mixed";
+      compositeExplanation = `${friendlyCount} friendly, ${neutralCount} neutral, ${enemyCount} tense dimensions across psychic (${aPsyViewBPsy}/${bPsyViewAPsy}), destiny (${aDestViewBDest}/${bDestViewADest}) and life path (${aLPViewBLP}/${bLPViewALP}). Neither naturally harmonious nor inherently hostile — the outcome depends on conscious effort and mutual respect.`;
+    }
+
     return {
       profileA,
       profileB,
@@ -511,8 +804,17 @@ export function generateSoulResonance(a: SoulVitals, b: SoulVitals, targetYear =
       destinyPair: getJohariPairCompatibility(a.destiny, b.destiny),
       crossPairAB: getJohariPairCompatibility(a.psychic, b.destiny),
       crossPairBA: getJohariPairCompatibility(b.psychic, a.destiny),
-      aViewOfB: johariViewOf(reduceSingle(a.psychic), reduceSingle(b.psychic)),
-      bViewOfA: johariViewOf(reduceSingle(b.psychic), reduceSingle(a.psychic)),
+      aPsychicViewOfBPsychic: aPsyViewBPsy,
+      aDestinyViewOfBDestiny: aDestViewBDest,
+      aLifePathViewOfBLifePath: aLPViewBLP,
+      bPsychicViewOfAPsychic: bPsyViewAPsy,
+      bDestinyViewOfADestiny: bDestViewADest,
+      bLifePathViewOfALifePath: bLPViewALP,
+      compositeVerdict,
+      compositeExplanation,
+      // Legacy fields for backward compatibility
+      aViewOfB: aPsyViewBPsy,
+      bViewOfA: bPsyViewAPsy,
     };
   })();
 
@@ -571,6 +873,27 @@ export function generateSoulResonance(a: SoulVitals, b: SoulVitals, targetYear =
     pyInteraction,
     johariCompatibility: johariCompat,
     combinedWeather,
+    // ── Chinese Zodiac Compatibility Text (verbatim) ────────────────
+    chineseZodiacCompatText:
+      zodiacData[a.zodiacAnimal]?.compatibilities?.[b.zodiacAnimal] ||
+      zodiacData[b.zodiacAnimal]?.compatibilities?.[a.zodiacAnimal] ||
+      "",
+    // ── New Astrology Codified Compatibility ─────────────────────────
+    newAstrologyCompat: (() => {
+      const aText = NEW_ASTROLOGY_DATA[a.combinedSign]?.compatibilities || "";
+      const bText = NEW_ASTROLOGY_DATA[b.combinedSign]?.compatibilities || "";
+      if (!aText && !bText) return undefined;
+      const aCodify = codifySuzanneWhite(aText, b.combinedSign, b.westernSign, b.zodiacAnimal);
+      const bCodify = codifySuzanneWhite(bText, a.combinedSign, a.westernSign, a.zodiacAnimal);
+      return {
+        aCompatText: aText,
+        bCompatText: bText,
+        aAppreciationOfB: aCodify.appreciation,
+        aDissatisfactionWithB: aCodify.dissatisfaction,
+        bAppreciationOfA: bCodify.appreciation,
+        bDissatisfactionWithA: bCodify.dissatisfaction,
+      };
+    })(),
   };
 }
  

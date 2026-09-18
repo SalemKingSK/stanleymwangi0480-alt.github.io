@@ -2008,6 +2008,16 @@ export function ResultsDisplay({
             birthMonth={numerology.birthMonth}
             birthYear={numerology.birthYear || new Date().getFullYear() - 30}
           />
+          {/* ── Soul Resonance (permanent, above all tabs) ── */}
+          {history.length >= 2 && (
+            <CollapsibleSection
+              title="Soul Resonance"
+              subtitle="Compatibility via Cheiro harmony, Lo Shu, personal-year sync & zodiac rhythm"
+              icon={<Users size={16} />}
+            >
+              <SoulResonancePanel history={history} />
+            </CollapsibleSection>
+          )}
           {/* ── Share Reading (centered, above all tabs) ── */}
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.9rem" }}>
             <ShareReadingButton insight={insight} numerology={numerology} />
@@ -2058,24 +2068,6 @@ export function ResultsDisplay({
                     />
                   )}
                   <NumberMeaningsSection />
-                  {history.length >= 1 && (
-                    <CollapsibleSection
-                      title="Soul Weather"
-                      subtitle="Current personal-year climate for saved souls"
-                      icon={<Star size={16} />}
-                    >
-                      <SoulWeatherDashboard history={history} onLoad={() => {}} />
-                    </CollapsibleSection>
-                  )}
-                  {history.length >= 2 && (
-                    <CollapsibleSection
-                      title="Soul Resonance"
-                      subtitle="Compatibility via Cheiro harmony, Lo Shu, personal-year sync & zodiac rhythm"
-                      icon={<Users size={16} />}
-                    >
-                      <SoulResonancePanel history={history} />
-                    </CollapsibleSection>
-                  )}
                 </>
               )}
               {activeTab === "new-astro" && (
@@ -2116,6 +2108,16 @@ export function ResultsDisplay({
               )}
             </motion.div>
           </AnimatePresence>
+          {/* ── Soul Weather (permanent, below all tabs) ── */}
+          {history.length >= 1 && (
+            <CollapsibleSection
+              title="Soul Weather"
+              subtitle="Current personal-year climate for saved souls"
+              icon={<Star size={16} />}
+            >
+              <SoulWeatherDashboard history={history} onLoad={() => {}} />
+            </CollapsibleSection>
+          )}
         </div>
         <footer className="text-center p-4 pb-24 text-white/50 text-[0.65rem] whitespace-pre-line font-body italic leading-relaxed">
           {

@@ -1,7 +1,7 @@
 {
-  "name": "Mystique Compass - Numerology & Astrology",
+  "name": "Mystique Compass",
   "short_name": "Mystique",
-  "description": "Free online Mystique Compass app. Discover your destiny with accurate Numerology, Psychomatrix, Loshu Grid, Chinese Zodiacs, Astrology profiles, and future life predictions.",
+  "description": "Numerology, psychomatrix & astrology profile generator — giving your life a meaning.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

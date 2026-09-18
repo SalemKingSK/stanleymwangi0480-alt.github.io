@@ -1,0 +1,6 @@
+name = "mystique-compass"
+compatibility_date = "2026-07-24"
+pages_build_output_dir = "../dist"
+
+[build]
+command = "npm install && npm run build"

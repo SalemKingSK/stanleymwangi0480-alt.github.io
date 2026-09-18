@@ -1,7 +1,7 @@
-// Bumped again: this version adds detection for same-origin impostor pages
-// (e.g. Replit's cold-workspace placeholder) during navigation, on top of
-// the earlier silent-precache-failure fix.
-const CACHE_NAME = "mystique-compass-v22-public-rebuild";
+// Bumped again for the Google Preferred Sources integration. This version
+// keeps the same-origin impostor-page guard and ensures every device receives
+// the latest app shell and CSP policy.
+const CACHE_NAME = "mystique-compass-v88-rollback";
 const RUNTIME_CACHE = `${CACHE_NAME}-runtime`;
 
 // Every file the manifest/index.html actually reference, so the offline
@@ -90,11 +90,11 @@ async function isRealAppShell(response) {
   }
 }
 
-async function networkFirst(request, { verifyAppShell = false } = {}) {
+async function networkFirst(request) {
   const isNavigation = request.mode === "navigate";
   try {
     const response = await fetch(request);
-    if (isNavigation && verifyAppShell && response.ok && !(await isRealAppShell(response))) {
+    if (isNavigation && response.ok && !(await isRealAppShell(response))) {
       // Got a "successful" response that isn't actually our app (e.g. a
       // cold-workspace placeholder) — prefer the real cached shell instead,
       // if one exists from a previous successful visit.
@@ -112,7 +112,7 @@ async function networkFirst(request, { verifyAppShell = false } = {}) {
   } catch {
     const cached = await caches.match(request);
     if (cached) return cached;
-    if (isNavigation && verifyAppShell) {
+    if (isNavigation) {
       const shell = await caches.match("/");
       if (shell) return shell;
     }
@@ -141,10 +141,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (request.mode === "navigate") {
-    // `/stats/` is a separate static admin dashboard, not a React app shell.
-    // Do not reject it merely because it lacks the app-shell marker.
-    const verifyAppShell = !(url.pathname === "/stats" || url.pathname.startsWith("/stats/"));
-    event.respondWith(networkFirst(request, { verifyAppShell }));
+    event.respondWith(networkFirst(request));
     return;
   }
   if (ASSET_RE.test(url.pathname)) {

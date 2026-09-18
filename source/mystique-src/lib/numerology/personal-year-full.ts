@@ -188,7 +188,9 @@ A Personal Year 4 is the most demanding year in the nine-year cycle but also the
 THE LABOR: The Year 4 often arrives with a sobering shift in energy. The lightness of the Year 3 is replaced by a sense of responsibility and the demand for concrete action. Projects that were exciting in theory must now be executed in practice, and execution requires discipline, organization, and sustained effort. Many people resist the Year 4, finding it oppressive after the Year 3's freedom — but those who embrace it build foundations that support them for years.
 CORE CURRICULUM: Discipline, structure, and the transformation of vision into form. In a Year 4, you are learning that inspiration without implementation is fantasy, that freedom requires limits, and that the patient accumulation of small, consistent efforts produces results that dramatic gestures cannot match. This is the year to build your systems — the habits, routines, and organizational structures that will carry your initiatives forward.
 THE PRACTICE: Establish one new daily discipline and maintain it for the entire year. Organize one area of your life (finances, health, workspace, schedule) that has been chaotic. Set concrete, measurable goals with deadlines, and hold yourself accountable. The Year 4 rewards consistency and punishes shortcuts.
-THE SHADOW: Workaholism, rigidity, and the temptation to sacrifice health and relationships to the demands of productivity. The Year 4 who works without rest will arrive at the Year 5 broken rather than strong. The discipline must serve the vision, not become an end in itself.`,
+THE SHADOW: Workaholism, rigidity, and the temptation to sacrifice health and relationships to the demands of productivity. The Year 4 who works without rest will arrive at the Year 5 broken rather than strong. The discipline must serve the vision, not become an end in itself.
+
+SHADOW IN THE ELEMENTS: the Year of Foundation tests whatever was built upon the ground it was built on. When the ground itself moves, the foundation is the subject of the year, and the number reads as the inventory of what held.`,
   },
   5: {
     title: "Personal Year 5 — The Year of Change",
@@ -206,7 +208,9 @@ A Personal Year 6 brings the focus home — literally and metaphorically. After 
 THE HOMECOMING: The Year 6 often brings a desire to settle, to beautify, to create environments of genuine warmth and welcome. Relationships that survived the Year 5's turbulence deepen; those that did not reveal their fragility. This is the year to tend what you love — your home, your family (chosen or biological), your community, and yourself.
 CORE CURRICULUM: Love, responsibility, and the balance between giving and receiving. In a Year 6, you are learning that genuine love is not sacrifice but service, that responsibility is not burden but privilege, and that the capacity to receive love is as important as the capacity to give it. This is the year to heal relationship wounds and to create beauty in your immediate environment.
 THE PRACTICE: Perform one act of service daily for someone you love — without announcement, without expectation of return. Beautify your home. Mend one damaged relationship (or, if mending is impossible, complete it with grace). Learn to receive — accept help, compliments, and care without immediately deflecting or reciprocating.
-THE SHADOW: Martyrdom, over-giving, and the temptation to sacrifice yourself entirely to the care of others. The Year 6 who gives without receiving will arrive at the Year 7 depleted rather than enriched. The heart that pours out endlessly without being refilled eventually runs dry. Your capacity to serve is proportional to your capacity to be nourished.`,
+THE SHADOW: Martyrdom, over-giving, and the temptation to sacrifice yourself entirely to the care of others. The Year 6 who gives without receiving will arrive at the Year 7 depleted rather than enriched. The heart that pours out endlessly without being refilled eventually runs dry. Your capacity to serve is proportional to your capacity to be nourished.
+
+COMMUNAL GRIEF: the Year of the Heart keeps the household and the neighbour; in a visitation year the heart is where a people feel their loss together. The 6 reads then as the mourning of a community and as the care survivors owe one another.`,
   },
   7: {
     title: "Personal Year 7 — The Year of the Soul",
@@ -215,7 +219,9 @@ A Personal Year 7 is the most introspective year in the nine-year cycle — a ye
 THE RETREAT: The Year 7 often brings a diminished appetite for social engagement and an increased hunger for solitude, study, and spiritual practice. Others may find you distant; you are simply elsewhere — attending to the inner dimension of your existence, which requires quiet and focus. This is not antisocial behavior but a sacred necessity, and those who love you should be given to understand this.
 CORE CURRICULUM: Wisdom, spiritual depth, and the integration of life experience into understanding. In a Year 7, you are learning to trust your inner guidance over external authority, to develop a spiritual practice that sustains you, and to find the lessons embedded in the experiences of the previous six years. This is the year to study — not for credentials but for transformation.
 THE PRACTICE: Establish or deepen a spiritual practice — meditation, contemplation, study of sacred texts, time in nature. Read challenging books. Keep a journal of insights and questions. Protect your solitude fiercely; the Year 7's gifts emerge in silence, not in conversation.
-THE SHADOW: Isolation, intellectual arrogance, and the temptation to use spiritual seeking as an escape from practical responsibilities or relational commitments. The Year 7 who ascends to the mountaintop and never descends has missed the point — the wisdom gained in solitude must eventually be shared with others.`,
+THE SHADOW: Isolation, intellectual arrogance, and the temptation to use spiritual seeking as an escape from practical responsibilities or relational commitments. The Year 7 who ascends to the mountaintop and never descends has missed the point — the wisdom gained in solitude must eventually be shared with others.
+
+SHADOW IN CATASTROPHE: the retreat of the 7 is chosen when it can be; where it is imposed by circumstance, the same introspection appears as a people driven indoors to weigh what their ground was worth.`,
   },
   8: {
     title: "Personal Year 8 — The Year of Power",
@@ -236,6 +242,35 @@ THE PRACTICE: Identify one thing — a belief, a grudge, a possession, a commitm
 THE SHADOW: Premature endings, avoidance of necessary grief, and the temptation to use "letting go" as an excuse to flee commitments that still have value. The Year 9 who releases everything will arrive at the next Year 1 with nothing to build upon. The art is to release what has genuinely completed while honoring what is still alive and growing.`,
   },
 };
+const MASTER_BASE_YEAR: Record<number, number> = { 11: 2, 22: 4, 33: 6 };
+const MASTER_YEAR_TITLES: Record<number, string> = {
+  11: "The Year of Illumination",
+  22: "The Year of the Master Builder",
+  33: "The Year of the Master Teacher",
+};
+const MASTER_YEAR_NOTES: Record<number, string> = {
+  11: `MASTER YEAR 11 — The Illumination Year\n\nIn the master 11 year, the 2's receptivity operates at the voltage of revelation: intuition peaks, nervous sensitivity peaks, and the boundary between signal and anxiety must be guarded daily. Cheiro's older compound reading adds the discernment warning — hidden trial and treachery are the 11's classic shadows. The year's instruction is to receive deeply and act carefully.\n\n---\nSingle-Digit Foundation (2):\n`,
+  22: `MASTER YEAR 22 — The Master Builder Year\n\nIn the master 22 year, the 4's discipline operates at the scale of legacy: institutions, platforms, and foundations intended to outlast you. Cheiro's compound reading warns of illusion, delusion, and a good person misled by the folly of others — verify every foundation before adding weight. The year's instruction is to build, and to audit what you build.\n\n---\nSingle-Digit Foundation (4):\n`,
+  33: `MASTER YEAR 33 — The Master Teacher Year\n\nIn the master 33 year, the 6's care operates at the voltage of teaching: what you have lived becomes instruction for others. The 33's shadow is the exhausted savior — giving until the vessel that serves is empty. Cheiro notes the 33 carries the 24's fortune: help and magnetism are available to the one who does not burn out. The year's instruction is to teach from overflow, not depletion.\n\n---\nSingle-Digit Foundation (6):\n`,
+};
+/** The meaning for a Personal Year, including master years 11/22/33 which
+ * carry their single-digit foundation (2/4/6) at heightened voltage. */
+function yearMeaning(py: number): { title: string; interpretation: string } {
+  const direct = PY_MEANINGS[py];
+  if (direct) return direct;
+  const base = MASTER_BASE_YEAR[py];
+  if (base && PY_MEANINGS[base]) {
+    return {
+      title: `Personal Year ${py} — ${MASTER_YEAR_TITLES[py] || "Master Year"}`,
+      interpretation: MASTER_YEAR_NOTES[py] + PY_MEANINGS[base].interpretation,
+    };
+  }
+  return {
+    title: `Personal Year ${py}`,
+    interpretation: `Personal Year ${py} carries its own unique vibration.`,
+  };
+}
+
 export function getPersonalYearAnalysis(
   birthDay: number,
   birthMonth: number,
@@ -254,10 +289,7 @@ export function getPersonalYearAnalysis(
   // one rather than collapsing straight past it.
   const py = reduceNum(rawYear);
   const compound = lookupCompound(rawYear);
-  const base = PY_MEANINGS[py] || {
-    title: `Personal Year ${py}${py === 11 || py === 22 || py === 33 ? " — Master Year" : ""}`,
-    interpretation: `Personal Year ${py} carries its own unique vibration${py === 11 ? ", operating at the heightened, intuitive register of a Master Number 11." : py === 22 ? ", operating at the heightened, builder-scale register of a Master Number 22." : py === 33 ? ", operating at the heightened, teaching-and-healing register of a Master Number 33." : "."}`,
-  };
+  const base = yearMeaning(py);
   const title = compound
     ? `Personal Year ${rawYear}/${py} — ${compound.name}`
     : base.title;
@@ -271,10 +303,7 @@ export function getPersonalYearAnalysis(
   const rawYearClassic = computeRawPersonalYearClassic(birthDay, birthMonth, y);
   const pyClassic = reduceNum(rawYearClassic);
   const compoundClassic = lookupCompound(rawYearClassic);
-  const baseClassic = PY_MEANINGS[pyClassic] || {
-    title: `Personal Year ${pyClassic}${pyClassic === 11 || pyClassic === 22 || pyClassic === 33 ? " — Master Year" : ""}`,
-    interpretation: `Personal Year ${pyClassic} carries its own unique vibration${pyClassic === 11 ? ", operating at the heightened, intuitive register of a Master Number 11." : pyClassic === 22 ? ", operating at the heightened, builder-scale register of a Master Number 22." : pyClassic === 33 ? ", operating at the heightened, teaching-and-healing register of a Master Number 33." : "."}`,
-  };
+  const baseClassic = yearMeaning(pyClassic);
   const titleClassic = compoundClassic
     ? `Personal Year ${rawYearClassic}/${pyClassic} — ${compoundClassic.name}`
     : baseClassic.title;

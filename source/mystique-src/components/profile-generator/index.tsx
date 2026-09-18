@@ -317,7 +317,8 @@ export function ProfileGenerator() {
         });
         return;
       }
-      startTransition(async () => {
+      startTransition(() => {
+        void (async () => {
         const result = await getAstroInsightAction(data);
         if (result.success && result.insight && result.numerology) {
           setInsight(result.insight);
@@ -330,6 +331,7 @@ export function ProfileGenerator() {
             description: result.error || "An unexpected error occurred.",
           });
         }
+        })();
       });
     },
     [toast],

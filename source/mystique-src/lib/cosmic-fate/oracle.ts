@@ -352,3 +352,26 @@ The 27/9 (Sceptre, wisdom recognized) promises that accumulated wisdom receives 
     ]
   }
 };
+
+// ── Master-year resolution ───────────────────────────────────────────────────
+// Personal Years 11/22/33 reuse their single-digit foundation (2/4/6) at
+// heightened voltage — the standard master-number teaching. YD has no
+// 11/22/33 keys, so this resolver keeps master years from rendering
+// "undefined" titles while giving them their own honest framing.
+const MASTER_BASE_YEAR: Record<number, number> = { 11: 2, 22: 4, 33: 6 };
+const MASTER_OVERVIEW: Record<number, string> = {
+  11: `MASTER YEAR 11 — The Illumination Year\n\nThe 11 is the 2's higher octave: reception raised to the level of revelation. Tradition treats the master 11 as illumination — intuitive capacity, spiritual sensitivity, and nervous-system intensity in equal measure. Cheiro's older compound reading adds the discernment warning: hidden trial and treachery are the 11's classic shadows. A master 11 year asks you to receive deeply and act carefully — the year's gifts arrive as insight; its risks arrive as overwhelm and second-guessing.\n\n`,
+  22: `MASTER YEAR 22 — The Master Builder Year\n\nThe 22 is the 4's higher octave: structure raised to the level of legacy. This is the year of institutions, platforms, and foundations intended to outlast you — but the master 22 is famously unforgiving of unverified ground. Cheiro's compound reading for the 22 warns of illusion, delusion, and a good person misled by the folly of others. Build, but audit: the 22 year rewards the architect and bankrupts the dreamer who skips the survey.\n\n`,
+  33: `MASTER YEAR 33 — The Master Teacher Year\n\nThe 33 is the 6's higher octave: care raised to the level of teaching. This year turns what you have lived into instruction for others — mentoring, healing, organizing, lifting. The 33's shadow is the exhausted savior: giving until the vessel is empty. Cheiro notes the 33 carries the 24's fortune — magnetism and help from others are available to the one who does not burn out. Teach from overflow, keep your own practice.\n\n`,
+};
+export function yearDiveOracle(py: number) {
+  if (YD[py]) return YD[py];
+  const base = MASTER_BASE_YEAR[py];
+  if (!base || !YD[base]) return undefined;
+  const b = YD[base];
+  return {
+    ...b,
+    title: `${b.title} — Master ${py}`,
+    overview: MASTER_OVERVIEW[py] + b.overview,
+  };
+}

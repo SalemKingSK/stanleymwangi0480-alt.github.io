@@ -34,6 +34,7 @@ import {
   getClassicCompoundForPYN,
 } from "@/lib/numerology/chaldean-pyn-compounds";
 import { NEW_ASTROLOGY_DATA } from "@/lib/new-astrology";
+import { zodiacData } from "@/lib/zodiac";
 import { cheiroPsychicNumbers } from "@/lib/numerology/cheiro-psychic-numbers";
 import {
   buildSoulVitals,
@@ -42,6 +43,7 @@ import {
   getFamousSoulBank,
   getFamousSoulWeather,
   getCosmicTwinsForSoul,
+  classifySuzanneWhiteMentions,
   type SoulResonanceReport,
   type ResonanceLayer,
   type DomainScore,
@@ -337,44 +339,38 @@ function suzanneWhiteScore(
 ): { score: number; label: string; note: string } {
   const aSign = combinedSign(a);
   const bSign = combinedSign(b);
-  const reverseSign = combinedSign(b);
-  const text = (NEW_ASTROLOGY_DATA[aSign]?.compatibilities || "").toLowerCase();
-  const reverseText = (
-    NEW_ASTROLOGY_DATA[reverseSign]?.compatibilities || ""
-  ).toLowerCase();
-  const bWestern = westernSign(b.day, b.month).toLowerCase();
-  const bAnimal = zodiacAnimal(b.year).toLowerCase();
-  const aWestern = westernSign(a.day, a.month).toLowerCase();
-  const aAnimal = zodiacAnimal(a.year).toLowerCase();
-  const evaluate = (
+  const text = NEW_ASTROLOGY_DATA[aSign]?.compatibilities || "";
+  const reverseText = NEW_ASTROLOGY_DATA[bSign]?.compatibilities || "";
+  const bWestern = westernSign(b.day, b.month);
+  const bAnimal = zodiacAnimal(b.year);
+  const aWestern = westernSign(a.day, a.month);
+  const aAnimal = zodiacAnimal(a.year);
+
+  // Same classifier as the Compatibility Outlook badges — the two views can
+  // never disagree about whether a pairing is recommended or cautioned.
+  const contribute = (
     source: string,
     targetCombined: string,
     targetWestern: string,
     targetAnimal: string,
   ) => {
-    const lowerCombined = targetCombined.toLowerCase();
-    const avoidIndex = source.search(
-      /stay away|avoid|leave|wide berth|poison|don’t|don't/,
-    );
-    const positive = avoidIndex >= 0 ? source.slice(0, avoidIndex) : source;
-    const negative = avoidIndex >= 0 ? source.slice(avoidIndex) : "";
-    if (
-      negative.includes(lowerCombined) ||
-      (negative.includes(targetWestern) && negative.includes(targetAnimal))
-    )
-      return -38;
-    if (positive.includes(lowerCombined)) return 46;
+    const v = classifySuzanneWhiteMentions(source, targetCombined, targetWestern, targetAnimal);
     let points = 0;
-    if (positive.includes(targetWestern)) points += 18;
-    if (positive.includes(targetAnimal)) points += 18;
-    if (negative.includes(targetWestern) || negative.includes(targetAnimal))
-      points -= 12;
+    if (v.combined === "positive") points += 46;
+    else if (v.combined === "avoid") points -= 38;
+    else if (v.combined === "mixed") points += 8;
+    if (v.western === "positive") points += 18;
+    else if (v.western === "avoid") points -= 12;
+    else if (v.western === "mixed") points += 6;
+    if (v.animal === "positive") points += 18;
+    else if (v.animal === "avoid") points -= 12;
+    else if (v.animal === "mixed") points += 6;
     return points;
   };
   const raw =
     50 +
-    evaluate(text, bSign, bWestern, bAnimal) +
-    evaluate(reverseText, aSign, aWestern, aAnimal) / 2;
+    contribute(text, bSign, bWestern, bAnimal) +
+    contribute(reverseText, aSign, aWestern, aAnimal) / 2;
   const score = Math.max(15, Math.min(98, Math.round(raw)));
   const label =
     score >= 86
@@ -1851,6 +1847,225 @@ function EvidenceList({ evidence }: { evidence: ResonanceEvidence[] }) {
     </details>
   );
 }
+// ── Searchable Soul Selector ────────────────────────────────────────────
+// Replaces the plain <select> dropdowns in Soul Resonance with a combo
+// box that has a search input for filtering, then a scrollable list.
+function SoulSearchSelect({
+  label,
+  options,
+  history,
+  famousBank,
+  selectedId,
+  onSelect,
+  getId,
+}: {
+  label: string;
+  options: Array<StoredSoul | FamousSoulVitals>;
+  history: StoredSoul[];
+  famousBank: FamousSoulVitals[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  getId: (s: StoredSoul | FamousSoulVitals) => string;
+}) {
+  const [search, setSearch] = React.useState("");
+  const [isOpen, setIsOpen] = React.useState(false);
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+
+  const selected = options.find((s) => getId(s) === selectedId);
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Filtered lists
+  const lowerSearch = search.toLowerCase();
+  const filteredHistory = history.filter(
+    (s) => s.name.toLowerCase().includes(lowerSearch) ||
+      `${s.day}/${s.month}/${s.year}`.includes(lowerSearch),
+  );
+  const filteredFamous = famousBank.filter(
+    (s) => s.name.toLowerCase().includes(lowerSearch) ||
+      `${s.day}/${s.month}/${s.year}`.includes(lowerSearch),
+  );
+  const totalFiltered = filteredHistory.length + filteredFamous.length;
+
+  const handleSelect = (id: string) => {
+    onSelect(id);
+    setIsOpen(false);
+    setSearch("");
+  };
+
+  return (
+    <div ref={wrapperRef} style={{ position: "relative" }}>
+      {/* Current selection display + toggle button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          width: "100%",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: "rgba(10,4,28,0.96)",
+          color: "#e9ddff",
+          border: "1px solid rgba(167,139,250,0.22)",
+          borderRadius: 12,
+          padding: "0.65rem",
+          fontSize: "0.76rem",
+          cursor: "pointer",
+          textAlign: "left",
+        }}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "85%" }}>
+          {selected ? selected.name : "Choose…"}
+        </span>
+        <span style={{ opacity: 0.5, fontSize: "0.6rem" }}>
+          {isOpen ? "▲" : "▼"}
+        </span>
+      </button>
+
+      {/* Dropdown panel with search + scrollable list */}
+      {isOpen && (
+        <div
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            right: 0,
+            zIndex: 50,
+            marginTop: "0.15rem",
+            background: "rgba(10,4,28,0.98)",
+            border: "1px solid rgba(167,139,250,0.28)",
+            borderRadius: 12,
+            maxHeight: "320px",
+            overflow: "hidden",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+          }}
+        >
+          {/* Search input */}
+          <div style={{ padding: "0.5rem 0.55rem 0.35rem" }}>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Type to search names or dates…"
+              autoFocus
+              style={{
+                width: "100%",
+                padding: "0.55rem 0.65rem",
+                borderRadius: 10,
+                border: "1px solid rgba(167,139,250,0.25)",
+                background: "rgba(4,0,26,0.9)",
+                color: "#e9ddff",
+                fontSize: "0.74rem",
+                outline: "none",
+              }}
+            />
+            <div style={{ fontSize: "0.58rem", color: "rgba(200,180,240,0.45)", marginTop: "0.2rem", textAlign: "right" }}>
+              {totalFiltered} result{totalFiltered !== 1 ? "s" : ""}
+            </div>
+          </div>
+
+          {/* Scrollable list */}
+          <div
+            style={{
+              maxHeight: "240px",
+              overflowY: "auto",
+              padding: "0 0.45rem 0.5rem",
+            }}
+          >
+            {filteredHistory.length > 0 && (
+              <div style={{ fontSize: "0.58rem", color: "#d4af37", fontFamily: "'Cinzel',serif", letterSpacing: "0.1em", textTransform: "uppercase", padding: "0.35rem 0.2rem 0.15rem", marginTop: "0.15rem" }}>
+                Saved Souls
+              </div>
+            )}
+            {filteredHistory.map((s) => {
+              const id = getId(s);
+              const isActive = id === selectedId;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => handleSelect(id)}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "0.42rem 0.5rem",
+                    borderRadius: 8,
+                    border: "none",
+                    background: isActive ? "rgba(212,175,55,0.18)" : "transparent",
+                    color: isActive ? "#f1d98a" : "rgba(231,221,255,0.82)",
+                    cursor: "pointer",
+                    fontSize: "0.72rem",
+                    marginBottom: "0.15rem",
+                    transition: "background 0.15s",
+                  }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                >
+                  <span style={{ fontWeight: 600 }}>{s.name}</span>
+                  <span style={{ fontSize: "0.58rem", color: "rgba(200,180,240,0.45)", marginLeft: "0.4rem" }}>
+                    {s.day}/{s.month}/{s.year}
+                  </span>
+                </button>
+              );
+            })}
+            {filteredFamous.length > 0 && (
+              <div style={{ fontSize: "0.58rem", color: "#67e8f9", fontFamily: "'Cinzel',serif", letterSpacing: "0.1em", textTransform: "uppercase", padding: "0.35rem 0.2rem 0.15rem", marginTop: filteredHistory.length > 0 ? "0.45rem" : "0.15rem" }}>
+                Famous People Database
+              </div>
+            )}
+            {filteredFamous.map((s) => {
+              const isActive = s.id === selectedId;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => handleSelect(s.id)}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "0.42rem 0.5rem",
+                    borderRadius: 8,
+                    border: "none",
+                    background: isActive ? "rgba(212,175,55,0.18)" : "transparent",
+                    color: isActive ? "#f1d98a" : "rgba(231,221,255,0.82)",
+                    cursor: "pointer",
+                    fontSize: "0.72rem",
+                    marginBottom: "0.15rem",
+                    transition: "background 0.15s",
+                  }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                >
+                  <span style={{ fontWeight: 600 }}>{s.name}</span>
+                  <span style={{ fontSize: "0.58rem", color: "rgba(200,180,240,0.45)", marginLeft: "0.4rem" }}>
+                    {s.day}/{s.month}/{s.year}
+                  </span>
+                </button>
+              );
+            })}
+            {totalFiltered === 0 && (
+              <div style={{ textAlign: "center", color: "rgba(200,180,240,0.35)", fontSize: "0.7rem", padding: "1.2rem 0" }}>
+                No matches found
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SoulResonancePanel({ history }: { history: StoredSoul[] }) {
   const famousBank = React.useMemo(() => getFamousSoulBank(), []);
   const getId = React.useCallback((s: StoredSoul | FamousSoulVitals) => s.id || `${s.name}-${s.day}-${s.month}-${s.year}`, []);
@@ -1865,7 +2080,6 @@ export function SoulResonancePanel({ history }: { history: StoredSoul[] }) {
   const a = options.find((s) => getId(s) === aId) || history[0] || famousBank[0];
   const b = options.find((s) => getId(s) === bId) || options.find((s) => getId(s) !== getId(a));
   if (!a || !b || getId(a) === getId(b)) return null;
-  const analysis = buildRelationshipAnalysis(a, b);
   // Not memoized: `a`/`b` are only resolved after the early-return checks
   // above, so a hook here would violate the Rules of Hooks. The underlying
   // computation is cheap arithmetic plus a filter over the famous-birthdays
@@ -1888,228 +2102,29 @@ export function SoulResonancePanel({ history }: { history: StoredSoul[] }) {
           marginBottom: "0.85rem",
         }}
       >
-        <select
-          value={aId}
-          onChange={(e) => setAId(e.target.value)}
-          style={selectStyle}
-        >
-          <optgroup label="Saved Souls">
-            {history.map((s) => (
-              <option key={getId(s)} value={getId(s)}>
-                {s.name}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="Famous People Database">
-            {famousBank.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </optgroup>
-        </select>
-        <select
-          value={bId}
-          onChange={(e) => setBId(e.target.value)}
-          style={selectStyle}
-        >
-          <optgroup label="Saved Souls">
-            {history.map((s) => (
-              <option key={getId(s)} value={getId(s)}>
-                {s.name}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="Famous People Database">
-            {famousBank.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </optgroup>
-        </select>
+        <SoulSearchSelect
+          label="Soul A"
+          options={options}
+          history={history}
+          famousBank={famousBank}
+          selectedId={aId}
+          onSelect={setAId}
+          getId={getId}
+        />
+        <SoulSearchSelect
+          label="Soul B"
+          options={options}
+          history={history}
+          famousBank={famousBank}
+          selectedId={bId}
+          onSelect={setBId}
+          getId={getId}
+        />
       </div>
-      <div
-        style={{
-          padding: "0.9rem",
-          borderRadius: 16,
-          background:
-            "linear-gradient(135deg, rgba(212,175,55,0.12), rgba(139,92,246,0.08))",
-          border: "1px solid rgba(212,175,55,0.22)",
-          marginBottom: "0.9rem",
-        }}
-      >
-        <div
-          style={{
-            fontFamily: "'Cinzel',serif",
-            fontSize: "0.86rem",
-            color: "#f1d98a",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            fontWeight: 800,
-          }}
-        >
-          {analysis.archetype}
-        </div>
-        <div
-          style={{
-            fontSize: "0.68rem",
-            color: "rgba(200,180,240,0.58)",
-            marginTop: 3,
-          }}
-        >
-          {analysis.archetypeSubtitle} · Confidence: {analysis.confidence}
-        </div>
-        <p
-          style={{
-            color: "rgba(231,221,255,0.86)",
-            fontSize: "0.82rem",
-            lineHeight: 1.7,
-            margin: "0.75rem 0 0",
-          }}
-        >
-          {analysis.essence}
-        </p>
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "0.7rem",
-          marginBottom: "0.95rem",
-        }}
-      >
-        <div
-          style={{
-            padding: "0.72rem",
-            borderRadius: 14,
-            background: "rgba(255,255,255,0.035)",
-            border: "1px solid rgba(255,255,255,0.07)",
-          }}
-        >
-          <Meter label="Emotional Harmony" score={analysis.scores.emotional} />
-          <Meter label="Communication" score={analysis.scores.communication} />
-          <Meter label="Trust" score={analysis.scores.trust} />
-          <Meter label="Passion" score={analysis.scores.passion} />
-        </div>
-        <div
-          style={{
-            padding: "0.72rem",
-            borderRadius: 14,
-            background: "rgba(255,255,255,0.035)",
-            border: "1px solid rgba(255,255,255,0.07)",
-          }}
-        >
-          <Meter label="Purpose Alignment" score={analysis.scores.purpose} />
-          <Meter label="Growth Potential" score={analysis.scores.growth} />
-          <Meter label="Longevity" score={analysis.scores.longevity} />
-          <Meter label="Conflict Recovery" score={analysis.scores.recovery} />
-        </div>
-      </div>
-      <StoryCard title="Overall Essence" text={analysis.essence} />
-      <StoryCard
-        title="Emotional Chemistry"
-        text={analysis.sections.emotional}
-      />
-      <StoryCard title="Mental Compatibility" text={analysis.sections.mental} />
-      <StoryCard
-        title="Life Purpose Alignment"
-        text={analysis.sections.purpose}
-      />
-      <StoryCard
-        title="Conflict Pattern"
-        text={analysis.sections.conflict}
-        tone="rose"
-      />
-      <StoryCard
-        title="Missing Energy Completion"
-        text={analysis.sections.missingEnergy}
-      />
-      <StoryCard
-        title="Hidden Strengths"
-        text={analysis.sections.hiddenStrength}
-      />
-      <StoryCard
-        title="Current Personal-Year Climate"
-        text={analysis.sections.timing}
-        tone="violet"
-      />
-      <div style={{ margin: "0.9rem 0" }}>
-        <div
-          style={{
-            fontFamily: "'Cinzel',serif",
-            color: "#d4af37",
-            fontSize: "0.62rem",
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            marginBottom: "0.55rem",
-          }}
-        >
-          Relationship Timeline
-        </div>
-        <div style={{ display: "grid", gap: "0.55rem" }}>
-          {analysis.timeline.map((t) => (
-            <div
-              key={t.title}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1.2rem 1fr",
-                gap: "0.5rem",
-              }}
-            >
-              <div
-                style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: "50%",
-                  marginTop: 5,
-                  background:
-                    t.tone === "rose"
-                      ? "#fb7185"
-                      : t.tone === "green"
-                        ? "#86efac"
-                        : t.tone === "violet"
-                          ? "#a78bfa"
-                          : "#d4af37",
-                  boxShadow: "0 0 12px currentColor",
-                }}
-              />
-              <div
-                style={{
-                  padding: "0.62rem 0.7rem",
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  background: "rgba(255,255,255,0.035)",
-                }}
-              >
-                <b
-                  style={{
-                    color: "rgba(248,250,252,0.9)",
-                    fontSize: "0.76rem",
-                  }}
-                >
-                  {t.title}
-                </b>
-                <p
-                  style={{
-                    margin: "0.25rem 0 0",
-                    color: "rgba(231,221,255,0.76)",
-                    fontSize: "0.72rem",
-                    lineHeight: 1.55,
-                  }}
-                >
-                  {t.text}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <StoryCard title="Future Evolution" text={analysis.sections.future} />
-      <StoryCard title="Advice" text={analysis.sections.advice} tone="green" />
-      <StoryCard title="Final Synthesis" text={analysis.sections.final} />
-      <ExtendedResonanceLayers report={resonance} />
-      <EvidenceList evidence={analysis.evidence} />
+      <JohariCompatibilitySection report={resonance} />
+      <CombinedWeatherCard report={resonance} />
+      <ChineseZodiacCompatTextCard report={resonance} />
+      <NewAstrologyCompatCard report={resonance} />
     </Panel>
   );
 }
@@ -2242,13 +2257,19 @@ function JohariPairCard({
 }) {
   if (!compat) return null;
   const color = barColor(compat.rating * 10);
+  const fullText = `${compat.nature} Advice: ${compat.advice}`;
+  const sentences = React.useMemo(() => {
+    const matches = fullText.match(/[^.!?\n]+[.!?\n]+/g);
+    return matches || [fullText];
+  }, [fullText]);
+  const [, setActiveSentenceIndex] = React.useState(-1);
   return (
     <div
       style={{
-        padding: "0.72rem",
+        padding: "0.72rem 0.78rem",
         borderRadius: 14,
-        background: "rgba(255,255,255,0.035)",
-        border: "1px solid rgba(255,255,255,0.07)",
+        border: "1px solid rgba(212,175,55,0.22)",
+        background: "rgba(212,175,55,0.06)",
         marginBottom: "0.62rem",
       }}
     >
@@ -2256,59 +2277,76 @@ function JohariPairCard({
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
-          gap: "0.6rem",
-          marginBottom: "0.45rem",
+          alignItems: "flex-start",
+          gap: "0.5rem",
+          marginBottom: "0.35rem",
         }}
       >
-        <div
-          style={{
-            fontFamily: "'Cinzel',serif",
-            fontSize: "0.62rem",
-            color: "#d4af37",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-          }}
-        >
-          {label}
+        <div style={{ flex: 1 }}>
+          <div
+            style={{
+              fontFamily: "'Cinzel',serif",
+              fontSize: "0.58rem",
+              color: "#d4af37",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              fontWeight: 800,
+              paddingTop: "0.15rem",
+            }}
+          >
+            {label}
+          </div>
+          {explanation && (
+            <div
+              style={{
+                fontSize: "0.62rem",
+                color: "rgba(200,180,240,0.48)",
+                marginTop: 2,
+              }}
+            >
+              {explanation}
+            </div>
+          )}
         </div>
-        <div
-          style={{
-            fontFamily: "'Cinzel',serif",
-            fontSize: "1rem",
-            fontWeight: 800,
-            color,
-          }}
-        >
-          {compat.rating}/10
+        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexShrink: 0 }}>
+          <div
+            style={{
+              fontFamily: "'Cinzel',serif",
+              fontSize: "1rem",
+              fontWeight: 800,
+              color,
+            }}
+          >
+            {compat.rating}/10
+          </div>
+          <SpeechPlayer
+            text={fullText}
+            sentences={sentences}
+            onBoundary={setActiveSentenceIndex}
+            onEnd={() => setActiveSentenceIndex(-1)}
+          />
         </div>
       </div>
-      {explanation && (
+      <div
+        style={{
+          color: "rgba(231,221,255,0.82)",
+          fontSize: "0.76rem",
+          lineHeight: 1.65,
+        }}
+      >
+        <p style={{ margin: "0 0 0.38rem" }}>{compat.nature}</p>
         <p
           style={{
-            fontSize: "0.64rem",
-            color: "rgba(200,180,240,0.52)",
-            margin: "0 0 0.42rem",
+            fontSize: "0.68rem",
+            color: "rgba(200,180,240,0.65)",
+            fontStyle: "italic",
+            margin: 0,
             lineHeight: 1.5,
           }}
         >
-          {explanation}
+          Advice: {compat.advice}
         </p>
-      )}
-      <p style={{ fontSize: "0.73rem", color: "rgba(231,221,255,0.82)", lineHeight: 1.6, margin: "0 0 0.38rem" }}>
-        {compat.nature}
-      </p>
-      <p
-        style={{
-          fontSize: "0.68rem",
-          color: "rgba(200,180,240,0.65)",
-          fontStyle: "italic",
-          margin: 0,
-          lineHeight: 1.5,
-        }}
-      >
-        Advice: {compat.advice}
-      </p>
+      </div>
     </div>
   );
 }
@@ -2323,21 +2361,20 @@ function JohariCompatibilitySection({ report }: { report: SoulResonanceReport })
     v === "Friendly" ? "#86efac" : v === "Enemy" ? "#fb7185" : "#c4b5fd";
 
   return (
-    <details style={{ marginBottom: "0.9rem" }}>
-      <summary
+    <div style={{ marginBottom: "0.9rem" }}>
+      <div
         style={{
-          cursor: "pointer",
-          color: "#d4af37",
           fontFamily: "'Cinzel',serif",
           fontSize: "0.62rem",
-          letterSpacing: "0.1em",
+          letterSpacing: "0.12em",
           textTransform: "uppercase",
+          color: "#d4af37",
           marginBottom: "0.55rem",
         }}
       >
         Johari Compatibility (Harish Johari)
-      </summary>
-      <div style={{ marginTop: "0.7rem" }}>
+      </div>
+      <div>
         {/* Profile pills */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", marginBottom: "0.7rem" }}>
           {[
@@ -2425,7 +2462,7 @@ function JohariCompatibilitySection({ report }: { report: SoulResonanceReport })
           ))}
         </div>
 
-        {/* Friend/enemy view */}
+        {/* Friend/enemy view — multi-dimensional */}
         <div
           style={{
             padding: "0.62rem 0.7rem",
@@ -2445,28 +2482,108 @@ function JohariCompatibilitySection({ report }: { report: SoulResonanceReport })
               marginBottom: "0.42rem",
             }}
           >
-            Friend / Enemy View
+            Friend / Enemy View — Johari Number Relations
           </div>
-          <p style={{ margin: "0.18rem 0", fontSize: "0.71rem", color: "rgba(231,221,255,0.8)" }}>
-            {aName} sees {bName}:{" "}
-            <b style={{ color: viewColor(jc.aViewOfB) }}>{jc.aViewOfB}</b>
-          </p>
-          <p style={{ margin: "0.18rem 0", fontSize: "0.71rem", color: "rgba(231,221,255,0.8)" }}>
-            {bName} sees {aName}:{" "}
-            <b style={{ color: viewColor(jc.bViewOfA) }}>{jc.bViewOfA}</b>
-          </p>
-          {jc.aViewOfB !== jc.bViewOfA && (
-            <p
+
+          {/* Composite verdict */}
+          <div
+            style={{
+              padding: "0.42rem 0.55rem",
+              borderRadius: 10,
+              background: jc.compositeVerdict.includes("Friendly")
+                ? "rgba(134,239,172,0.08)"
+                : jc.compositeVerdict.includes("Tense")
+                  ? "rgba(251,113,133,0.08)"
+                  : "rgba(196,181,253,0.08)",
+              border: `1px solid ${
+                jc.compositeVerdict.includes("Friendly")
+                  ? "rgba(134,239,172,0.22)"
+                  : jc.compositeVerdict.includes("Tense")
+                    ? "rgba(251,113,133,0.22)"
+                    : "rgba(196,181,253,0.22)"
+              }`,
+              marginBottom: "0.55rem",
+            }}
+          >
+            <div
               style={{
-                margin: "0.4rem 0 0",
-                fontSize: "0.65rem",
-                color: "rgba(200,180,240,0.55)",
-                fontStyle: "italic",
+                fontFamily: "'Cinzel',serif",
+                fontSize: "0.62rem",
+                fontWeight: 800,
+                color: jc.compositeVerdict.includes("Friendly")
+                  ? "#86efac"
+                  : jc.compositeVerdict.includes("Tense")
+                    ? "#fb7185"
+                    : "#c4b5fd",
+                letterSpacing: "0.06em",
               }}
             >
-              Asymmetric perception — one sees friendship while the other feels tension. Worth naming openly.
+              {jc.compositeVerdict}
+            </div>
+            <p style={{ margin: "0.3rem 0 0", fontSize: "0.65rem", color: "rgba(231,221,255,0.78)", lineHeight: 1.5 }}>
+              {jc.compositeExplanation}
             </p>
-          )}
+          </div>
+
+          {/* Per-dimension grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              gap: "0.35rem",
+              fontSize: "0.64rem",
+            }}
+          >
+            <div style={{ textAlign: "center", color: "rgba(200,180,240,0.45)", fontSize: "0.54rem", fontFamily: "'Cinzel',serif", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              Psychic (Day)
+            </div>
+            <div style={{ textAlign: "center", color: "rgba(200,180,240,0.45)", fontSize: "0.54rem", fontFamily: "'Cinzel',serif", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              Destiny (Name)
+            </div>
+            <div style={{ textAlign: "center", color: "rgba(200,180,240,0.45)", fontSize: "0.54rem", fontFamily: "'Cinzel',serif", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              Life Path (Total)
+            </div>
+
+            <div style={{ textAlign: "center", padding: "0.3rem 0.15rem", borderRadius: 8, background: "rgba(255,255,255,0.04)" }}>
+              <b style={{ color: viewColor(jc.aPsychicViewOfBPsychic) }}>{jc.aPsychicViewOfBPsychic}</b>
+            </div>
+            <div style={{ textAlign: "center", padding: "0.3rem 0.15rem", borderRadius: 8, background: "rgba(255,255,255,0.04)" }}>
+              <b style={{ color: viewColor(jc.aDestinyViewOfBDestiny) }}>{jc.aDestinyViewOfBDestiny}</b>
+            </div>
+            <div style={{ textAlign: "center", padding: "0.3rem 0.15rem", borderRadius: 8, background: "rgba(255,255,255,0.04)" }}>
+              <b style={{ color: viewColor(jc.aLifePathViewOfBLifePath) }}>{jc.aLifePathViewOfBLifePath}</b>
+            </div>
+
+            <div style={{ textAlign: "center", color: "rgba(200,180,240,0.35)", fontSize: "0.52rem" }}>
+              {aName} → {bName}
+            </div>
+            <div style={{ textAlign: "center", color: "rgba(200,180,240,0.35)", fontSize: "0.52rem" }}>
+              {reduceSingle(report.soulA.destiny)} → {reduceSingle(report.soulB.destiny)}
+            </div>
+            <div style={{ textAlign: "center", color: "rgba(200,180,240,0.35)", fontSize: "0.52rem" }}>
+              {reduceSingle(report.soulA.lifePath)} → {reduceSingle(report.soulB.lifePath)}
+            </div>
+
+            <div style={{ textAlign: "center", padding: "0.3rem 0.15rem", borderRadius: 8, background: "rgba(255,255,255,0.04)" }}>
+              <b style={{ color: viewColor(jc.bPsychicViewOfAPsychic) }}>{jc.bPsychicViewOfAPsychic}</b>
+            </div>
+            <div style={{ textAlign: "center", padding: "0.3rem 0.15rem", borderRadius: 8, background: "rgba(255,255,255,0.04)" }}>
+              <b style={{ color: viewColor(jc.bDestinyViewOfADestiny) }}>{jc.bDestinyViewOfADestiny}</b>
+            </div>
+            <div style={{ textAlign: "center", padding: "0.3rem 0.15rem", borderRadius: 8, background: "rgba(255,255,255,0.04)" }}>
+              <b style={{ color: viewColor(jc.bLifePathViewOfALifePath) }}>{jc.bLifePathViewOfALifePath}</b>
+            </div>
+
+            <div style={{ textAlign: "center", color: "rgba(200,180,240,0.35)", fontSize: "0.52rem" }}>
+              {bName} → {aName}
+            </div>
+            <div style={{ textAlign: "center", color: "rgba(200,180,240,0.35)", fontSize: "0.52rem" }}>
+              {reduceSingle(report.soulB.destiny)} → {reduceSingle(report.soulA.destiny)}
+            </div>
+            <div style={{ textAlign: "center", color: "rgba(200,180,240,0.35)", fontSize: "0.52rem" }}>
+              {reduceSingle(report.soulB.lifePath)} → {reduceSingle(report.soulA.lifePath)}
+            </div>
+          </div>
         </div>
 
         {/* Pair readings */}
@@ -2491,7 +2608,7 @@ function JohariCompatibilitySection({ report }: { report: SoulResonanceReport })
           explanation={`How ${bName}'s personality meets ${aName}'s life purpose.`}
         />
       </div>
-    </details>
+    </div>
   );
 }
 
@@ -2632,6 +2749,366 @@ function CombinedWeatherCard({ report }: { report: SoulResonanceReport }) {
   );
 }
 
+// ── Chinese Zodiac Compatibility Text Card ────────────────────────
+// Renders the full verbatim Suzanne White paragraph for the Chinese
+// zodiac animal pair, with SpeechPlayer for read-aloud support.
+function ChineseZodiacCompatTextCard({ report }: { report: SoulResonanceReport }) {
+  const text = report.chineseZodiacCompatText;
+  if (!text) return null;
+
+  const aAnimal = report.soulA.zodiacAnimal;
+  const bAnimal = report.soulB.zodiacAnimal;
+  const relationLabel = ZODIAC_RELATION_LABELS[report.chineseZodiac.relation] || report.chineseZodiac.relation;
+
+  // Sentence-splitting for SpeechPlayer pacing
+  const sentences = React.useMemo(() => {
+    if (!text) return [""];
+    const matches = text.match(/[^.!?\n]+[.!?\n]+/g);
+    return matches || [text];
+  }, [text]);
+  const [, setActiveSentenceIndex] = React.useState(-1);
+
+  return (
+    <div
+      style={{
+        padding: "0.82rem 0.88rem",
+        borderRadius: 14,
+        background: "rgba(212,175,55,0.06)",
+        border: "1px solid rgba(212,175,55,0.22)",
+        marginBottom: "0.7rem",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: "0.5rem",
+          marginBottom: "0.35rem",
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <div
+            style={{
+              fontFamily: "'Cinzel',serif",
+              fontSize: "0.58rem",
+              color: "#d4af37",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              fontWeight: 800,
+            }}
+          >
+            Chinese Zodiac Bond — {aAnimal} × {bAnimal}
+          </div>
+          <span
+            style={{
+              fontSize: "0.54rem",
+              padding: "0.14rem 0.42rem",
+              borderRadius: 99,
+              background: "rgba(212,175,55,0.14)",
+              color: "#f1d98a",
+              border: "1px solid rgba(212,175,55,0.28)",
+              marginLeft: "0.15rem",
+            }}
+          >
+            {relationLabel}
+          </span>
+        </div>
+        <SpeechPlayer
+          text={text}
+          sentences={sentences}
+          onBoundary={setActiveSentenceIndex}
+          onEnd={() => setActiveSentenceIndex(-1)}
+        />
+      </div>
+      <div
+        style={{
+          color: "rgba(231,221,255,0.82)",
+          fontSize: "0.76rem",
+          lineHeight: 1.65,
+        }}
+      >
+        {text}
+      </div>
+    </div>
+  );
+}
+
+// ── New Astrology (Western/Chinese) Compatibility Card ────────────
+// Renders both Suzanne White compat paragraphs and structured
+// ♥ appreciation / ⚡ dissatisfaction indicators, with SpeechPlayer
+// for read-aloud support on each paragraph.
+function NewAstrologyCompatCard({ report }: { report: SoulResonanceReport }) {
+  const na = report.newAstrologyCompat;
+  if (!na) return null;
+
+  const aSign = report.soulA.combinedSign;
+  const bSign = report.soulB.combinedSign;
+  const aName = report.soulA.name;
+  const bName = report.soulB.name;
+
+  // Sentence-splitting for both paragraphs
+  const aSentences = React.useMemo(() => {
+    if (!na.aCompatText) return [""];
+    const matches = na.aCompatText.match(/[^.!?\n]+[.!?\n]+/g);
+    return matches || [na.aCompatText];
+  }, [na.aCompatText]);
+  const [, setAActiveSentence] = React.useState(-1);
+
+  const bSentences = React.useMemo(() => {
+    if (!na.bCompatText) return [""];
+    const matches = na.bCompatText.match(/[^.!?\n]+[.!?\n]+/g);
+    return matches || [na.bCompatText];
+  }, [na.bCompatText]);
+  const [, setBActiveSentence] = React.useState(-1);
+
+  const indicatorStyle = (
+    match: boolean,
+    type: "appreciation" | "dissatisfaction",
+  ): React.CSSProperties => ({
+    fontSize: "0.58rem",
+    padding: "0.14rem 0.42rem",
+    borderRadius: 99,
+    background: match
+      ? type === "appreciation"
+        ? "rgba(134,239,172,0.14)"
+        : "rgba(251,113,133,0.14)"
+      : "rgba(255,255,255,0.04)",
+    color: match
+      ? type === "appreciation"
+        ? "#86efac"
+        : "#fb7185"
+      : "rgba(200,180,240,0.45)",
+    border: `1px solid ${
+      match
+        ? type === "appreciation"
+          ? "rgba(134,239,172,0.28)"
+          : "rgba(251,113,133,0.28)"
+        : "rgba(255,255,255,0.08)"
+    }`,
+  });
+
+  return (
+    <div
+      style={{
+        padding: "0.82rem 0.88rem",
+        borderRadius: 14,
+        background: "linear-gradient(135deg, rgba(103,232,249,0.06), rgba(196,181,253,0.08))",
+        border: "1px solid rgba(103,232,249,0.18)",
+        marginBottom: "0.7rem",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "'Cinzel',serif",
+          fontSize: "0.58rem",
+          color: "#67e8f9",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          fontWeight: 800,
+          marginBottom: "0.55rem",
+        }}
+      >
+        Western / Chinese Compatibility (Suzanne White — New Astrology)
+      </div>
+
+      {/* A's compat paragraph */}
+      {na.aCompatText && (
+        <div
+          style={{
+            padding: "0.65rem 0.72rem",
+            borderRadius: 13,
+            background: "rgba(255,255,255,0.035)",
+            border: "1px solid rgba(167,139,250,0.16)",
+            marginBottom: "0.62rem",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: "0.5rem",
+              marginBottom: "0.35rem",
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  fontFamily: "'Cinzel',serif",
+                  fontSize: "0.56rem",
+                  color: "#c4b5fd",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  fontWeight: 800,
+                }}
+              >
+                {aName} ({aSign}) — Compatibility Outlook
+              </div>
+            </div>
+            <SpeechPlayer
+              text={na.aCompatText}
+              sentences={aSentences}
+              onBoundary={setAActiveSentence}
+              onEnd={() => setAActiveSentence(-1)}
+            />
+          </div>
+
+          {/* Appreciation / Dissatisfaction indicators */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.32rem",
+              marginBottom: "0.45rem",
+            }}
+          >
+            <span style={indicatorStyle(na.aAppreciationOfB.westernSignMatch, "appreciation")}>
+              ♥ {na.aAppreciationOfB.westernSignMatch ? `${report.soulB.westernSign} appreciated` : `${report.soulB.westernSign} not recommended`}
+            </span>
+            <span style={indicatorStyle(na.aAppreciationOfB.chineseAnimalMatch, "appreciation")}>
+              ♥ {na.aAppreciationOfB.chineseAnimalMatch ? `${report.soulB.zodiacAnimal} appreciated` : `${report.soulB.zodiacAnimal} not recommended`}
+            </span>
+            <span style={indicatorStyle(na.aDissatisfactionWithB.westernSignMatch, "dissatisfaction")}>
+              ⚡ {na.aDissatisfactionWithB.westernSignMatch ? `${report.soulB.westernSign} cautioned` : `${report.soulB.westernSign} no caution`}
+            </span>
+            <span style={indicatorStyle(na.aDissatisfactionWithB.chineseAnimalMatch, "dissatisfaction")}>
+              ⚡ {na.aDissatisfactionWithB.chineseAnimalMatch ? `${report.soulB.zodiacAnimal} cautioned` : `${report.soulB.zodiacAnimal} no caution`}
+            </span>
+            {na.aAppreciationOfB.combinedSignMatch && (
+              <span style={{ ...indicatorStyle(true, "appreciation"), fontWeight: 800, border: "1px solid rgba(134,239,172,0.55)" }}>
+                ★ {report.soulB.westernSign}/{report.soulB.zodiacAnimal} exact pairing recommended
+              </span>
+            )}
+            {na.aDissatisfactionWithB.combinedSignMatch && (
+              <span style={{ ...indicatorStyle(true, "dissatisfaction"), fontWeight: 800, border: "1px solid rgba(251,113,133,0.55)" }}>
+                ★ {report.soulB.westernSign}/{report.soulB.zodiacAnimal} exact pairing cautioned
+              </span>
+            )}
+          </div>
+
+          {/* Detailed explanation */}
+          <div style={{ fontSize: "0.64rem", color: "rgba(200,180,240,0.65)", lineHeight: 1.5, marginBottom: "0.35rem", fontStyle: "italic" }}>
+            {na.aAppreciationOfB.details}
+          </div>
+          <div style={{ fontSize: "0.64rem", color: "rgba(200,180,240,0.65)", lineHeight: 1.5, fontStyle: "italic" }}>
+            {na.aDissatisfactionWithB.details}
+          </div>
+
+          {/* Full compat text */}
+          <div
+            style={{
+              color: "rgba(231,221,255,0.78)",
+              fontSize: "0.72rem",
+              lineHeight: 1.6,
+              marginTop: "0.35rem",
+            }}
+          >
+            {na.aCompatText}
+          </div>
+        </div>
+      )}
+
+      {/* B's compat paragraph */}
+      {na.bCompatText && (
+        <div
+          style={{
+            padding: "0.65rem 0.72rem",
+            borderRadius: 13,
+            background: "rgba(255,255,255,0.035)",
+            border: "1px solid rgba(103,232,249,0.16)",
+            marginBottom: "0.62rem",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: "0.5rem",
+              marginBottom: "0.35rem",
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  fontFamily: "'Cinzel',serif",
+                  fontSize: "0.56rem",
+                  color: "#67e8f9",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  fontWeight: 800,
+                }}
+              >
+                {bName} ({bSign}) — Compatibility Outlook
+              </div>
+            </div>
+            <SpeechPlayer
+              text={na.bCompatText}
+              sentences={bSentences}
+              onBoundary={setBActiveSentence}
+              onEnd={() => setBActiveSentence(-1)}
+            />
+          </div>
+
+          {/* Appreciation / Dissatisfaction indicators */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.32rem",
+              marginBottom: "0.45rem",
+            }}
+          >
+            <span style={indicatorStyle(na.bAppreciationOfA.westernSignMatch, "appreciation")}>
+              ♥ {na.bAppreciationOfA.westernSignMatch ? `${report.soulA.westernSign} appreciated` : `${report.soulA.westernSign} not recommended`}
+            </span>
+            <span style={indicatorStyle(na.bAppreciationOfA.chineseAnimalMatch, "appreciation")}>
+              ♥ {na.bAppreciationOfA.chineseAnimalMatch ? `${report.soulA.zodiacAnimal} appreciated` : `${report.soulA.zodiacAnimal} not recommended`}
+            </span>
+            <span style={indicatorStyle(na.bDissatisfactionWithA.westernSignMatch, "dissatisfaction")}>
+              ⚡ {na.bDissatisfactionWithA.westernSignMatch ? `${report.soulA.westernSign} cautioned` : `${report.soulA.westernSign} no caution`}
+            </span>
+            <span style={indicatorStyle(na.bDissatisfactionWithA.chineseAnimalMatch, "dissatisfaction")}>
+              ⚡ {na.bDissatisfactionWithA.chineseAnimalMatch ? `${report.soulA.zodiacAnimal} cautioned` : `${report.soulA.zodiacAnimal} no caution`}
+            </span>
+            {na.bAppreciationOfA.combinedSignMatch && (
+              <span style={{ ...indicatorStyle(true, "appreciation"), fontWeight: 800, border: "1px solid rgba(134,239,172,0.55)" }}>
+                ★ {report.soulA.westernSign}/{report.soulA.zodiacAnimal} exact pairing recommended
+              </span>
+            )}
+            {na.bDissatisfactionWithA.combinedSignMatch && (
+              <span style={{ ...indicatorStyle(true, "dissatisfaction"), fontWeight: 800, border: "1px solid rgba(251,113,133,0.55)" }}>
+                ★ {report.soulA.westernSign}/{report.soulA.zodiacAnimal} exact pairing cautioned
+              </span>
+            )}
+          </div>
+
+          {/* Detailed explanation */}
+          <div style={{ fontSize: "0.64rem", color: "rgba(200,180,240,0.65)", lineHeight: 1.5, marginBottom: "0.35rem", fontStyle: "italic" }}>
+            {na.bAppreciationOfA.details}
+          </div>
+          <div style={{ fontSize: "0.64rem", color: "rgba(200,180,240,0.65)", lineHeight: 1.5, fontStyle: "italic" }}>
+            {na.bDissatisfactionWithA.details}
+          </div>
+
+          {/* Full compat text */}
+          <div
+            style={{
+              color: "rgba(231,221,255,0.78)",
+              fontSize: "0.72rem",
+              lineHeight: 1.6,
+              marginTop: "0.35rem",
+            }}
+          >
+            {na.bCompatText}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ExtendedResonanceLayers({ report }: { report: SoulResonanceReport }) {
   const psycho = report.psychomatrixComparison;
   return (
@@ -2672,8 +3149,6 @@ function ExtendedResonanceLayers({ report }: { report: SoulResonanceReport }) {
         title="Alexandrov Psychomatrix Comparison"
         text={[psycho.willpower, psycho.energy, psycho.stability, psycho.purpose, psycho.family, psycho.habits].join(" ")}
       />
-      <JohariCompatibilitySection report={report} />
-      <CombinedWeatherCard report={report} />
       {report.famousTwins.length > 0 && (
         <StoryCard
           title="Cosmic Twins"
