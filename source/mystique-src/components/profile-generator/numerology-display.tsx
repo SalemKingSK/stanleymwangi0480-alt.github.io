@@ -88,6 +88,34 @@ function PersonalYearProbabilityGraph({ items }: { items?: string[] }) {
   );
 }
 
+function FocusChips({ items }: { items?: string[] }) {
+  if (!items?.length) return null;
+  const hasPercent = items.some(i => /\d+%/.test(i));
+  if (hasPercent) return <PersonalYearProbabilityGraph items={items} />;
+  return (
+    <div style={{ margin: "0.7rem 0 1rem", display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+      {items.map((label, idx) => (
+        <span
+          key={`${label}-${idx}`}
+          style={{
+            fontSize: "0.65rem",
+            lineHeight: 1.4,
+            padding: "0.35rem 0.65rem",
+            borderRadius: 999,
+            background: "rgba(212,175,55,0.10)",
+            border: "1px solid rgba(212,175,55,0.22)",
+            color: "rgba(241,217,138,0.92)",
+            fontFamily: "'Cinzel',serif",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 function reduceNum(n: number): number {
   let val = Math.abs(n);
@@ -1106,7 +1134,7 @@ export function NumerologyDisplay({
                           </span>
                         )}
                       </div>
-                      <PersonalYearProbabilityGraph items={selectedPersonalYear.predictionFocusAreas} />
+                      <FocusChips items={selectedPersonalYear.predictionFocusAreas} />
                       <AccordionContentWithPlayer
                         text={selectedPersonalYear.dualEssenceSynthesis}
                       />

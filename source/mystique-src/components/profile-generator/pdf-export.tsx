@@ -1452,7 +1452,7 @@ Johari growth-tension dates: ${timingGuidance.johariGrowthDates.join(", ") || "�
       doc.setFontSize(9);
       doc.setTextColor(RED[0], RED[1], RED[2]);
       doc.text(
-        `Debt Number ${kd.number} — ${kd.title} [Found in: ${kd.sources.join(", ")}]`,
+        `Debt Number ${kd.number} — ${kd.title} [Found in: ${(kd.sources ?? []).join(", ")}]`,
         margin + 2,
         y,
       );

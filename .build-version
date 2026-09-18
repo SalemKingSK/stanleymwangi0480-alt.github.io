@@ -1,2 +1,2 @@
-# Build v88 — ROLLBACK: the v72 app (before any football work) plus the club founding dates only.
-# No Match Oracle, no ball icon, no predictions, no data/ directory.
+# Build v90 — deploy-merge: upstream v88 + fork essenceBridge + pnpm catalog fix + mystique-src build
+20260918105908
