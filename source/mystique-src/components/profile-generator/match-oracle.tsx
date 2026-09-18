@@ -441,18 +441,23 @@ export function MatchOraclePanel({ onClose }: { onClose?: () => void }) {
             </button>
             {showCalibration && (
               <div style={{ marginTop: "0.5rem" }}>
-                <div style={{ ...MUTED, color: "#f1d98a", fontWeight: 700 }}>{CALIBRATION.headline}</div>
-                <div style={{ ...MUTED, marginTop: "0.4rem" }}>
-                  Tested on {CALIBRATION.matches.toLocaleString()} matches ({CALIBRATION.span}); train {CALIBRATION.trainN.toLocaleString()}, test {CALIBRATION.testN.toLocaleString()}.
-                  Base rates — train: home {CALIBRATION.baseRates.train.home}% / draw {CALIBRATION.baseRates.train.draw}% / away {CALIBRATION.baseRates.train.away}%;
-                  test: home {CALIBRATION.baseRates.test.home}% / draw {CALIBRATION.baseRates.test.draw}% / away {CALIBRATION.baseRates.test.away}%.
-                  Signatures swept: {CALIBRATION.signaturesTested}. Survivors that replicated out of sample: {CALIBRATION.survivors}.
-                </div>
-                <ul style={{ margin: "0.5rem 0 0 1rem", padding: 0 }}>
-                  {CALIBRATION.detail.map((d, i) => (
-                    <li key={i} style={{ ...MUTED, marginBottom: "0.32rem" }}>{d}</li>
-                  ))}
-                </ul>
+                {CALIBRATION.studies.map((s) => (
+                  <div key={s.name} style={{ marginBottom: "0.7rem" }}>
+                    <div style={{ ...MUTED, color: "#f1d98a", fontWeight: 700 }}>{s.name}</div>
+                    <div style={{ ...MUTED, marginTop: "0.25rem" }}>
+                      {s.matches.toLocaleString()} matches ({s.span}) · train {s.trainN.toLocaleString()} · test {s.testN.toLocaleString()}.
+                      Base rates — train: home {s.baseRates.train.home}%{s.baseRates.train.draw ? ` / draw ${s.baseRates.train.draw}% / away ${s.baseRates.train.away}%` : ""};
+                      test: home {s.baseRates.test.home}%{s.baseRates.test.draw ? ` / draw ${s.baseRates.test.draw}% / away ${s.baseRates.test.away}%` : ""}.
+                      Signatures swept: {s.signaturesTested.toLocaleString()} · survivors replicating out of sample: {s.survivors}.
+                    </div>
+                    <div style={{ ...MUTED, marginTop: "0.3rem", color: "#f1d98a" }}>{s.headline}</div>
+                    <ul style={{ margin: "0.35rem 0 0 1rem", padding: 0 }}>
+                      {s.detail.map((d, i) => (
+                        <li key={i} style={{ ...MUTED, marginBottom: "0.32rem" }}>{d}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
                 <div style={{ ...MUTED, marginTop: "0.45rem", color: "rgba(241,217,138,0.85)" }}>{CALIBRATION.conclusion}</div>
               </div>
             )}

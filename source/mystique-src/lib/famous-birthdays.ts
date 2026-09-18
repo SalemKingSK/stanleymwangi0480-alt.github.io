@@ -5,6 +5,8 @@ export interface FamousPerson {
   year: number;
   gender: 'male' | 'female' | 'other';
   tags: string[];
+  /** alternate spellings (league name, Wikidata label, common English name) that resolve here */
+  aliases?: string[];
 }
 
 export const famousBirthdays: FamousPerson[] = [

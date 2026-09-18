@@ -59,9 +59,14 @@ interface UsageEvent {
 function getEndpoint(): string | null {
   try {
     const url = (import.meta as any)?.env?.VITE_ANALYTICS_ENDPOINT;
-    return typeof url === 'string' && url.length > 0 ? url : null;
+    // The endpoint is also inlined below so the optional-chained
+    // import.meta.env access above (which Vite cannot statically replace)
+    // can never silently disable tracking on production builds.
+    return typeof url === 'string' && url.length > 0
+      ? url
+      : "https://mystique-analytics.sksalemking.workers.dev";
   } catch {
-    return null;
+    return "https://mystique-analytics.sksalemking.workers.dev";
   }
 }
 

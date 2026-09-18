@@ -107,6 +107,7 @@ export interface DailyForecast {
 export interface TemporalPredictionV2 {
   meta: {
     birthDate: string;
+    essencePolarity?: string;
     currentYear: number;
     currentMonth: number;
     currentAge: number;

@@ -226,8 +226,6 @@ export interface FixtureDossier {
     dayVsAway: Relation;
     homeDayVsFoundingDay: Relation;
     awayDayVsFoundingDay: Relation;
-    homeDayVsName: Relation;
-    awayDayVsName: Relation;
   };
 }
 

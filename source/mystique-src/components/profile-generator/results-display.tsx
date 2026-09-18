@@ -49,7 +49,6 @@ import {
   X,
   CalendarDays,
   Bell,
-  Users,
 } from "lucide-react";
 import { AccordionContentWithPlayer } from "./accordion-content-with-player";
 import { MatchOraclePanel } from "./match-oracle";

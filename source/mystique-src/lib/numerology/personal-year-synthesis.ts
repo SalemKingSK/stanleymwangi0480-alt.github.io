@@ -698,8 +698,8 @@ function buildWovenSynthesis(
     precedents.push(`${ordinal[i]} ${c.person}'s ${c.year} (${casePair}${pairTag}): on the surface, ${what}; underneath, the blueprint paid it out as ${outcomeWord} — ${lesson}`);
   });
   const strongOutcomes = new Set(strong.map(c => c.outcome));
-  const hasPositive = ['triumph', 'legacy'].some(o => strongOutcomes.has(o));
-  const hasNegative = ['loss', 'mixed'].some(o => strongOutcomes.has(o));
+  const hasPositive = (['triumph', 'legacy'] as const).some(o => strongOutcomes.has(o));
+  const hasNegative = (['loss', 'mixed'] as const).some(o => strongOutcomes.has(o));
   const bothSides = hasPositive && hasNegative
     ? ` Note the honesty of the record: the same pair has produced both a triumph and a reversal in real lives — the essences set the stage, but conduct decides which ending you get.`
     : '';
