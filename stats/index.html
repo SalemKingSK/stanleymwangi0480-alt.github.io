@@ -7,7 +7,6 @@
 <meta name="robots" content="noindex, nofollow" />
 <meta http-equiv="X-Content-Type-Options" content="nosniff" />
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
-<meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()" />
 <style>
   :root {
     --bg: #0e0a1a;
@@ -44,56 +43,12 @@
     margin-bottom: 1.5rem;
   }
   .container { max-width: 720px; margin: 0 auto; }
-  .setup-card, .panel {
+  .panel {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 1.25rem;
     margin-bottom: 1rem;
-  }
-  .setup-card label {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--text-dim);
-    margin-bottom: 0.3rem;
-    margin-top: 0.75rem;
-  }
-  .setup-card input {
-    width: 100%;
-    padding: 0.6rem 0.75rem;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: #120c22;
-    color: var(--text);
-    font-size: 0.85rem;
-  }
-  button {
-    margin-top: 1rem;
-    width: 100%;
-    padding: 0.65rem;
-    border-radius: 10px;
-    border: none;
-    background: var(--gold);
-    color: #1a1330;
-    font-weight: 700;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: opacity 0.2s;
-  }
-  button:hover { opacity: 0.9; }
-  button.secondary {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    width: auto;
-    padding: 0.4rem 0.9rem;
-    font-weight: 500;
-    margin-top: 0;
-  }
-  button.danger {
-    background: var(--danger);
-    color: #fff;
-    margin-top: 0.5rem;
   }
   .top-bar {
     display: flex;
@@ -103,6 +58,18 @@
     flex-wrap: wrap;
     gap: 0.5rem;
   }
+  button.refresh {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 0.4rem 0.9rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  button.refresh:hover { opacity: 0.8; }
   .stat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -151,13 +118,9 @@
   }
   .bar-row .bar-fill { height: 100%; background: var(--gold); border-radius: 4px; }
   .bar-row .bar-count { width: 34px; text-align: right; color: var(--text-dim); }
-  .error { color: var(--danger); font-size: 0.8rem; text-align: center; margin-top: 1rem; }
+  .error { color: var(--danger); font-size: 0.85rem; text-align: center; padding: 2rem 0; }
   .loading { text-align: center; color: var(--text-dim); font-size: 0.85rem; padding: 2rem 0; }
   .meta-note { font-size: 0.68rem; color: var(--text-dim); text-align: center; margin-top: 1.5rem; }
-  .lockout-msg { color: var(--danger); text-align: center; padding: 1.5rem 0; font-size: 0.9rem; }
-  .page-token-field { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-  .page-token-field label { color: var(--danger); }
-  .page-token-field input { border-color: var(--danger); }
 </style>
 </head>
 <body>
@@ -165,283 +128,111 @@
   <h1>Mystique Compass</h1>
   <div class="subtitle">Anonymous usage dashboard — no personal data collected</div>
 
-  <!-- Page-gate: only visitors with the secret page token see the dashboard -->
-  <div id="gate" class="setup-card">
-    <div id="lockout" class="lockout-msg" style="display:none;"></div>
-    <div id="gate-form">
-      <label for="pageToken">Page Access Token</label>
-      <input id="pageToken" type="password" placeholder="Enter the page access token" />
-      <button onclick="verifyPageToken()">Access Dashboard</button>
-    </div>
+  <div class="top-bar">
+    <span></span>
+    <button class="refresh" onclick="refresh()">↻ Refresh</button>
   </div>
 
-  <div id="setup" class="setup-card" style="display:none;">
-    <label for="workerUrl">Analytics Worker URL</label>
-    <input id="workerUrl" placeholder="https://mystique-analytics.your-name.workers.dev" />
-    <label for="adminKey">Admin Key</label>
-    <input id="adminKey" type="password" placeholder="the key from wrangler secret put ADMIN_KEY" />
-    <button onclick="saveConfig()">Connect</button>
-  </div>
+  <div id="loading" class="loading">Loading…</div>
+  <div id="error" class="error" style="display:none;"></div>
 
-  <div id="dashboard" style="display:none;">
-    <div class="top-bar">
-      <button class="secondary" onclick="refresh()">↻ Refresh</button>
-      <button class="secondary" onclick="resetConfig()">Change settings</button>
+  <div id="stats-content" style="display:none;">
+    <div class="panel">
+      <div class="stat-grid">
+        <div class="stat-box"><div class="num" id="s-installs">–</div><div class="label">Installs</div></div>
+        <div class="stat-box"><div class="num" id="s-sessions">–</div><div class="label">Sessions</div></div>
+        <div class="stat-box"><div class="num" id="s-shares">–</div><div class="label">Shares</div></div>
+        <div class="stat-box"><div class="num" id="s-devices">–</div><div class="label">Unique Devices</div></div>
+      </div>
     </div>
 
-    <div id="loading" class="loading">Loading…</div>
-    <div id="error" class="error" style="display:none;"></div>
-
-    <div id="stats-content" style="display:none;">
-      <div class="panel">
-        <div class="stat-grid">
-          <div class="stat-box"><div class="num" id="s-installs">–</div><div class="label">Installs</div></div>
-          <div class="stat-box"><div class="num" id="s-sessions">–</div><div class="label">Sessions</div></div>
-          <div class="stat-box"><div class="num" id="s-shares">–</div><div class="label">Shares</div></div>
-          <div class="stat-box"><div class="num" id="s-devices">–</div><div class="label">Unique Devices</div></div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2>By Country</h2>
-        <div id="country-bars"></div>
-      </div>
-
-      <div class="panel">
-        <h2>By Day (recent)</h2>
-        <div id="day-bars"></div>
-      </div>
-
-      <div class="panel">
-        <h2>Share Method</h2>
-        <div id="share-bars"></div>
-      </div>
-
-      <div class="meta-note" id="meta-note"></div>
+    <div class="panel">
+      <h2>By Country</h2>
+      <div id="country-bars"></div>
     </div>
+
+    <div class="panel">
+      <h2>By Day (recent)</h2>
+      <div id="day-bars"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Share Method</h2>
+      <div id="share-bars"></div>
+    </div>
+
+    <div class="meta-note" id="meta-note"></div>
   </div>
 </div>
 
 <script>
-  // ─── SECURITY CONFIGURATION ───
-  //
-  // PAGE_TOKEN: A secret string that gates access to this dashboard page itself.
-  // It must match what is set in Cloudflare on the mystique-analytics worker
-  // under the name PAGE_TOKEN. Changing it here requires changing it there too.
-  //
-  // The default below is intentionally invalid so the dashboard will not open
-  // until you set a real token. Replace "CHANGE_ME_IN_CLOUDFLARE_AND_HERE" with
-  // a long random string (at least 32 characters recommended).
-  const PAGE_TOKEN = 'CHANGE_ME_IN_CLOUDFLARE_AND_HERE';
-
-  // Rate-limit constants (client-side enforcement; also enforced server-side
-  // by the worker's ADMIN_KEY check, but this adds a UX-friendly lockout).
-  const MAX_FAILED_ATTEMPTS = 5;
-  const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 minutes
-  const RATE_WINDOW_MS = 10 * 60 * 1000;     // track attempts over 10 minutes
-
-  // ─── STORAGE KEYS ───
-  const CONFIG_KEY = 'mystique-analytics-dashboard-config';
-  const ATTEMPTS_KEY = 'mystique-analytics-dashboard-attempts';
-  const GATE_KEY = 'mystique-analytics-dashboard-gated';
-
-  // ─── HASH HELPER (deterministic, no external crypto) ───
-  // Uses a simple non-cryptographic hash for the page-token comparison.
-  // The real protection is the Cloudflare ADMIN_KEY on the worker endpoint;
-  // this just prevents casual browsing of the dashboard page.
-  function simpleHash(str) {
-    let h = 0;
-    for (let i = 0; i < str.length; i++) {
-      h = ((h << 5) - h + str.charCodeAt(i)) | 0;
-    }
-    return h.toString(36);
-  }
-
-  // ─── PAGE TOKEN GATE ───
-  function getAttempts() {
-    try {
-      const raw = localStorage.getItem(ATTEMPTS_KEY);
-      const data = raw ? JSON.parse(raw) : { count: 0, lockoutUntil: 0, windowStart: 0 };
-      // Reset window if expired
-      if (Date.now() - data.windowStart > RATE_WINDOW_MS) {
-        return { count: 0, lockoutUntil: 0, windowStart: Date.now() };
-      }
-      return data;
-    } catch { return { count: 0, lockoutUntil: 0, windowStart: Date.now() }; }
-  }
-
-  function recordAttempt() {
-    const data = getAttempts();
-    data.count++;
-    localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(data));
-    return data;
-  }
-
-  function lockout(seconds) {
-    const data = getAttempts();
-    data.lockoutUntil = Date.now() + seconds * 1000;
-    localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(data));
-  }
-
-  function verifyPageToken() {
-    const input = document.getElementById('pageToken').value.trim();
-    if (!input) { alert('Please enter the page access token.'); return; }
-
-    // Check lockout
-    const attempts = getAttempts();
-    if (Date.now() < attempts.lockoutUntil) {
-      const remaining = Math.ceil((attempts.lockoutUntil - Date.now()) / 1000);
-      showLockout(`Too many failed attempts. Try again in ${remaining} seconds.`);
-      return;
-    }
-
-    if (input === PAGE_TOKEN) {
-      // Success — clear attempts and persist gate
-      localStorage.removeItem(ATTEMPTS_KEY);
-      localStorage.setItem(GATE_KEY, '1');
-      document.getElementById('gate').style.display = 'none';
-      initDashboard();
-    } else {
-      // Failed attempt
-      const updated = recordAttempt();
-      if (updated.count >= MAX_FAILED_ATTEMPTS) {
-        lockout(LOCKOUT_DURATION_MS / 1000);
-        showLockout(`Too many failed attempts. Try again in ${LOCKOUT_DURATION_MS / 1000} seconds.`);
-      } else {
-        const errEl = document.getElementById('lockout');
-        errEl.style.display = 'block';
-        errEl.textContent = `Invalid token. ${MAX_FAILED_ATTEMPTS - updated.count} attempts remaining.`;
-        errEl.className = 'error';
-      }
-      document.getElementById('pageToken').value = '';
-    }
-  }
-
-  function showLockout(msg) {
-    document.getElementById('lockout').style.display = 'block';
-    document.getElementById('lockout').textContent = msg;
-    document.getElementById('gate-form').style.display = 'none';
-  }
-
-  // ─── DASHBOARD CONFIG ───
-  function getConfig() {
-    try {
-      const raw = localStorage.getItem(CONFIG_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
-  }
-
-  function saveConfig() {
-    const workerUrl = document.getElementById('workerUrl').value.trim().replace(/\/$/, '');
-    const adminKey = document.getElementById('adminKey').value.trim();
-    if (!workerUrl || !adminKey) { alert('Both fields are required.'); return; }
-    localStorage.setItem(CONFIG_KEY, JSON.stringify({ workerUrl, adminKey }));
-    showDashboard();
-  }
-
-  function resetConfig() {
-    localStorage.removeItem(CONFIG_KEY);
-    document.getElementById('setup').style.display = 'block';
-    document.getElementById('dashboard').style.display = 'none';
-  }
-
-  function renderBars(containerId, dataObj, sortByKey) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = '';
-    const entries = Object.entries(dataObj || {});
-    if (entries.length === 0) {
-      container.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;">No data yet.</div>';
-      return;
-    }
-    entries.sort((a, b) => sortByKey ? a[0].localeCompare(b[0]) : b[1] - a[1]);
-    const max = Math.max(...entries.map(e => e[1]), 1);
-    for (const [label, count] of entries) {
-      const row = document.createElement('div');
-      row.className = 'bar-row';
-      row.innerHTML = `
-        <div class="bar-label">${escapeHtml(label)}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${(count / max) * 100}%"></div></div>
-        <div class="bar-count">${count}</div>
-      `;
-      container.appendChild(row);
-    }
-  }
+  var WORKER_URL = 'https://mystique-analytics.sksalemking.workers.dev';
 
   function escapeHtml(str) {
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
   }
 
-  async function refresh() {
-    const config = getConfig();
-    if (!config) return;
+  function renderBars(containerId, dataObj, sortByKey) {
+    var container = document.getElementById(containerId);
+    container.innerHTML = '';
+    var entries = Object.entries(dataObj || {});
+    if (entries.length === 0) {
+      container.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;">No data yet.</div>';
+      return;
+    }
+    entries.sort(function(a, b) { return sortByKey ? a[0].localeCompare(b[0]) : b[1] - a[1]; });
+    var max = Math.max.apply(null, entries.map(function(e) { return e[1]; }).concat([1]));
+    for (var i = 0; i < entries.length; i++) {
+      var label = entries[i][0], count = entries[i][1];
+      var row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML =
+        '<div class="bar-label">' + escapeHtml(label) + '</div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:' + ((count / max) * 100) + '%"></div></div>' +
+        '<div class="bar-count">' + count + '</div>';
+      container.appendChild(row);
+    }
+  }
+
+  function refresh() {
     document.getElementById('loading').style.display = 'block';
     document.getElementById('error').style.display = 'none';
     document.getElementById('stats-content').style.display = 'none';
 
-    try {
-      const res = await fetch(`${config.workerUrl}/stats?key=${encodeURIComponent(config.adminKey)}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `HTTP ${res.status}`);
-      }
-      const stats = await res.json();
+    fetch(WORKER_URL + '/stats')
+      .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function(stats) {
+        document.getElementById('s-installs').textContent = stats.totalInstalls || 0;
+        document.getElementById('s-sessions').textContent = stats.totalSessions || 0;
+        document.getElementById('s-shares').textContent = stats.totalShares || 0;
+        document.getElementById('s-devices').textContent = stats.uniqueDevices || 0;
 
-      document.getElementById('s-installs').textContent = stats.totalInstalls ?? 0;
-      document.getElementById('s-sessions').textContent = stats.totalSessions ?? 0;
-      document.getElementById('s-shares').textContent = stats.totalShares ?? 0;
-      document.getElementById('s-devices').textContent = stats.uniqueDevices ?? 0;
+        renderBars('country-bars', stats.byCountry, false);
+        renderBars('day-bars', stats.byDay, true);
+        renderBars('share-bars', stats.shareMethodCounts, false);
 
-      renderBars('country-bars', stats.byCountry, false);
-      renderBars('day-bars', stats.byDay, true);
-      renderBars('share-bars', stats.shareMethodCounts, false);
+        document.getElementById('meta-note').textContent =
+          'Scanned ' + stats.recordsScanned + ' of ' + stats.totalRawKeysStored +
+          ' stored batches \u00B7 generated ' + new Date(stats.generatedAt).toLocaleString();
 
-      document.getElementById('meta-note').textContent =
-        `Scanned ${stats.recordsScanned} of ${stats.totalRawKeysStored} stored batches · generated ${new Date(stats.generatedAt).toLocaleString()}`;
-
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('stats-content').style.display = 'block';
-    } catch (err) {
-      document.getElementById('loading').style.display = 'none';
-      const errEl = document.getElementById('error');
-      errEl.textContent = `Couldn't load stats: ${err.message}`;
-      errEl.style.display = 'block';
-    }
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('stats-content').style.display = 'block';
+      })
+      .catch(function(err) {
+        document.getElementById('loading').style.display = 'none';
+        var el = document.getElementById('error');
+        el.textContent = 'Could not load stats: ' + err.message;
+        el.style.display = 'block';
+      });
   }
 
-  function initDashboard() {
-    const config = getConfig();
-    if (!config) {
-      document.getElementById('setup').style.display = 'block';
-      document.getElementById('dashboard').style.display = 'none';
-    } else {
-      showDashboard();
-    }
-  }
-
-  function showDashboard() {
-    document.getElementById('setup').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-    refresh();
-  }
-
-  // ─── INIT ───
-  (function init() {
-    // If already gated this session, skip the page token form
-    if (localStorage.getItem(GATE_KEY) === '1' && PAGE_TOKEN !== 'CHANGE_ME_IN_CLOUDFLARE_AND_HERE') {
-      document.getElementById('gate').style.display = 'none';
-      initDashboard();
-    } else {
-      document.getElementById('gate').style.display = 'block';
-      // Also check for lockout
-      const attempts = getAttempts();
-      if (Date.now() < attempts.lockoutUntil) {
-        const remaining = Math.ceil((attempts.lockoutUntil - Date.now()) / 1000);
-        showLockout(`Too many failed attempts. Try again in ${remaining} seconds.`);
-      }
-    }
-  })();
+  // Auto-load on page open — zero clicks needed
+  refresh();
 </script>
 </body>
 </html>

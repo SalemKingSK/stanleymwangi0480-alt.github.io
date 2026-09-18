@@ -10,7 +10,7 @@ import React, { useState, useMemo } from 'react';
 import { AstroInsightOutput, NumerologyData } from './types';
 import { ANIMALS, RELATIONS, CAT_META } from '@/lib/cosmic-fate/constants';
 import { BOOK } from '@/lib/cosmic-fate/book';
-import { YEAR_DESCRIPTIONS } from '@/lib/cosmic-fate/oracle-data';
+import { YEAR_DESCRIPTIONS, yearDescription } from '@/lib/cosmic-fate/oracle-data';
 import { PINNACLE_DESC, CHALLENGE_DESC } from '@/lib/cosmic-fate/pinnacles';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -121,7 +121,7 @@ export function CosmicFateDisplay({ insight, numerology }: { insight: AstroInsig
   };
 
   const renderOracle = () => {
-    const yr = YEAR_DESCRIPTIONS[currentPY];
+    const yr = yearDescription(currentPY);
     const yearAnimal = getSign(readYear);
     const cat = getRel(birthSign, yearAnimal.n);
     const cm = CAT_META[cat];
@@ -144,7 +144,7 @@ export function CosmicFateDisplay({ insight, numerology }: { insight: AstroInsig
       ? `A significant harmonic: your Personal Year ${currentPY} resonates with another core number in your chart — an amplification point for ${yr?.title.toLowerCase()} themes.`
       : `Your Life Path ${LP} (${lpName(LP)}) and Personal Year ${currentPY} (${yr?.title}) are in productive dialogue, allowing this year's work to proceed through genuine effort.`;
 
-    const synthText = `In ${readYear}, you are in a Personal Year ${currentPY} — ${yr?.title}, riding the ${yr?.phase.toLowerCase()} phase of your nine-year cycle. The Universal Year ${currentUY} (${YEAR_DESCRIPTIONS[currentUY]?.title}) sets the collective backdrop. Your current Personal Month is ${currentPM} (${pmNames[currentPM]}). ${animalLine} ${convergeLine} Your active Pinnacle is ${activePinnacleNum} — the long-arc life theme operating beneath every annual cycle — while your active Challenge number ${activeChallenge} names the specific resistance pattern this chapter asks you to develop through.`;
+    const synthText = `In ${readYear}, you are in a Personal Year ${currentPY} — ${yr?.title}, riding the ${yr?.phase.toLowerCase()} phase of your nine-year cycle. The Universal Year ${currentUY} (${yearDescription(currentUY)?.title}) sets the collective backdrop. Your current Personal Month is ${currentPM} (${pmNames[currentPM]}). ${animalLine} ${convergeLine} Your active Pinnacle is ${activePinnacleNum} — the long-arc life theme operating beneath every annual cycle — while your active Challenge number ${activeChallenge} names the specific resistance pattern this chapter asks you to develop through.`;
 
     return (
       <div className="space-y-6 fu">
@@ -162,7 +162,7 @@ export function CosmicFateDisplay({ insight, numerology }: { insight: AstroInsig
           <div className="core-chip">
             <div className="core-chip-label">Universal Year</div>
             <div className="core-chip-num" style={{ color: 'var(--amethyst)' }}>{currentUY}</div>
-            <div className="core-chip-name">{YEAR_DESCRIPTIONS[currentUY]?.title}</div>
+            <div className="core-chip-name">{yearDescription(currentUY)?.title}</div>
           </div>
           <div className="core-chip">
             <div className="core-chip-label">Pinnacle (Active)</div>
@@ -180,7 +180,7 @@ export function CosmicFateDisplay({ insight, numerology }: { insight: AstroInsig
   };
 
   const renderDive = () => {
-    const yr = YEAR_DESCRIPTIONS[currentPY];
+    const yr = yearDescription(currentPY);
     if (!yr) return null;
 
     const panels: Record<string, string> = {

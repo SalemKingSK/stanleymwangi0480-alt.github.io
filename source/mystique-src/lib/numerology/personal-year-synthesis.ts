@@ -1173,7 +1173,23 @@ function famousBirthdayPersonalYearMirrors(args: BuildArgs): string {
   if (!rows.length) return `Famous birthday personal-year mirrors:\nNo famous-birthday record in the current bank strongly mirrors this Direct/Classic personal-year pattern for ${args.targetYear}.`;
   return `Famous birthday personal-year mirrors from ${famousBirthdays.length} stored profiles (numeric context only; these rows have no event-level evidence and are not proof of the Direct or Classic meaning):\n${rows.map(r => `• ${r.p.name} — ${r.score}% numeric mirror. ${r.fd}/${r.frd} direct, ${r.fc}/${r.frc} classic. Shared arithmetic signals: ${r.reasons.join(', ')}. Tags: ${(r.p.tags || []).slice(0, 4).join(', ') || '—'}.`).join('\n')}`;
 }
- 
+
+/** Ties a precedent's real outcome back to the essence's own stated warning or
+ * promise, so the example expounds the meaning instead of merely sitting next
+ * to it. This runs for every pair (not only curated ones) so the two systems —
+ * essence meaning and real-life precedent — stay in the same conversation. */
+function buildEssenceBridge(directIntel: CompoundIntelligence, classicIntel: CompoundIntelligence): string {
+  const shadowIntel = [directIntel, classicIntel].find(i => i.polarity === 'cautionary' || i.polarity === 'threshold');
+  if (shadowIntel) {
+    return ` — this is the essence's own warning in motion: ${shadowIntel.likelyMistake}, which is exactly what this compound cautions against`;
+  }
+  const brightIntel = [directIntel, classicIntel].find(i => i.polarity === 'constructive');
+  if (brightIntel) {
+    return ` — this confirms the essence's own promise: ${brightIntel.strategicMove} is what the compound rewards`;
+  }
+  return '';
+}
+
 function makeHistoricalText(
   args: BuildArgs,
   directIntel: CompoundIntelligence,
