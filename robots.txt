@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /stats/
 
 Sitemap: https://mystique-compass.pages.dev/sitemap.xml
