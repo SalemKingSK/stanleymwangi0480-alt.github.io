@@ -1611,8 +1611,7 @@ export const famousBirthdays: FamousPerson[] = [
   { name: 'Kingdom of Hawaii', day: 12, month: 6, year: 1810, gender: 'male', tags: ['Historical Kingdom', 'Oceania', 'Americas', 'Entity'] },
   { name: 'Republic of Texas', day: 2, month: 3, year: 1836, gender: 'male', tags: ['Historical Kingdom', 'Americas', 'Entity'] },
 
-  // --- World Cities ---
-  // --- Football Clubs (founding dates settled by performance history, letter-of-the-meaning grading) ---
+  // --- Football Clubs: founding dates only (no match reading, no predictions) ---
   { name: 'Manchester United', day: 28, month: 4, year: 1902, gender: 'male', tags: ['Football Club', 'England', 'Entity'], aliases: ['Manchester United F.C.'] },
   { name: 'Liverpool', day: 1, month: 12, year: 1959, gender: 'male', tags: ['Football Club', 'England', 'Entity'], aliases: ['FC Liverpool'] },
   { name: 'Arsenal', day: 1, month: 10, year: 1886, gender: 'male', tags: ['Football Club', 'England', 'Entity'] },
@@ -1924,9 +1923,7 @@ export const famousBirthdays: FamousPerson[] = [
   { name: 'Milton Keynes Dons', day: 21, month: 6, year: 2004, gender: 'male', tags: ['Football Club', 'England', 'Entity'], aliases: ['Milton Keynes Dons F.C.'] },
   { name: 'RB Leipzig', day: 19, month: 5, year: 2009, gender: 'male', tags: ['Football Club', 'Germany', 'Entity'], aliases: ['RasenBallsport Leipzig'] },
   { name: 'FC Zwolle', day: 10, month: 3, year: 2010, gender: 'male', tags: ['Football Club', 'Netherlands', 'Entity'] },
-
-
-
+  // --- World Cities ---
   { name: 'London', day: 1, month: 5, year: 43, gender: 'male', tags: ['City', 'UK', 'Europe', 'Entity'] },
   { name: 'New York City', day: 27, month: 5, year: 1626, gender: 'male', tags: ['City', 'USA', 'North America', 'Entity'] },
   { name: 'Paris', day: 3, month: 8, year: 987, gender: 'male', tags: ['City', 'France', 'Europe', 'Entity'] },
