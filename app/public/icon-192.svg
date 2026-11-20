@@ -1,0 +1,40 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" rx="40" fill="#04001a"/>
+  <rect width="192" height="192" rx="40" fill="url(#bg_grad)"/>
+  <!-- Outer glow ring -->
+  <circle cx="96" cy="96" r="72" fill="none" stroke="url(#ring_grad)" stroke-width="1.2" opacity="0.4"/>
+  <circle cx="96" cy="96" r="60" fill="none" stroke="url(#ring_grad)" stroke-width="0.6" opacity="0.25"/>
+  <!-- 4-point star / compass rose -->
+  <path d="M96 18 L102 88 L96 96 L90 88 Z" fill="url(#gold_grad)"/>
+  <path d="M96 174 L102 104 L96 96 L90 104 Z" fill="url(#gold_grad)" opacity="0.85"/>
+  <path d="M18 96 L88 90 L96 96 L88 102 Z" fill="url(#gold_grad)" opacity="0.85"/>
+  <path d="M174 96 L104 90 L96 96 L104 102 Z" fill="url(#gold_grad)"/>
+  <!-- Diagonal petals (softer) -->
+  <path d="M96 96 L68 68 L96 54 Z" fill="url(#gold_grad)" opacity="0.4"/>
+  <path d="M96 96 L124 68 L138 96 Z" fill="url(#gold_grad)" opacity="0.4"/>
+  <path d="M96 96 L124 124 L96 138 Z" fill="url(#gold_grad)" opacity="0.4"/>
+  <path d="M96 96 L68 124 L54 96 Z" fill="url(#gold_grad)" opacity="0.4"/>
+  <!-- Center jewel -->
+  <circle cx="96" cy="96" r="8" fill="url(#jewel_grad)"/>
+  <circle cx="96" cy="96" r="4.5" fill="#d4af37"/>
+  <circle cx="93.5" cy="93.5" r="1.8" fill="rgba(255,255,220,0.9)"/>
+  <defs>
+    <linearGradient id="bg_grad" x1="0" y1="0" x2="192" y2="192" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1a0645"/>
+      <stop offset="100%" stop-color="#04001a"/>
+    </linearGradient>
+    <linearGradient id="gold_grad" x1="96" y1="18" x2="96" y2="174" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f5e072"/>
+      <stop offset="50%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#a07820"/>
+    </linearGradient>
+    <linearGradient id="ring_grad" x1="24" y1="24" x2="168" y2="168" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#a07820"/>
+    </linearGradient>
+    <radialGradient id="jewel_grad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffe87c"/>
+      <stop offset="100%" stop-color="#b8860b"/>
+    </radialGradient>
+  </defs>
+</svg>

@@ -1,0 +1,49 @@
+{
+  "name": "Mystique Compass",
+  "short_name": "Mystique",
+  "description": "Numerology, psychomatrix & astrology profile generator — giving your life a meaning.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#04001a",
+  "theme_color": "#04001a",
+  "categories": ["lifestyle", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/opengraph.jpg",
+      "sizes": "1200x630",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Mystique Compass Profile Generator"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Generate Profile",
+      "short_name": "Generate",
+      "description": "Generate a new cosmic profile",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
