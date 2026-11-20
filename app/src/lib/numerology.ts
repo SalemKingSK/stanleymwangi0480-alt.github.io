@@ -9,6 +9,7 @@ import {
   lindaGoodmanMeanings
 } from './numerology/data';
 import { getActiveArrows } from './arrow-analysis';
+import { solarTermYear } from './astrology/chinese-calendar-math';
 
 // --- HELPER FUNCTIONS ---
 // Sums only the actual digit characters (0-9) of a value, ignoring signs,
@@ -53,40 +54,42 @@ export const calculateDestiny = (day: number, month: number, year: number): numb
   return reduceToSingleDigit(sum);
 };
 
-/**
- * Core Algorithm for Kua Number Calculation
- * Implements the Solar Trigger, Pre/Post 2000 formulas, and Rule of 5.
- */
-export const calculateKuaRaw = (year: number, month: number, day: number, gender: string): number => {
-  // Solar year begins at Li Chun (~4 Feb); births before it belong to the previous year.
-  let adjustedYear = year;
-  if (month < 2 || (month === 2 && day < 4)) {
-    adjustedYear = year - 1;
-  }
-  const lastTwoDigits = ((adjustedYear % 100) + 100) % 100;
-  let yearRoot = digitSum(lastTwoDigits);
-  while (yearRoot > 9) yearRoot = digitSum(yearRoot);
-  const isPost2000 = adjustedYear >= 2000;
-  let kua: number;
-  if (gender.toLowerCase() === 'male') {
-    kua = isPost2000 ? 9 - yearRoot : 10 - yearRoot;
-    if (kua <= 0) kua += 9;
-  } else {
-    kua = isPost2000 ? 6 + yearRoot : 5 + yearRoot;
-    while (kua > 9) kua = digitSum(kua);
-  }
-  return kua; // may be 5 (before the Rule of 5 is applied)
-};
+/** Kept for older imports. */
+export const calculateRawKua = (year: number, month: number, day: number, gender: string): number => calculateKuaRaw(year, month, day, gender);
 
 /**
- * Core Algorithm for Kua Number Calculation
- * Implements the Solar Trigger, Pre/Post 2000 formulas, and Rule of 5
- * (a raw 5 becomes 2 for males and 8 for females).
+ * Kua number before the Rule of 5 is applied (1–9).
+ *
+ * The Feng Shui year starts at Lichun (3–5 Feb, from a 1800–2100 table), not
+ * on a fixed 4 Feb. The year star cycles every 9 years for all centuries:
+ *   male   = 11 − digital root of the year (mod 9, 0 → 9)
+ *   female =  4 + digital root of the year (mod 9, 0 → 9)
+ * This equals the familiar "last two digits" shortcut for 1900–2099 but stays
+ * right for births before 1900 (the shortcut was wrong for e.g. Einstein, 1879).
  */
+export const calculateKuaRaw = (year: number, month: number, day: number, gender: string): number => {
+  const solarYear = solarTermYear(day, month, year);
+  const root = reduceToSingleDigit(Math.abs(solarYear)) || 9;
+  const raw = gender.toLowerCase() === 'male' ? (11 - root) % 9 : (4 + root) % 9;
+  return raw <= 0 ? raw + 9 : raw;
+};
+
+/** Kua number with the Rule of 5 (male 5 → 2, female 5 → 8). */
 export const calculateKua = (year: number, month: number, day: number, gender: string): number => {
   const raw = calculateKuaRaw(year, month, day, gender);
   if (raw !== 5) return raw;
   return gender.toLowerCase() === 'male' ? 2 : 8;
+};
+
+/**
+ * KUA_DATA key for a birth: the Kua number, or '5_male' / '5_female' when the
+ * raw Kua was 5. (The old check tested the digit sum of the calendar year, so
+ * the two "5" readings could never appear.)
+ */
+export const getKuaLookupKey = (year: number, month: number, day: number, gender: string): string => {
+  const raw = calculateKuaRaw(year, month, day, gender);
+  if (raw === 5) return gender.toLowerCase() === 'male' ? '5_male' : '5_female';
+  return String(raw);
 };
 
 // --- DATA INTERFACES ---
@@ -216,11 +219,7 @@ export const generateLoShuData = (input: AstroInsightInput): NumerologyData => {
       type: 'shadow'
     }));
 
-  // The special "5" attribute sets apply when the raw Kua (before the Rule of 5) is 5.
-  let kuaLookupKey = String(kuaNum);
-  if (calculateKuaRaw(year, month, day, gender) === 5) {
-    kuaLookupKey = gender.toLowerCase() === 'male' ? '5_male' : '5_female';
-  }
+  const kuaLookupKey = getKuaLookupKey(year, month, day, gender);
   const kuaAttributes = KUA_DATA[kuaLookupKey] || KUA_DATA[String(kuaNum)] || {};
   const psychicMeaning = PSYCHIC_NUMBER_MEANINGS[psycheNum as keyof typeof PSYCHIC_NUMBER_MEANINGS] || { title: 'Unknown', description: 'No meaning available.'};
   const destinyMeaning = DESTINY_NUMBER_MEANINGS[destinyNum as keyof typeof DESTINY_NUMBER_MEANINGS] || { title: 'Unknown', description: 'No meaning available.'};

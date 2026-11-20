@@ -8,7 +8,10 @@
     "build": "vite build && tsx scripts/build-seo-pages.ts",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate:accuracy": "TZ=UTC tsx scripts/validate-celebrity-accuracy.ts --strict",
+    "validate": "vitest run && node scripts/validate-predictive.mjs && node scripts/validate-compat.mjs && TZ=UTC tsx scripts/validate-celebrity-accuracy.ts --strict",
+    "apply:dob-corrections": "node scripts/apply-dob-corrections.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.21",

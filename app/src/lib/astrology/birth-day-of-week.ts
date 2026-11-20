@@ -7,6 +7,8 @@
  * ALL TEXT IS VERBATIM. DO NOT SUMMARIZE OR TRUNCATE.
  */
 
+import { historicalWeekday } from './chinese-calendar-math';
+
 export interface DayOfWeekResult {
   dayName: string;
   planet: string;
@@ -110,7 +112,8 @@ THE PRESCRIPTION: Learn to receive joy without suspicion. Saturn's gifts are rea
 };
 
 export function getBirthDayOfWeek(day: number, month: number, year: number): DayOfWeekResult {
-  const date = new Date(year, month - 1, day);
-  const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon, ...
-  return DAY_DATA[dayOfWeek];
+  // Calendar arithmetic instead of `new Date(...)`, which maps years 0–99 to
+  // the 1900s and applies the Gregorian calendar to Julian-era dates
+  // (Shakespeare, Galileo, Elizabeth I and every BCE figure came out wrong).
+  return DAY_DATA[historicalWeekday(day, month, year)]; // 0=Sun, 1=Mon, ...
 }

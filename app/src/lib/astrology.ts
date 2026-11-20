@@ -1,12 +1,49 @@
 // src/lib/astrology.ts
-import { CHINESE_CALENDAR } from './new-astrology/chinese-calendar';
+import { chineseSignFor } from './astrology/chinese-calendar-math';
+import { sunSignsOnDate } from './astrology/sun-sign';
 import type { AstroInsightOutput } from '@/components/profile-generator/types';
 import { zodiacData } from './zodiac';
 import { NEW_ASTROLOGY_DATA } from './new-astrology';
 
 
-// Helper function to get the Western Zodiac sign
-export const getWesternZodiacSign = (day: number, month: number): string => {
+/**
+ * Western sun sign. The fixed table is right for >99.9% of dates; pass the
+ * birth year and the Sun's real position overrides it on the few days where
+ * the table is wrong for that year (21 Jun / 23 Oct in 1903–1915, etc.).
+ * Days where the Sun changed sign during the day keep the table answer —
+ * `getWesternCusp` tells you the other possible sign.
+ */
+export const getWesternZodiacSign = (day: number, month: number, year?: number): string => {
+  const table = westernSignByTable(day, month);
+  if (!year || year < 1 || !Number.isFinite(year)) return table;
+  const real = sunSignsOnDate(day, month, year);
+  return real.length === 1 ? real[0] : real.includes(table) ? table : real[0];
+};
+
+/**
+ * The neighbouring sign when a birthday sits on a cusp, or null.
+ * With the birth year: exact — the Sun really changed sign during that calendar
+ * day somewhere on Earth, so a birth time is needed to be sure.
+ * Without it: within one day of the usual boundary (boundaries drift ±1 day).
+ */
+export const getWesternCusp = (day: number, month: number, year?: number): string | null => {
+  if (year && year >= 1 && Number.isFinite(year)) {
+    const real = sunSignsOnDate(day, month, year);
+    if (real.length < 2) return null;
+    const sign = getWesternZodiacSign(day, month, year);
+    return real.find(s => s !== sign) ?? null;
+  }
+  const sign = westernSignByTable(day, month);
+  const prev = new Date(Date.UTC(2001, month - 1, day - 1));
+  const next = new Date(Date.UTC(2001, month - 1, day + 1));
+  const before = westernSignByTable(prev.getUTCDate(), prev.getUTCMonth() + 1);
+  const after = westernSignByTable(next.getUTCDate(), next.getUTCMonth() + 1);
+  if (before !== sign) return before;
+  if (after !== sign) return after;
+  return null;
+};
+
+const westernSignByTable = (day: number, month: number): string => {
   if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return "Aquarius";
   if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return "Pisces";
   if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return "Aries";
@@ -21,54 +58,21 @@ export const getWesternZodiacSign = (day: number, month: number): string => {
   return "Capricorn";
 };
 
-const pad2 = (n: number) => String(n).padStart(2, '0');
-
-/** ISO date string (YYYY-MM-DD). Compared as text so the result never depends on the device's time zone. */
-const isoDate = (year: number, month: number, day: number) =>
-  `${String(year).padStart(4, '0')}-${pad2(month)}-${pad2(day)}`;
-
-export const getChineseZodiacSign = (day: number, month: number, year: number) => {
-  const birth = isoDate(year, month, day);
-
-  for (const zodiacYear of CHINESE_CALENDAR) {
-    if (birth >= zodiacYear.start && birth <= zodiacYear.end) {
-      const [element, sign] = zodiacYear.title.split(' ');
-      return { sign, element };
-    }
-  }
-
-  // Outside the 1915–2036 lunar table: use the solar new year (Li Chun, ~4 Feb),
-  // the boundary BaZi uses, so January/early-February births fall in the previous year.
-  const signs = ["Rat", "Ox", "Tiger", "Rabbit", "Dragon", "Snake", "Horse", "Goat", "Monkey", "Rooster", "Dog", "Pig"];
-  const elements = ["Wood", "Fire", "Earth", "Metal", "Water"];
-  const zodiacYearNum = (month < 2 || (month === 2 && day < 4)) ? year - 1 : year;
-  const yearOffset = zodiacYearNum - 1924; // 1924 = Wood Rat
-  const signIndex = ((yearOffset % 12) + 12) % 12;
-  const elementIndex = Math.floor((((yearOffset % 10) + 10) % 10) / 2);
-
-  return { sign: signs[signIndex], element: elements[elementIndex] };
-};
-
 /**
- * Sun-sign boundaries move by about a day from year to year. When a birthday is
- * within one day of a boundary, return the neighbouring sign so the UI can say
- * "born on the cusp".
+ * Chinese zodiac animal + element for a birth date. The year changes at Lunar
+ * New Year (table for 1800–2100; Li Chun, 4 Feb, outside it). Dates are
+ * compared as numbers, never as Date objects, so the device time zone can't
+ * move the boundary.
  */
-export const getWesternCusp = (day: number, month: number): string | null => {
-  const sign = getWesternZodiacSign(day, month);
-  const prev = new Date(Date.UTC(2001, month - 1, day - 1));
-  const next = new Date(Date.UTC(2001, month - 1, day + 1));
-  const before = getWesternZodiacSign(prev.getUTCDate(), prev.getUTCMonth() + 1);
-  const after = getWesternZodiacSign(next.getUTCDate(), next.getUTCMonth() + 1);
-  if (before !== sign) return before;
-  if (after !== sign) return after;
-  return null;
+export const getChineseZodiacSign = (day: number, month: number, year: number) => {
+  const { sign, element } = chineseSignFor(day, month, year);
+  return { sign, element };
 };
 
 export async function getAstroInsight(input: { name: string; day: number; month: number; year: number; gender: string }): Promise<AstroInsightOutput> {
     const { year, month, day, name, gender } = input;
     
-    const western_sign = getWesternZodiacSign(day, month);
+    const western_sign = getWesternZodiacSign(day, month, year);
     const { sign, element } = getChineseZodiacSign(day, month, year);
     
     // Data for the Chinese Zodiac sub-tabs
@@ -81,7 +85,7 @@ export async function getAstroInsight(input: { name: string; day: number; month:
     return {
         name,
         western_sign,
-        western_cusp: getWesternCusp(day, month),
+        western_cusp: getWesternCusp(day, month, year),
         sign,
         element,
         month,

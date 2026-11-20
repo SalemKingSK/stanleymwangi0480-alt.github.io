@@ -4,7 +4,7 @@ import { YD, yearDiveOracle } from '@/lib/cosmic-fate/oracle';
 import { CONVERGENCE_CARDS } from '@/lib/cosmic-fate/convergence';
 import { PINNACLE_DESC, CHALLENGE_DESC } from '@/lib/cosmic-fate/pinnacles';
 import { INTERSECTION_SYNTHESIS } from '@/lib/cosmic-fate/intersections';
-import { CHINESE_CALENDAR } from '@/lib/new-astrology/chinese-calendar';
+import { chineseSignFor } from '@/lib/astrology/chinese-calendar-math';
 import { BOOK } from '@/lib/cosmic-fate/book';
 import { ANIMALS, RELATIONS } from '@/lib/cosmic-fate/constants';
 import { CosmicRiskScanner } from './cosmic-risk-scanner';
@@ -43,26 +43,7 @@ const lpName = (n: number) => ['', 'The Initiator', 'The Cooperative', 'The Crea
 // Challenge-specific name — index 0 = "No Challenge" (valid output when both components are equal)
 const challengeName = (n: number) => ['No Challenge', 'The Initiator', 'The Cooperative', 'The Creative', 'The Builder', 'The Freedom Seeker', 'The Harmonizer', 'The Seeker', 'The Achiever', 'The Humanitarian'][n] ?? '';
 
-const getAnimalForDate = (d: number, m: number, y: number) => {
-const date = new Date(y, m - 1, d);
-date.setHours(0, 0, 0, 0);
-
-const entry = CHINESE_CALENDAR.find(e => {
-const s = new Date(e.start);
-const end = new Date(e.end);
-s.setHours(0, 0, 0, 0);
-end.setHours(0, 0, 0, 0);
-return date >= s && date <= end;
-});
-
-if (entry) {
-const parts = entry.title.split(' ');
-return parts[parts.length - 1]; 
-}
-
-const signs = ["Rat", "Ox", "Tiger", "Rabbit", "Dragon", "Snake", "Horse", "Goat", "Monkey", "Rooster", "Dog", "Pig"];
-return signs[((y - 1900) % 12 + 12) % 12];
-};
+const getAnimalForDate = (d: number, m: number, y: number) => chineseSignFor(d, m, y).sign;
 
 const getCategory = (birthSign: string, yearSign: string) => {
 if (birthSign === yearSign) return 'ben';

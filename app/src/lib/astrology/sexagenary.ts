@@ -8,6 +8,8 @@
  * ALL TEXT IS VERBATIM.
  */
 
+import { chineseZodiacYear, stemBranchIndex } from './chinese-calendar-math';
+
 export interface HeavenlyStemResult {
   stem: number;
   element: 'Wood' | 'Fire' | 'Earth' | 'Metal' | 'Water';
@@ -160,6 +162,10 @@ The Pig individual possesses a goodness that is not innocence but a kind of matu
 In the Chinese cosmic order, the Pig governs the hours 21:00-23:00, the direction North-Northwest, and the season of early winter. These associations point to the Pig's role as the COMPLETER OF CYCLES — the last branch before the return to the Rat, the final harvest before winter's sleep, the soul that has experienced all twelve stages and emerged with the wisdom that love is what matters.`,
 };
 
+// Keyed `${stemIdx}_${branchIdx}` (0-based). Only these 12 of the 60 pairs have
+// hand-written text; the rest use the generated fallback. Six entries used to
+// sit on impossible or wrong keys (e.g. "Yang Fire Horse" on Metal Horse years,
+// '10_10' and '11_11' could never occur); they are now on their real years.
 const STEM_BRANCH_COMBINED: Record<string, { name: string; interpretation: string }> = {
   '0_0': { name: 'Yang Wood Rat', interpretation: `YANG WOOD RAT — The Tree Seed\n\nThe Yang Wood Rat is the giant tree's first seed — immense potential compressed into a tiny, resourceful form. The Wood element (growth, vision, expansion) combines with the Rat's water intelligence to create a personality of formidable strategic capacity and long-term vision. These individuals think in decades where others think in days. The Yang Wood Rat is the strategist who sees the forest while navigating the thickest undergrowth. Their gift: the capacity to plan for growth at a scale others cannot conceive. Their challenge: impatience with the slow pace of manifestation.` },
   '1_1': { name: 'Yin Wood Ox', interpretation: `YIN WOOD OX — The Tended Garden\n\nThe Yin Wood Ox is the flowering garden cultivated through seasons of patient labor. The Yin Wood's delicate beauty combines with the Ox's steadfast endurance to create an individual who builds beauty through persistence rather than brilliance. These are the artists who work for decades before being discovered, the gardeners whose paradise was thirty years in the making. Their gift: the capacity to create lasting beauty through sustained, loving attention. Their challenge: being taken for granted by those who benefit from their quiet labor.` },
@@ -167,23 +173,26 @@ const STEM_BRANCH_COMBINED: Record<string, { name: string; interpretation: strin
   '3_3': { name: 'Yin Fire Rabbit', interpretation: `YIN FIRE RABBIT — The Candle in the Sanctuary\n\nThe Yin Fire Rabbit is the candle flame illuminating a space of quiet beauty — warmth without aggression, light without glare. The Rabbit's refinement tempers Fire's passion into something sustainable and gentle. These individuals create environments of extraordinary aesthetic and emotional quality through subtle influence rather than direct action. Their gift: the capacity to transform atmospheres through presence alone. Their challenge: being underestimated by those who mistake gentleness for weakness.` },
   '4_4': { name: 'Yang Earth Dragon', interpretation: `YANG EARTH DRAGON — The Mountain Throne\n\nThe Yang Earth Dragon is the mountain that the dragon claims as its throne — the most commanding combination in the entire zodiac. Earth's stability and the Dragon's majesty combine to produce natural sovereigns whose authority others recognize instinctively. These individuals were born to lead institutions, to build lasting empires, to create structures that define eras. Their gift: the capacity to command respect and resources on a scale others cannot approach. Their challenge: the loneliness that comes with genuine authority.` },
   '5_5': { name: 'Yin Earth Snake', interpretation: `YIN EARTH SNAKE — The Secret Garden\n\nThe Yin Earth Snake is the fertile soil that nurtures the serpent's hidden wisdom — depth upon depth, with treasures buried where only the patient will find them. Earth's groundedness and the Snake's mysticism combine to produce individuals of formidable spiritual and intellectual depth whose true nature is revealed only to those who earn their trust. Their gift: wisdom that grows richer with age, like wine in a cellar. Their challenge: isolation through excessive privacy.` },
-  '6_6': { name: 'Yang Fire Horse', interpretation: `YANG FIRE HORSE — The Wildfire Stallion\n\nThe Yang Fire Horse is the blazing sun upon the galloping steed — pure, undiluted Yang energy that produces the zodiac's most dynamic and freedom-loving personality. Fire's passion and the Horse's need for motion combine explosively; these individuals cannot be contained, tamed, or predicted. Their gift: the capacity to inspire through boundless energy and authentic passion. Their challenge: leaving a trail of unfinished projects and relationships in their wake.` },
-  '7_7': { name: 'Yin Earth Goat', interpretation: `YIN EARTH GOAT — The Peaceful Pasture\n\nThe Yin Earth Goat is the fertile meadow where the goat grazes in peace — a combination of extraordinary creative potential that requires the right conditions to flourish. Earth's nurturing and the Goat's artistry combine to produce individuals of profound aesthetic and emotional sensitivity whose best work emerges in environments of harmony and support. Their gift: the capacity to create beauty that nourishes the human soul. Their challenge: vulnerability to harsh environments and unsympathetic criticism.` },
-  '8_8': { name: 'Yang Metal Monkey', interpretation: `YANG METAL MONKEY — The Forged Puzzle\n\nThe Yang Metal Monkey is forged steel in the hands of a master mechanic — the combination of Metal's precision and the Monkey's ingenuity produces the zodiac's most formidable problem-solver. These individuals see solutions where others see dead ends, find patterns where others see chaos, and improvise tools where others see useless materials. Their gift: creative intelligence of the highest order. Their challenge: the temptation to use their gifts for manipulation rather than genuine contribution.` },
-  '9_9': { name: 'Yin Metal Rooster', interpretation: `YIN METAL ROOSTER — The Gold Standard\n\nThe Yin Metal Rooster is refined gold examined by the most discerning eye — a combination of extraordinary standards and the capacity to meet them. Metal's precision and the Rooster's quality control produce individuals of formidable professional competence and aesthetic judgment. These are the experts whose opinions define fields, the craftspeople whose work sets the standard. Their gift: the capacity to achieve excellence that becomes the benchmark for others. Their challenge: the isolation that comes from standards few others can meet.` },
-  '10_10': { name: 'Yang Earth Dog', interpretation: `YANG EARTH DOG — The Mountain Guardian\n\nThe Yang Earth Dog is the mountain that watches over the valley — steadfast protection rooted in unwavering moral conviction. Earth's stability and the Dog's loyalty combine to produce individuals of formidable reliability and ethical clarity. These are the guardians of communities, the defenders of principles, the ones who stand firm when others flee. Their gift: the capacity to create safety through sheer, immovable presence. Their challenge: the exhaustion that comes from perpetual vigilance.` },
-  '11_11': { name: 'Yin Water Pig', interpretation: `YIN WATER PIG — The Gentle Rain\n\nThe Yin Water Pig is soft rain falling on fertile ground — the purest expression of Water's nurturing and the Pig's generosity. This double Yin Water combination produces the zodiac's most benevolent and emotionally intelligent personality. These individuals give without calculation, love without condition, and create abundance through the simple act of caring generously for all who enter their sphere. Their gift: the capacity to nourish others in ways that enable genuine flourishing. Their challenge: depletion through giving without receiving, and the risk of exploitation by those who mistake generosity for weakness.` },
+  '2_6': { name: 'Yang Fire Horse', interpretation: `YANG FIRE HORSE — The Wildfire Stallion\n\nThe Yang Fire Horse is the blazing sun upon the galloping steed — pure, undiluted Yang energy that produces the zodiac's most dynamic and freedom-loving personality. Fire's passion and the Horse's need for motion combine explosively; these individuals cannot be contained, tamed, or predicted. Their gift: the capacity to inspire through boundless energy and authentic passion. Their challenge: leaving a trail of unfinished projects and relationships in their wake.` },
+  '5_7': { name: 'Yin Earth Goat', interpretation: `YIN EARTH GOAT — The Peaceful Pasture\n\nThe Yin Earth Goat is the fertile meadow where the goat grazes in peace — a combination of extraordinary creative potential that requires the right conditions to flourish. Earth's nurturing and the Goat's artistry combine to produce individuals of profound aesthetic and emotional sensitivity whose best work emerges in environments of harmony and support. Their gift: the capacity to create beauty that nourishes the human soul. Their challenge: vulnerability to harsh environments and unsympathetic criticism.` },
+  '6_8': { name: 'Yang Metal Monkey', interpretation: `YANG METAL MONKEY — The Forged Puzzle\n\nThe Yang Metal Monkey is forged steel in the hands of a master mechanic — the combination of Metal's precision and the Monkey's ingenuity produces the zodiac's most formidable problem-solver. These individuals see solutions where others see dead ends, find patterns where others see chaos, and improvise tools where others see useless materials. Their gift: creative intelligence of the highest order. Their challenge: the temptation to use their gifts for manipulation rather than genuine contribution.` },
+  '7_9': { name: 'Yin Metal Rooster', interpretation: `YIN METAL ROOSTER — The Gold Standard\n\nThe Yin Metal Rooster is refined gold examined by the most discerning eye — a combination of extraordinary standards and the capacity to meet them. Metal's precision and the Rooster's quality control produce individuals of formidable professional competence and aesthetic judgment. These are the experts whose opinions define fields, the craftspeople whose work sets the standard. Their gift: the capacity to achieve excellence that becomes the benchmark for others. Their challenge: the isolation that comes from standards few others can meet.` },
+  '4_10': { name: 'Yang Earth Dog', interpretation: `YANG EARTH DOG — The Mountain Guardian\n\nThe Yang Earth Dog is the mountain that watches over the valley — steadfast protection rooted in unwavering moral conviction. Earth's stability and the Dog's loyalty combine to produce individuals of formidable reliability and ethical clarity. These are the guardians of communities, the defenders of principles, the ones who stand firm when others flee. Their gift: the capacity to create safety through sheer, immovable presence. Their challenge: the exhaustion that comes from perpetual vigilance.` },
+  '9_11': { name: 'Yin Water Pig', interpretation: `YIN WATER PIG — The Gentle Rain\n\nThe Yin Water Pig is soft rain falling on fertile ground — the purest expression of Water's nurturing and the Pig's generosity. This double Yin Water combination produces the zodiac's most benevolent and emotionally intelligent personality. These individuals give without calculation, love without condition, and create abundance through the simple act of caring generously for all who enter their sphere. Their gift: the capacity to nourish others in ways that enable genuine flourishing. Their challenge: depletion through giving without receiving, and the risk of exploitation by those who mistake generosity for weakness.` },
 };
 
-function combinedKey(stemIdx: number, branchIdx: number): string {
-  const sk = stemIdx % 2 === 0 ? `${stemIdx}_${branchIdx}` : `${stemIdx}_${branchIdx}`;
-  return `${stemIdx}_${branchIdx}`;
+/**
+ * The stem-branch year follows the zodiac card: it changes at Lunar New Year,
+ * so pass the birth month and day when you have them. Without them the
+ * Gregorian year is used, which is wrong for most January/early-February births.
+ */
+function cycleYear(birthYear: number, birthMonth?: number, birthDay?: number): number {
+  return birthMonth && birthDay ? chineseZodiacYear(birthDay, birthMonth, birthYear) : birthYear;
 }
 
-export function getHeavenlyStem(birthYear: number): HeavenlyStemResult {
-  // 4 BCE was Jia Zi (Stem 0, Branch 0) — year 1 of the 60-year cycle
-  // For positive years: stem = (year - 4) % 10, branch = (year - 4) % 12
-  const stemIdx = ((birthYear - 4) % 10 + 10) % 10;
+export function getHeavenlyStem(birthYear: number, birthMonth?: number, birthDay?: number): HeavenlyStemResult {
+  // 4 CE was Jia Zi (Stem 0, Branch 0) — year 1 of the 60-year cycle
+  const stemIdx = stemBranchIndex(cycleYear(birthYear, birthMonth, birthDay)).stem;
   const hs = HEAVENLY_STEMS[stemIdx];
   return {
     stem: stemIdx + 1,
@@ -192,8 +201,8 @@ export function getHeavenlyStem(birthYear: number): HeavenlyStemResult {
   };
 }
 
-export function getEarthlyBranch(birthYear: number): EarthlyBranchResult {
-  const branchIdx = ((birthYear - 4) % 12 + 12) % 12;
+export function getEarthlyBranch(birthYear: number, birthMonth?: number, birthDay?: number): EarthlyBranchResult {
+  const branchIdx = stemBranchIndex(cycleYear(birthYear, birthMonth, birthDay)).branch;
   const eb = EARTHLY_BRANCHES[branchIdx];
   return {
     branch: branchIdx + 1,
@@ -202,9 +211,8 @@ export function getEarthlyBranch(birthYear: number): EarthlyBranchResult {
   };
 }
 
-export function getSexagenaryAnalysis(birthYear: number): StemBranchResult {
-  const stemIdx = ((birthYear - 4) % 10 + 10) % 10;
-  const branchIdx = ((birthYear - 4) % 12 + 12) % 12;
+export function getSexagenaryAnalysis(birthYear: number, birthMonth?: number, birthDay?: number): StemBranchResult {
+  const { stem: stemIdx, branch: branchIdx } = stemBranchIndex(cycleYear(birthYear, birthMonth, birthDay));
 
   const stem: HeavenlyStemResult = {
     stem: stemIdx + 1,

@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ZOO } from '@/lib/cosmic-fate/zoo';
-import { CHINESE_CALENDAR } from '@/lib/new-astrology/chinese-calendar';
+import { chineseSignFor } from '@/lib/astrology/chinese-calendar-math';
 import { BOOK } from '@/lib/cosmic-fate/book';
 import { ANIMALS } from '@/lib/cosmic-fate/constants';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -29,26 +29,7 @@ const stripHtml = (html: string) => {
 /**
  * HELPER: Get exact animal for a specific date using Chinese Calendar data
  */
-const getAnimalForDate = (d: number, m: number, y: number) => {
-  const date = new Date(y, m - 1, d);
-  date.setHours(0, 0, 0, 0);
-
-  const entry = CHINESE_CALENDAR.find(e => {
-    const s = new Date(e.start);
-    const end = new Date(e.end);
-    s.setHours(0, 0, 0, 0);
-    end.setHours(0, 0, 0, 0);
-    return date >= s && date <= end;
-  });
-
-  if (entry) {
-    const parts = entry.title.split(' ');
-    return parts[parts.length - 1]; 
-  }
-
-  const signs = ["Rat", "Ox", "Tiger", "Rabbit", "Dragon", "Snake", "Horse", "Goat", "Monkey", "Rooster", "Dog", "Pig"];
-  return signs[((y - 1900) % 12 + 12) % 12];
-};
+const getAnimalForDate = (d: number, m: number, y: number) => chineseSignFor(d, m, y).sign;
 
 /**
  * HELPER: Determine Tai Sui relationship category

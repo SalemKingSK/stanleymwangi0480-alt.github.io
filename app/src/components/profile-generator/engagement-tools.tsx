@@ -34,6 +34,7 @@ import {
   getClassicCompoundForPYN,
 } from "@/lib/numerology/chaldean-pyn-compounds";
 import { NEW_ASTROLOGY_DATA } from "@/lib/new-astrology";
+import { chineseSignFor, stemBranchIndex, ZODIAC_ANIMALS } from "@/lib/astrology/chinese-calendar-math";
 import { zodiacData } from "@/lib/zodiac";
 import { cheiroPsychicNumbers } from "@/lib/numerology/cheiro-psychic-numbers";
 import {
@@ -102,26 +103,12 @@ function digitsOf(
     .map(Number)
     .filter((n) => n > 0);
 }
-function zodiacAnimal(year: number): string {
-  const animals = [
-    "Rat",
-    "Ox",
-    "Tiger",
-    "Rabbit",
-    "Dragon",
-    "Snake",
-    "Horse",
-    "Goat",
-    "Monkey",
-    "Rooster",
-    "Dog",
-    "Pig",
-  ];
-  return animals[
-    (Number(year) - 4) % 12 < 0
-      ? ((Number(year) - 4) % 12) + 12
-      : (Number(year) - 4) % 12
-  ];
+// Lunar-New-Year aware, so these comparisons use the same animal as the
+// zodiac card (a 20 Jan 1985 birth is a Rat, not an Ox).
+function zodiacAnimal(year: number, month?: number, day?: number): string {
+  const y = Number(year), m = Number(month), d = Number(day);
+  if (m && d) return chineseSignFor(d, m, y).sign;
+  return ZODIAC_ANIMALS[stemBranchIndex(y).branch];
 }
 const WEEKDAY_BY_NUMBER: Record<number, string[]> = {
   1: ["Sunday", "Monday"],
@@ -267,7 +254,7 @@ function westernSign(day: number, month: number): string {
 function combinedSign(
   s: Pick<AstroInsightInput, "day" | "month" | "year">,
 ): string {
-  return `${westernSign(Number(s.day), Number(s.month))}/${zodiacAnimal(Number(s.year))}`;
+  return `${westernSign(Number(s.day), Number(s.month))}/${zodiacAnimal(Number(s.year), Number(s.month), Number(s.day))}`;
 }
 const SECRET_FRIENDS: Record<string, string> = {
   Rat: "Ox",
@@ -346,9 +333,9 @@ function suzanneWhiteScore(
   const text = NEW_ASTROLOGY_DATA[aSign]?.compatibilities || "";
   const reverseText = NEW_ASTROLOGY_DATA[bSign]?.compatibilities || "";
   const bWestern = westernSign(b.day, b.month);
-  const bAnimal = zodiacAnimal(b.year);
+  const bAnimal = zodiacAnimal(b.year, b.month, b.day);
   const aWestern = westernSign(a.day, a.month);
-  const aAnimal = zodiacAnimal(a.year);
+  const aAnimal = zodiacAnimal(a.year, a.month, a.day);
 
   // Same classifier as the Compatibility Outlook badges — the two views can
   // never disagree about whether a pairing is recommended or cautioned.
@@ -1212,8 +1199,8 @@ function buildRelationshipAnalysis(
     bPsychic = psychic(b);
   const aDestiny = lifePath(a),
     bDestiny = lifePath(b);
-  const aAnimal = zodiacAnimal(a.year),
-    bAnimal = zodiacAnimal(b.year);
+  const aAnimal = zodiacAnimal(a.year, a.month, a.day),
+    bAnimal = zodiacAnimal(b.year, b.month, b.day);
   const aPY = computePersonalYearNumber(
     a.day,
     a.month,

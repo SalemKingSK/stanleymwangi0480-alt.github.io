@@ -55,7 +55,7 @@ import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const LIB = path.join(HERE, "..", "mystique-src", "lib");
+const LIB = path.join(HERE, "..", "src", "lib");
 const ENGINE_SRC = fs.readFileSync(path.join(LIB, "compatibility-engine.ts"), "utf8");
 
 // ── classifier source-block integrity ────────────────────────────────────

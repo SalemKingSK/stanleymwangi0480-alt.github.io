@@ -13,6 +13,7 @@ import {
   getDoubleAnimal,
   type DoubleAnimalResult,
 } from "@/lib/astrology/ba-zi-double-animal";
+import { chineseZodiacYear } from "@/lib/astrology/chinese-calendar-math";
 import {
   getBirthDayOfWeek,
   type DayOfWeekResult,
@@ -196,16 +197,17 @@ export function computeSynthesis(
   );
   const personalMonth = getPersonalMonth(birthDay, birthMonth);
   const birthMonthAnalysis = getBirthMonthAnalysis(birthMonth);
-  const sexagenary = getSexagenaryAnalysis(birthYear);
-  const heavenlyStem = getHeavenlyStem(birthYear);
-  const earthlyBranch = getEarthlyBranch(birthYear);
+  // Chinese-cycle cards use the Lunar New Year year, like the zodiac card.
+  const sexagenary = getSexagenaryAnalysis(birthYear, birthMonth, birthDay);
+  const heavenlyStem = getHeavenlyStem(birthYear, birthMonth, birthDay);
+  const earthlyBranch = getEarthlyBranch(birthYear, birthMonth, birthDay);
   const personalYearAnalysis = getPersonalYearAnalysis(
     birthDay,
     birthMonth,
     birthYear,
   );
   const universalYear = getUniversalYear();
-  const zodiacRelationships = getZodiacRelationships(birthYear);
+  const zodiacRelationships = getZodiacRelationships(chineseZodiacYear(birthDay, birthMonth, birthYear));
   const planeAnalysis = analyzePlanes(psychomatrixCounts);
   const karmicLessons = getKarmicLessons(counts);
   const combinedAbsences = analyzeCombinedAbsence(psychomatrixCounts, {

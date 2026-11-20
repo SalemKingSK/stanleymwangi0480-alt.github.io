@@ -35,7 +35,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const LIB = path.join(HERE, "..", "mystique-src", "lib");
+const LIB = path.join(HERE, "..", "src", "lib");
 const read = (p) => fs.readFileSync(path.join(LIB, p), "utf8");
 
 const compounds = read("numerology/chaldean-pyn-compounds.ts");
