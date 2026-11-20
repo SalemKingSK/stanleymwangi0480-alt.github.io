@@ -19,7 +19,10 @@ export interface HistoricalBirthDate {
 export function normaliseHistoricalPersonName(value: string): string {
   return value
     .toLowerCase()
-    .replace(/[†’‘’“”.,'()]/g, '')
+    // Apostrophes become a space so "O'Connor", "O’Connor" and the ledger key
+    // "o connor" all meet; other punctuation is dropped.
+    .replace(/['’‘`]/g, ' ')
+    .replace(/[†“”.,()]/g, '')
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
@@ -59,7 +62,7 @@ export const HISTORICAL_BIRTH_DATES: Record<string, HistoricalBirthDate> = {
   'brittney griner': { day: 18, month: 10, year: 1990, source: `${WIKIPEDIA}Brittney_Griner` },
   'bruno mars': { day: 8, month: 10, year: 1985, source: `${WIKIPEDIA}Bruno_Mars` },
   'buzz aldrin': { day: 20, month: 1, year: 1930, source: `${WIKIPEDIA}Buzz_Aldrin` },
-  'caitlin clark': { day: 22, month: 9, year: 2002, source: `${WIKIPEDIA}Caitlin_Clark` },
+  'caitlin clark': { day: 22, month: 1, year: 2002, source: `${WIKIPEDIA}Caitlin_Clark` },
   'cardi b': { day: 11, month: 10, year: 1992, source: `${WIKIPEDIA}Cardi_B` },
   'carl sagan': { day: 9, month: 11, year: 1934, source: `${WIKIPEDIA}Carl_Sagan` },
   'charles iii': { day: 14, month: 11, year: 1948, source: `${WIKIPEDIA}Charles_III` },
@@ -182,7 +185,7 @@ export const HISTORICAL_BIRTH_DATES: Record<string, HistoricalBirthDate> = {
   'rupert murdoch': { day: 11, month: 3, year: 1931, source: `${WIKIPEDIA}Rupert_Murdoch` },
   'ruth bader ginsburg': { day: 15, month: 3, year: 1933, source: `${WIKIPEDIA}Ruth_Bader_Ginsburg` },
   'ryan gosling': { day: 12, month: 11, year: 1980, source: `${WIKIPEDIA}Ryan_Gosling` },
-  'ryan murphy': { day: 30, month: 11, year: 1965, source: `${WIKIPEDIA}Ryan_Murphy` },
+  'ryan murphy': { day: 9, month: 11, year: 1965, source: `${WIKIPEDIA}Ryan_Murphy` },
   'sally ride': { day: 26, month: 5, year: 1951, source: `${WIKIPEDIA}Sally_Ride` },
   'salman rushdie': { day: 19, month: 6, year: 1947, source: `${WIKIPEDIA}Salman_Rushdie` },
   'sam altman': { day: 22, month: 4, year: 1985, source: `${WIKIPEDIA}Sam_Altman` },
@@ -203,7 +206,7 @@ export const HISTORICAL_BIRTH_DATES: Record<string, HistoricalBirthDate> = {
   'steve jobs': { day: 24, month: 2, year: 1955, source: `${WIKIPEDIA}Steve_Jobs` },
   'steve wozniak': { day: 11, month: 8, year: 1950, source: `${WIKIPEDIA}Steve_Wozniak` },
   'steven spielberg': { day: 18, month: 12, year: 1946, source: `${WIKIPEDIA}Steven_Spielberg` },
-  'sundar pichai': { day: 12, month: 7, year: 1972, source: `${WIKIPEDIA}Sundar_Pichai` },
+  'sundar pichai': { day: 10, month: 6, year: 1972, source: `${WIKIPEDIA}Sundar_Pichai` },
   'tarana burke': { day: 12, month: 9, year: 1973, source: `${WIKIPEDIA}Tarana_Burke` },
   'tedros adhanom ghebreyesus': { day: 3, month: 3, year: 1965, source: `${WIKIPEDIA}Tedros_Adhanom_Ghebreyesus` },
   'temple grandin': { day: 29, month: 8, year: 1947, source: `${WIKIPEDIA}Temple_Grandin` },

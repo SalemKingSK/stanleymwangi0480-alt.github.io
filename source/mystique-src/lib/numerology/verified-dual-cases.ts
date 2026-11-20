@@ -39,11 +39,19 @@ function d(n: number): number { return String(Math.abs(n)).split("").reduce((a,c
 function reduceMaster(n:number){ let v=Math.abs(n); while(v>9 && v!==11 && v!==22 && v!==33) v=String(v).split("").reduce((a,c)=>a+ +c,0); return v }
 function reduceSingle(n:number){ let v=Math.abs(n); while(v>9) v=String(v).split("").reduce((a,c)=>a+ +c,0); return v }
 
+// 23 of the 24 cases below were written without the `correlation` argument,
+// which shifted every later field one slot left: the outcome became the source
+// list, `sources` was undefined, and rendering any of them in the history
+// section threw "Cannot read properties of undefined (reading 'join')" —
+// blanking the Personal Year view for every user whose pair matched one.
+// Accept both call shapes instead of rewriting 23 hand-authored entries.
 function makeCase(
-  id: string, person: string, bd: number, bm: number, by:number, ty:number,
-  eventDate: string, title:string, narrative:string, correlation:string,
-  qDirect:string, qClassic:string, outcome: VerifiedPairCase["outcome"], sources:string[]
+  id: string, person: string, bd: number, bm: number, by: number, ty: number,
+  eventDate: string, title: string, narrative: string,
+  ...rest: [string, string, string, VerifiedPairCase["outcome"], string[]] | [string, string, VerifiedPairCase["outcome"], string[]]
 ): VerifiedPairCase {
+  const [correlation, qDirect, qClassic, outcome, sources] =
+    rest.length === 5 ? rest : (['', ...rest] as [string, string, string, VerifiedPairCase["outcome"], string[]]);
   const directRaw = bd + bm + d(ty);
   const classicRaw = d(bd) + d(bm) + reduceSingle(ty);
   return {

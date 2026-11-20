@@ -405,7 +405,7 @@ export function buildSoulVitals(input: { name: string; day: number; month: numbe
   const destiny = calculateDestiny(day, month, year);
   const lifePath = getLifePathNumber(day, month, year).number;
   const { sign: zodiacAnimal, element: zodiacElement } = getChineseZodiacSign(day, month, year);
-  const westernSign = getWesternZodiacSign(day, month);
+  const westernSign = getWesternZodiacSign(day, month, year);
  
   // Reuse the app's own Lo Shu grid generator (numerology.ts) rather than
   // re-deriving the digit algorithm here, so this stays in sync with any
@@ -961,7 +961,7 @@ export function getFamousPersonalYearMatches(
   const classicReduced = reduceNum(classicRaw);
   const subjectLifePath = getLifePathNumber(subject.day, subject.month, subject.year).number;
   const subjectAnimal = getChineseZodiacSign(subject.day, subject.month, subject.year).sign;
-  const subjectWestern = getWesternZodiacSign(subject.day, subject.month);
+  const subjectWestern = getWesternZodiacSign(subject.day, subject.month, subject.year);
  
   return getFamousSoulBank().map((s) => {
     const fDirectRaw = computeRawPersonalYear(s.day, s.month, targetYear);

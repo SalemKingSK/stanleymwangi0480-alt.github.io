@@ -1,12 +1,34 @@
 // src/lib/astrology.ts
-import { CHINESE_CALENDAR } from './new-astrology/chinese-calendar';
+import { chineseSignFor } from './astrology/chinese-calendar-math';
+import { sunSignsOnDate } from './astrology/sun-sign';
 import type { AstroInsightOutput } from '@/components/profile-generator/types';
 import { zodiacData } from './zodiac';
 import { NEW_ASTROLOGY_DATA } from './new-astrology';
 
 
-// Helper function to get the Western Zodiac sign
-export const getWesternZodiacSign = (day: number, month: number): string => {
+/**
+ * Western sun sign. The fixed table is right for >99.9% of dates; pass the
+ * birth year and the Sun's real position overrides it on the few days where
+ * the table is wrong for that year (21 Jun / 23 Oct in 1903–1915, etc.).
+ * Days where the Sun changed sign during the day keep the table answer —
+ * `getWesternCusp` tells you the other possible sign.
+ */
+export const getWesternZodiacSign = (day: number, month: number, year?: number): string => {
+  const table = westernSignByTable(day, month);
+  if (!year || year < 1 || !Number.isFinite(year)) return table;
+  const real = sunSignsOnDate(day, month, year);
+  return real.length === 1 ? real[0] : real.includes(table) ? table : real[0];
+};
+
+/** The other sign a birth on this date could be (needs a birth time), or null. */
+export const getWesternCusp = (day: number, month: number, year: number): string | null => {
+  const real = sunSignsOnDate(day, month, year);
+  if (real.length < 2) return null;
+  const sign = getWesternZodiacSign(day, month, year);
+  return real.find(s => s !== sign) ?? null;
+};
+
+const westernSignByTable = (day: number, month: number): string => {
   if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return "Aquarius";
   if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return "Pisces";
   if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return "Aries";
@@ -21,42 +43,21 @@ export const getWesternZodiacSign = (day: number, month: number): string => {
   return "Capricorn";
 };
 
+/**
+ * Chinese zodiac animal + element for a birth date. The year changes at Lunar
+ * New Year (table for 1800–2100; 4 Feb outside it). Dates are compared as
+ * numbers, never as Date objects: `new Date("YYYY-MM-DD")` is parsed as UTC,
+ * which used to move the boundary by a day for visitors west of Greenwich.
+ */
 export const getChineseZodiacSign = (day: number, month: number, year: number) => {
-  const date = new Date(year, month - 1, day);
-
-  for (const zodiacYear of CHINESE_CALENDAR) {
-    const startDate = new Date(zodiacYear.start);
-    const endDate = new Date(zodiacYear.end);
-    
-    date.setHours(0,0,0,0);
-    startDate.setHours(0,0,0,0);
-    endDate.setHours(0,0,0,0);
-
-    if (date >= startDate && date <= endDate) {
-      const [element, sign] = zodiacYear.title.split(' ');
-      return { sign, element };
-    }
-  }
-
-  // Fallback for years outside the defined range
-  const signs = ["Rat", "Ox", "Tiger", "Rabbit", "Dragon", "Snake", "Horse", "Goat", "Monkey", "Rooster", "Dog", "Pig"];
-  const elements = ["Wood", "Fire", "Earth", "Metal", "Water"];
-  const referenceYear = 1924; // A known Rat year
-  const yearOffset = year - referenceYear;
-  
-  const signIndex = yearOffset >= 0 ? yearOffset % 12 : (12 + (yearOffset % 12)) % 12;
-  const elementIndex = yearOffset >= 0 ? Math.floor((yearOffset % 10) / 2) : Math.floor(((10 + (yearOffset % 10)) % 10) / 2);
-  
-  const fallbackSign = signs[signIndex];
-  const fallbackElement = elements[elementIndex];
-  
-  return { sign: fallbackSign, element: fallbackElement };
+  const { sign, element } = chineseSignFor(day, month, year);
+  return { sign, element };
 };
 
 export async function getAstroInsight(input: { name: string; day: number; month: number; year: number; gender: string }): Promise<AstroInsightOutput> {
     const { year, month, day, name, gender } = input;
     
-    const western_sign = getWesternZodiacSign(day, month);
+    const western_sign = getWesternZodiacSign(day, month, year);
     const { sign, element } = getChineseZodiacSign(day, month, year);
     
     // Data for the Chinese Zodiac sub-tabs

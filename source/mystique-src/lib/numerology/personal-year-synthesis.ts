@@ -16,6 +16,8 @@
 import type { ChaldeanPYNCompound } from '@/lib/numerology/chaldean-pyn-compounds';
 import { ESSENCE_QUOTES } from '@/lib/numerology/essence-quote-bank';
 import { findVerifiedCasesForPair, type VerifiedPairCase } from '@/lib/numerology/verified-dual-cases';
+import { PERSONAL_YEAR_PRECEDENTS, type Precedent } from '@/lib/numerology/personal-year-precedents';
+import { famousBirthdays } from '@/lib/famous-birthdays';
 
 // ─── Public types (kept compatible with existing callers) ──────────────────
 
@@ -29,6 +31,8 @@ export interface PersonalYearDualEssenceSynthesis {
   masterNumberSignal: string | null;
   karmicDebtSignal: string | null;
   historicalCalibration: string;
+  /** Both essences fused into one reading, grounded in dated real-life precedents. */
+  wovenSynthesis: string;
   predictionFocusAreas: string[];
   protectiveActions: string[];
   domains: string[];
@@ -117,6 +121,12 @@ function polarityOf(dQ: ReturnType<typeof quoteFor>, cQ: ReturnType<typeof quote
   if ((dCaution && cCtor) || (dCtor && cCaution)) return 'mixed ordeal-and-reward';
   if ([13,16,20,30].includes(dRaw) || [13,16,20,30].includes(cRaw)) return 'threshold / transition';
   return 'mixed ordeal-and-reward';
+}
+
+/** Polarity the engine assigns to a Direct × Classic pair. Exported so the
+ *  accuracy harness can score it against documented outcomes. */
+export function pairPolarity(dRaw: number, cRaw: number): PersonalYearDualEssenceSynthesis['polarity'] {
+  return polarityOf(quoteFor(dRaw), quoteFor(cRaw), dRaw, cRaw);
 }
 
 function intensityScoreSimple(dRaw: number, cRaw: number, pairIsExact: boolean, age: number | null): number {
@@ -257,8 +267,17 @@ export function buildPersonalYearDualEssenceSynthesis(args: BuildArgs): Personal
   // ── domains — human list for compatibility with older UI widgets ───────────
   const domains = focusAreas;
 
+  const wovenSynthesis = buildWovenSynthesis({
+    year: args.targetYear, birthDay: args.birthDay, birthMonth: args.birthMonth, birthYear: args.birthYear,
+    directRaw: args.directRaw, classicRaw: args.classicRaw,
+    directLabel: label(args.directRaw, args.directYear, args.directCompound),
+    classicLabel: label(args.classicRaw, args.classicYear, args.classicCompound),
+    dPlain: dQ?.plainHint ?? null, cPlain: cQ?.plainHint ?? null, protection,
+  });
+
   // ── final synthesis text — flows like a consultant's letter, not a report ───
   const synthesisText = assembleLetter({
+    wovenSynthesis,
     title, subtitle, year: args.targetYear,
     directLabel: label(args.directRaw, args.directYear, args.directCompound),
     classicLabel: label(args.classicRaw, args.classicYear, args.classicCompound),
@@ -277,12 +296,120 @@ export function buildPersonalYearDualEssenceSynthesis(args: BuildArgs): Personal
     masterNumberSignal: master,
     karmicDebtSignal: karmic,
     historicalCalibration,
+    wovenSynthesis,
     predictionFocusAreas: focusAreas,
     protectiveActions: protection,
     domains,
     polarity,
     intensityScore: intensity,
   };
+}
+
+// ─── woven synthesis — the intermarriage, grounded in dated real lives ──────
+
+const reduceKeep = (n: number): number => {
+  let v = Math.abs(n);
+  while (v > 9 && v !== 11 && v !== 22 && v !== 33) v = String(v).split('').reduce((a, c) => a + +c, 0);
+  return v;
+};
+const dso = (n: number) => String(n).split('').reduce((a, c) => a + +c, 0);
+const POSITIVE = new Set(['triumph', 'legacy']);
+const OUTCOME_WORD: Record<string, string> = {
+  triumph: 'a triumph', legacy: 'a legacy that outlasted the year', mixed: 'a mixed verdict — gain and cost together',
+  transition: 'a change of station', loss: 'a reversal',
+};
+// Organisations, bands and teams can't live a personal year — mirrors are people only.
+const isEntity = (p: { tags: string[] }) => p.tags.includes('Entity');
+const BASE_POSITIVE_RATE = PERSONAL_YEAR_PRECEDENTS.filter(p => POSITIVE.has(p.outcome)).length / Math.max(1, PERSONAL_YEAR_PRECEDENTS.length);
+
+function firstClause(s: string | null): string | null {
+  if (!s) return null;
+  const t = s.split(/\s+[—–-]\s+|;\s+/)[0].replace(/[.!]+$/, '').trim();
+  return t ? t[0].toLowerCase() + t.slice(1) : null;
+}
+
+/** Banked precedents for a pair: exact compound pair first, then the same reduced pair. */
+export function findPrecedents(directRaw: number, classicRaw: number) {
+  const exact = PERSONAL_YEAR_PRECEDENTS.filter(p => p.directRaw === directRaw && p.classicRaw === classicRaw);
+  const rd = reduceKeep(directRaw), rc = reduceKeep(classicRaw);
+  const reduced = PERSONAL_YEAR_PRECEDENTS.filter(p => !(p.directRaw === directRaw && p.classicRaw === classicRaw)
+    && reduceKeep(p.directRaw) === rd && reduceKeep(p.classicRaw) === rc);
+  return { exact, reduced };
+}
+
+function pickPrecedents(exact: Precedent[], reduced: Precedent[], max = 3): Array<Precedent & { exactPair: boolean }> {
+  const pool = [...exact.map(p => ({ ...p, exactPair: true })), ...reduced.map(p => ({ ...p, exactPair: false }))]
+    .sort((a, b) => Number(b.exactPair) - Number(a.exactPair) || b.year - a.year);
+  const out: Array<Precedent & { exactPair: boolean }> = [];
+  const seen = new Set<string>();
+  const take = (pred: (p: Precedent) => boolean) => {
+    const hit = pool.find(p => !seen.has(p.person) && pred(p));
+    if (hit && out.length < max) { out.push(hit); seen.add(hit.person); }
+  };
+  // Honesty: show a triumph AND a reversal whenever the library has both.
+  take(p => POSITIVE.has(p.outcome));
+  take(p => !POSITIVE.has(p.outcome));
+  while (out.length < max) { const before = out.length; take(() => true); if (out.length === before) break; }
+  return out;
+}
+
+function buildWovenSynthesis(o: {
+  year: number; birthDay: number; birthMonth: number; birthYear?: number;
+  directRaw: number; classicRaw: number; directLabel: string; classicLabel: string;
+  dPlain: string | null; cPlain: string | null; protection: string[];
+}): string {
+  const samePair = o.directRaw === o.classicRaw;
+  const surface = firstClause(o.dPlain) ?? `the ${o.directLabel} vibration sets the visible weather`;
+  const depth = firstClause(o.cPlain) ?? `the ${o.classicLabel} vibration decides what the year leaves behind`;
+
+  // ONE SENTENCE, TWO ALTITUDES
+  const thesis = samePair
+    ? `ONE SENTENCE, TWO ALTITUDES: in ${o.year} your surface and your blueprint are the same number, ${o.directLabel} — a vibration married to itself, redoubled: ${surface}, and nothing underneath softens or redirects it.`
+    : `ONE SENTENCE, TWO ALTITUDES: in ${o.year} ${surface} — and underneath, ${depth}.`;
+
+  const { exact, reduced } = findPrecedents(o.directRaw, o.classicRaw);
+  const picks = pickPrecedents(exact, reduced);
+  const lines: string[] = [thesis, ''];
+
+  if (picks.length) {
+    picks.forEach((p, i) => {
+      const what = p.what;
+      const tag = p.exactPair ? ` — your exact pair, ${p.directRaw}/${p.classicRaw}` : ` — the same reduced pair (${p.directRaw}/${p.classicRaw})`;
+      const lead = i === 0 ? 'Its clearest precedent is' : i === 1 && POSITIVE.has(picks[0].outcome) !== POSITIVE.has(p.outcome) ? 'The other side of the same pair:' : 'Also on this pair:';
+      lines.push(`${lead} ${p.person} in ${p.year}${tag}: on the surface, ${what}; underneath, the blueprint paid it out as ${OUTCOME_WORD[p.outcome] ?? p.outcome}.`);
+    });
+  } else {
+    lines.push(`No life in the banked library has lived this exact pair yet, so this reading stands on the essence texts alone.`);
+  }
+
+  // Famous mirrors: people whose birth day + month give the identical pair in EVERY year.
+  const mirrors = famousBirthdays
+    .filter(p => !isEntity(p) && !(p.day === o.birthDay && p.month === o.birthMonth && p.year === o.birthYear))
+    .filter(p => p.day + p.month === o.birthDay + o.birthMonth && dso(p.day) + dso(p.month) === dso(o.birthDay) + dso(o.birthMonth))
+    .sort((a, b) => Number(b.day === o.birthDay && b.month === o.birthMonth) - Number(a.day === o.birthDay && a.month === o.birthMonth))
+    .slice(0, 3);
+  if (mirrors.length) {
+    lines.push('', `Famous mirrors living the same ${o.directRaw}/${o.classicRaw} year in ${o.year}: ${mirrors.map(m => m.name).join(', ')}.`);
+  }
+
+  // How to live it — the two strategic moves fused into one instruction.
+  const move = (o.protection[0] ?? 'Make one concrete control visible.').replace(/\.$/, '');
+  lines.push('', `How to live it: meet the surface (${surface}) with the blueprint's demand in mind — ${move[0].toLowerCase()}${move.slice(1)}. Let the outer event serve the inner verdict, not the other way round.`);
+
+  // Honesty clause — the library's own record for this pair. Tested on all
+  // banked years (scripts/validate-celebrity-accuracy.ts §G), the pair does not
+  // predict triumph vs reversal better than chance, so it is never sold as odds.
+  const pool = exact.length >= 3 ? exact : [...exact, ...reduced];
+  const total = PERSONAL_YEAR_PRECEDENTS.length;
+  if (pool.length) {
+    const pos = pool.filter(p => POSITIVE.has(p.outcome)).length;
+    const share = Math.round((100 * pos) / pool.length);
+    const both = pos > 0 && pos < pool.length;
+    lines.push('', `Honest record: ${pos} of ${pool.length} banked ${pool === exact ? 'exact-pair' : 'same-pair'} years ended in triumph or legacy (${share}%; ${Math.round(100 * BASE_POSITIVE_RATE)}% across all ${total}). ${pool.length < 8 ? 'That is too few lives to call a pattern. ' : ''}Across the whole library no Personal Year pair has predicted triumph versus reversal better than chance, so read these lives as precedent, not probability. ${both ? 'This pair has carried both crowns and reversals: the' : 'The'} essences set the stage, but conduct decides the verdict.`);
+  } else {
+    lines.push('', `Honest note: the essences set the stage, but conduct decides the verdict — across ${total} banked lives no Personal Year pair has predicted triumph or reversal better than chance.`);
+  }
+  return lines.join('\n');
 }
 
 // ─── section builders ───────────────────────────────────────────────────────
@@ -302,10 +429,10 @@ function buildHistorySection(similar: Array<VerifiedPairCase & { similarity: num
     return [
       `${c.person} — ${c.title} (${c.eventDate}) — ${pct}% similar`,
       c.narrative,
-      `Why this proves the lines: Direct — “${c.quotedDirectLine}” · Classic — “${c.quotedClassicLine}”`,
+      `How the lines read against this event: Direct — “${c.quotedDirectLine}” · Classic — “${c.quotedClassicLine}”`,
       c.correlation,
-      `Sources: ${c.sources.join(' · ')}`
-    ].join('\n');
+      `Sources: ${(c.sources ?? []).join(' · ')}`
+    ].filter(Boolean).join('\n');
   }).join('\n\n— — —\n\n');
   return `${header}\n\n${cards}`;
 }
@@ -338,6 +465,7 @@ function buildKarmicSignal(dRaw: number, cRaw: number): string | null {
 }
 
 function assembleLetter(opts: {
+  wovenSynthesis: string;
   title: string; subtitle: string; year: number;
   directLabel: string; classicLabel: string;
   directSym: string; classicSym: string;
@@ -365,13 +493,13 @@ function assembleLetter(opts: {
         return [
           `${c.person} — ${c.title}`,
           `Event: ${c.eventDate} · ${c.narrative}`,
-          `Direct line it proves: “${c.quotedDirectLine}”`,
-          `Classic line it proves: “${c.quotedClassicLine}”`,
-          `${c.correlation}`,
-          `Sources: ${c.sources.join(' · ')}  ·  ${pct}% similar to your ${opts.directLabel} × ${opts.classicLabel}`
-        ].join('\n');
+          `Direct line it echoes: “${c.quotedDirectLine}”`,
+          `Classic line it echoes: “${c.quotedClassicLine}”`,
+          c.correlation,
+          `Sources: ${(c.sources ?? []).join(' · ')}  ·  ${pct}% similar to your ${opts.directLabel} × ${opts.classicLabel}`
+        ].filter(Boolean).join('\n');
       }).join('\n\n')
-    : `No banked case at 80%+ similarity exists yet for this exact pair. The lines above are still predictive — they are the same lines that made Trump 2024 literal — and the next verified life at this pair will appear here automatically.`;
+    : `No banked case at 80%+ similarity exists yet for this exact pair. The quoted lines above still describe the pair; the next verified life at this pair will appear here automatically.`;
 
   return [
     `${opts.title}`,
@@ -400,7 +528,10 @@ function assembleLetter(opts: {
     `— HOW THEY MERGE — THE BRIDGE`,
     opts.mergeText,
     ``,
-    `— HISTORY PROVES IT — LIVES AT 80%+ SIMILARITY`,
+    `— WOVEN TOGETHER — WHAT REAL LIVES DID WITH THIS PAIR`,
+    opts.wovenSynthesis,
+    ``,
+    `— CLOSEST VERIFIED CASES — LIVES AT 80%+ SIMILARITY`,
     historyBlock,
     ``,
     `— WHAT TO WATCH, WHAT TO DO —`,

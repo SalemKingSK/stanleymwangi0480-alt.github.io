@@ -1,0 +1,260 @@
+{
+  "_about": "Birth-date corrections for famous-birthdays.ts, found by checking every person record against Wikidata P569 (Nov 2026 audit). 'high' = Wikidata agrees with the subject's own Wikipedia article, so the app value is a typo. 'medium' = Wikidata is the only source; applied because the app value looks like a placeholder or a swapped digit. Apply with: node source/scripts/apply-dob-corrections.mjs",
+  "corrections": [
+    {
+      "name": "Michael Jackson",
+      "from": "1958-05-29",
+      "to": "1958-08-29",
+      "confidence": "high"
+    },
+    {
+      "name": "Jackson Bird",
+      "from": "1886-12-04",
+      "to": "1986-12-11",
+      "confidence": "high",
+      "note": "wrong century"
+    },
+    {
+      "name": "Olusegun Obasanjo",
+      "from": "1937-05-05",
+      "to": "1937-03-05",
+      "confidence": "high"
+    },
+    {
+      "name": "Lawrence Oates",
+      "from": "1880-03-16",
+      "to": "1880-03-17",
+      "confidence": "high",
+      "note": "died on his 32nd birthday, 17 Mar 1912"
+    },
+    {
+      "name": "Ludwig van Beethoven",
+      "from": "1770-12-17",
+      "to": "1770-12-16",
+      "confidence": "high",
+      "note": "17 Dec is the baptism date"
+    },
+    {
+      "name": "Nigel de Jong",
+      "from": "1984-11-13",
+      "to": "1984-11-30",
+      "confidence": "high"
+    },
+    {
+      "name": "Shikhar Dhawan",
+      "from": "1986-12-05",
+      "to": "1985-12-05",
+      "confidence": "high"
+    },
+    {
+      "name": "Rosalía",
+      "from": "1993-09-25",
+      "to": "1992-09-25",
+      "confidence": "high"
+    },
+    {
+      "name": "Gustavo Kuerten",
+      "from": "1977-09-10",
+      "to": "1976-09-10",
+      "confidence": "high"
+    },
+    {
+      "name": "Hildur Guðnadóttir",
+      "from": "1979-09-04",
+      "to": "1982-09-04",
+      "confidence": "high"
+    },
+    {
+      "name": "Jónsi",
+      "from": "1978-04-23",
+      "to": "1975-04-23",
+      "confidence": "high"
+    },
+    {
+      "name": "Andrea Bocelli",
+      "from": "1958-09-23",
+      "to": "1958-09-22",
+      "confidence": "high"
+    },
+    {
+      "name": "Mokgweetsi Masisi",
+      "from": "1962-07-21",
+      "to": "1961-07-21",
+      "confidence": "high"
+    },
+    {
+      "name": "Mahamat Déby",
+      "from": "1984-01-01",
+      "to": "1984-04-04",
+      "confidence": "high",
+      "note": "1 Jan was a placeholder"
+    },
+    {
+      "name": "Moises Henriques",
+      "from": "1987-10-01",
+      "to": "1987-02-01",
+      "confidence": "high"
+    },
+    {
+      "name": "Ferenc Puskás",
+      "from": "1927-04-02",
+      "to": "1927-04-01",
+      "confidence": "high"
+    },
+    {
+      "name": "Gabigol",
+      "from": "1996-01-19",
+      "to": "1996-08-30",
+      "confidence": "high"
+    },
+    {
+      "name": "Langston Hughes",
+      "from": "1902-02-01",
+      "to": "1901-02-01",
+      "confidence": "high",
+      "note": "1901 is now the accepted year, from a birth record"
+    },
+    {
+      "name": "Will Pucovski",
+      "from": "1998-02-06",
+      "to": "1998-02-02",
+      "confidence": "high"
+    },
+    {
+      "name": "D'Arcy Short",
+      "from": "1990-08-04",
+      "to": "1990-08-09",
+      "confidence": "high"
+    },
+    {
+      "name": "Joe Mennie",
+      "from": "1988-12-15",
+      "to": "1988-12-24",
+      "confidence": "high"
+    },
+    {
+      "name": "Michael Neser",
+      "from": "1990-03-28",
+      "to": "1990-03-29",
+      "confidence": "high"
+    },
+    {
+      "name": "Daniel Worrall",
+      "from": "1991-07-03",
+      "to": "1991-07-10",
+      "confidence": "high"
+    },
+    {
+      "name": "Robert Swan",
+      "from": "1956-07-15",
+      "to": "1956-07-28",
+      "confidence": "high"
+    },
+    {
+      "name": "Voddie Baucham",
+      "from": "1969-09-11",
+      "to": "1969-03-11",
+      "confidence": "high"
+    },
+    {
+      "name": "Haji Abdul Malik Karim Amrullah",
+      "from": "1908-02-10",
+      "to": "1908-02-17",
+      "confidence": "high",
+      "note": "Hamka"
+    },
+    {
+      "name": "Alberto Fujimori",
+      "from": "1938-07-28",
+      "to": "1938-07-26",
+      "confidence": "medium"
+    },
+    {
+      "name": "Abdul Hamid Dbeibeh",
+      "from": "1959-10-23",
+      "to": "1959-02-13",
+      "confidence": "medium"
+    },
+    {
+      "name": "Thomas Mapfumo",
+      "from": "1945-07-03",
+      "to": "1945-07-02",
+      "confidence": "medium"
+    },
+    {
+      "name": "Rokia Traoré",
+      "from": "1974-01-26",
+      "to": "1974-01-24",
+      "confidence": "medium"
+    },
+    {
+      "name": "Prophet Shepherd Bushiri",
+      "from": "1983-09-20",
+      "to": "1983-02-20",
+      "confidence": "medium"
+    },
+    {
+      "name": "Sister Mary Ward",
+      "from": "1585-01-01",
+      "to": "1585-01-23",
+      "confidence": "medium",
+      "note": "1 Jan was a placeholder"
+    },
+    {
+      "name": "Moses Mabhida",
+      "from": "1923-01-01",
+      "to": "1923-10-14",
+      "confidence": "medium",
+      "note": "1 Jan was a placeholder"
+    },
+    {
+      "name": "Damares Alves",
+      "from": "1964-09-17",
+      "to": "1964-03-11",
+      "confidence": "medium"
+    },
+    {
+      "name": "Marco Feliciano",
+      "from": "1972-10-20",
+      "to": "1972-10-12",
+      "confidence": "medium"
+    },
+    {
+      "name": "Matthew Ashimolowo",
+      "from": "1952-04-17",
+      "to": "1952-03-17",
+      "confidence": "medium"
+    },
+    {
+      "name": "Parker Liautaud",
+      "from": "1994-08-19",
+      "to": "1994-08-12",
+      "confidence": "medium"
+    },
+    {
+      "name": "Ryan Harris",
+      "from": "1979-10-20",
+      "to": "1979-10-11",
+      "confidence": "medium"
+    },
+    {
+      "name": "Ben Saunders",
+      "from": "1977-08-09",
+      "to": "1977-08-05",
+      "confidence": "medium"
+    },
+    {
+      "name": "Majeed Ashimeru",
+      "from": "1997-10-22",
+      "to": "1997-10-10",
+      "confidence": "medium"
+    },
+    {
+      "name": "Alexander Vasilyevich Alexandrov",
+      "from": "1883-04-01",
+      "to": "1883-04-13",
+      "confidence": "high",
+      "note": "1 Apr was the Old Style (Julian) date; the app uses New Style for every other Russian born before 1918, e.g. Lenin"
+    }
+  ]
+}

@@ -10,6 +10,8 @@
 // Horse: Jun 6 - Jul 6  | Goat: Jul 7 - Aug 7    | Monkey: Aug 8 - Sep 7
 // Rooster: Sep 8 - Oct 7| Dog: Oct 8 - Nov 6     | Pig: Nov 7 - Dec 6
 
+import { solarTermYear, toAstronomicalYear } from './chinese-calendar-math';
+
 export type ChineseAnimal =
   | 'Rat' | 'Ox' | 'Tiger' | 'Rabbit' | 'Dragon' | 'Snake'
   | 'Horse' | 'Goat' | 'Monkey' | 'Rooster' | 'Dog' | 'Pig';
@@ -68,6 +70,8 @@ const ZODIAC_ANIMALS: ChineseAnimal[] = [
   'Rat', 'Ox', 'Tiger', 'Rabbit', 'Dragon', 'Snake',
   'Horse', 'Goat', 'Monkey', 'Rooster', 'Dog', 'Pig',
 ];
+
+const stemBranchIndexYear = toAstronomicalYear;
 
 function getYearAnimal(year: number): ChineseAnimal {
   // The Chinese zodiac cycle: Rat = 1900, 1912, 1924, etc.
@@ -243,7 +247,10 @@ export function getDoubleAnimal(
   month: number,
   year: number
 ): DoubleAnimalResult {
-  const yearAnimal = getYearAnimal(year);
+  // Ba-Zi year pillar changes at Lichun (≈4 Feb), the same boundary as the
+  // solar months below. With the Gregorian year, every Ox-month birth
+  // (6 Jan – 3 Feb) was paired with the wrong year animal.
+  const yearAnimal = getYearAnimal(stemBranchIndexYear(solarTermYear(day, month, year)));
   const monthAnimal = getMonthAnimal(day, month);
   const isDouble = monthAnimal !== null && monthAnimal === yearAnimal;
 
