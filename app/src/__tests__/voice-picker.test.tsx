@@ -1,57 +1,54 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
+import { fake, installFakeVoice, tick } from "./helpers/fake-voice";
 
-class FakeUtterance {
-  text: string;
-  voice: unknown = null;
-  pitch = 1;
-  rate = 1;
-  lang = "";
-  onend: (() => void) | null = null;
-  onerror: (() => void) | null = null;
-  constructor(t: string) {
-    this.text = t;
-  }
-}
-const spoken: FakeUtterance[] = [];
-const voices = [
-  { name: "English United States", lang: "en-US", voiceURI: "us", default: true, localService: true },
-  { name: "English Nigeria", lang: "en-NG", voiceURI: "ng", default: false, localService: false },
-];
-Object.assign(globalThis, { SpeechSynthesisUtterance: FakeUtterance, IS_REACT_ACT_ENVIRONMENT: true });
-Object.defineProperty(window, "speechSynthesis", {
-  value: { speaking: false, pending: false, paused: false, speak: (u: FakeUtterance) => spoken.push(u), cancel: vi.fn(), resume: vi.fn(), getVoices: () => voices, addEventListener: vi.fn(), removeEventListener: vi.fn() },
-  configurable: true,
-});
-
+installFakeVoice();
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+Object.assign(navigator, { gpu: {} }); // the browser offers WebGPU
 const { ReadAloudDock } = await import("@/components/read-aloud/read-aloud-dock");
+const { neuralVoice } = await import("@/lib/read-aloud/neural-voice");
+
+async function openMenu() {
+  document.body.innerHTML = `<div id="app"></div><main><p>Some text.</p></main>`;
+  const root = createRoot(document.getElementById("app")!);
+  await act(async () => root.render(<ReadAloudDock />));
+  await act(async () => document.querySelector<HTMLButtonElement>("[data-voice-toggle]")!.click());
+  return { root, menu: document.querySelector('[role="dialog"][aria-label="Choose a voice"]')! };
+}
 
 describe("voice menu in the player", () => {
-  it("lists the device's voices with speed and pitch, and picking one plays a sample", async () => {
-    document.body.innerHTML = `<div id="app"></div><main><p>Some text.</p></main>`;
-    const root = createRoot(document.getElementById("app")!);
-    await act(async () => root.render(<ReadAloudDock />));
-    const toggle = document.querySelector<HTMLButtonElement>("[data-voice-toggle]")!;
-    expect(toggle).toBeTruthy();
-    await act(async () => toggle.click());
-    const menu = document.querySelector('[role="dialog"][aria-label="Choose a voice"]')!;
-    expect(menu).toBeTruthy();
+  it("offers only the natural voices and speed — no device voices or pitch", async () => {
+    const { root, menu } = await openMenu();
     const text = menu.textContent!;
-    expect(text).toContain("Automatic");
-    expect(text).toContain("English Nigeria");
-    expect(text).toContain("English (Nigeria) · needs internet");
+    for (const name of ["Heart", "Bella", "Michael", "Emma", "George"]) expect(text).toContain(name);
     expect(text).toContain("Speed");
-    expect(text).toContain("Pitch");
-    // no natural voices in this environment (no Web Audio / workers)
-    expect(text).not.toContain("Heart");
+    expect(text).not.toMatch(/Automatic|device's voices|Pitch/);
+    expect(text).toMatch(/One-time (92|325) MB download/);
 
-    const ng = Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="radio"]')).find((b) => b.textContent!.includes("Nigeria"))!;
-    await act(async () => ng.click());
-    expect(ng.getAttribute("aria-checked")).toBe("true");
-    expect((spoken.at(-1)!.voice as { voiceURI: string }).voiceURI).toBe("ng");
-    expect(JSON.parse(localStorage.getItem("mc-voice-settings")!).deviceVoice).toBe("ng");
+    const bella = Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="radio"]')).find((b) => b.textContent!.startsWith("Bella"))!;
+    await act(async () => bella.click());
+    expect(bella.getAttribute("aria-checked")).toBe("true");
+    expect(JSON.parse(localStorage.getItem("mc-voice-settings")!).naturalVoice).toBe("af_bella");
+    await act(async () => tick());
+    expect(fake.worker!.sent.some((m) => m.type === "generate" && m.voice === "af_bella")).toBe(true); // a sample in Bella's voice
+    expect(fake.speechSpy.speak).not.toHaveBeenCalled();
+    await act(async () => root.unmount());
+  });
+
+  it("on a slow device it explains the pauses and offers the faster mode", async () => {
+    fake.rtf = 3.4;
+    await act(async () => (neuralVoice as unknown as { start(d: string): Promise<void> }).start("wasm"));
+    const { root, menu } = await openMenu();
+    expect(menu.textContent).toContain("about 3.4× slower");
+    const gpu = Array.from(menu.querySelectorAll("button")).find((b) => b.textContent!.includes("faster mode"))!;
+    expect(gpu).toBeTruthy();
+    fake.rtf = 0.3;
+    await act(async () => gpu.click());
+    await act(async () => tick());
+    expect(fake.worker!.sent[0]).toMatchObject({ type: "load", device: "webgpu" });
+    expect(menu.textContent).toContain("graphics chip");
     await act(async () => root.unmount());
   });
 });

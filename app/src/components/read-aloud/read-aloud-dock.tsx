@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AudioLines, Headphones, Pause, Play, Square, SkipBack, SkipForward } from "lucide-react";
 import { readAloud } from "@/lib/read-aloud/engine";
 import { useReadAloudState } from "@/hooks/use-read-aloud";
+import { neuralVoice } from "@/lib/read-aloud/neural-voice";
 import { useNeuralVoiceState } from "@/hooks/use-neural-voice";
 import { useToast } from "@/hooks/use-toast";
 import { VoicePicker } from "./voice-picker";
@@ -40,21 +41,19 @@ export function ReadAloudDock() {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
-  // Tell the user once when the natural voice drops out (not on every load).
-  const lastStatus = useRef(voice.status);
+  // Tell the user once if speech will have pauses on this device.
+  const toldSlow = useRef(false);
   useEffect(() => {
-    const was = lastStatus.current;
-    lastStatus.current = voice.status;
-    if (was === voice.status || !voice.enabled) return;
-    if (voice.status === "error") {
-      toast({ title: "Natural voice unavailable", description: "Reading with your device's voice instead." });
-    } else if (voice.status === "slow") {
-      toast({
-        title: "Using your device's voice",
-        description: "The natural voice runs too slowly on this device to read without long pauses, so your device's own voice will read instead.",
-      });
-    }
-  }, [voice.status, voice.enabled, toast]);
+    if (voice.status !== "ready" || !neuralVoice.slow || toldSlow.current) return;
+    toldSlow.current = true;
+    const gpu = voice.device === "wasm" && voice.gpuAvailable && !voice.gpuFailed;
+    toast({
+      title: "Expect short pauses",
+      description: gpu
+        ? "This device makes speech slower than it's spoken. Open the voice menu (sound-wave button) to switch on the faster mode."
+        : "This device makes speech slower than it's spoken, so the voice pauses between sentences.",
+    });
+  }, [voice.status, voice.rtf, voice.device, voice.gpuAvailable, voice.gpuFailed, toast]);
 
   useEffect(() => {
     readAloud.setErrorHandler((message) => toast({ title: "Read aloud", description: message }));
@@ -70,14 +69,15 @@ export function ReadAloudDock() {
 
   if (!readAloud.supported) return null;
   const active = state.status !== "idle";
-  const voiceNote = !active || !voice.enabled
+  // Shown above the controls while the voice downloads or prepares speech.
+  const voiceNote = !active
     ? null
     : voice.status === "loading"
       ? voice.progress >= 0.999
-        ? "Checking the natural voice runs smoothly on this device…"
-        : `Getting the natural voice… ${Math.round(voice.progress * 100)}% (one-time ${voice.sizeLabel})`
-      : voice.status === "idle"
-        ? `Pick a natural voice in the voice menu (one-time ${voice.sizeLabel} download)`
+        ? "Starting the voice…"
+        : `Downloading the voice… ${Math.round(voice.progress * 100)}% (one-time ${voice.sizeLabel})`
+      : state.waiting && state.status === "playing"
+        ? "Preparing speech…"
         : null;
   const voiceButton = (
     <button
@@ -87,8 +87,8 @@ export function ReadAloudDock() {
       onClick={() => setMenuOpen((o) => !o)}
       aria-expanded={menuOpen}
       aria-haspopup="dialog"
-      aria-label="Choose voice, speed and pitch"
-      title="Choose voice, speed and pitch"
+      aria-label="Choose voice and speed"
+      title="Choose voice and speed"
     >
       <AudioLines size={16} />
     </button>

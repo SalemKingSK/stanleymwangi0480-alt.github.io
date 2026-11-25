@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
-import { Check, X } from "lucide-react";
+import { Check, X, Zap } from "lucide-react";
 import { readAloud } from "@/lib/read-aloud/engine";
 import { neuralVoice } from "@/lib/read-aloud/neural-voice";
-import { voiceSettings, NATURAL_VOICES, accentLabel } from "@/lib/read-aloud/voice-settings";
+import { voiceSettings, NATURAL_VOICES } from "@/lib/read-aloud/voice-settings";
 import { useNeuralVoiceState } from "@/hooks/use-neural-voice";
-import { useDeviceVoices, useVoiceSettings } from "@/hooks/use-voice-settings";
+import { useVoiceSettings } from "@/hooks/use-voice-settings";
 
 const gold = "#f1d98a";
 const dim = "rgba(241,217,138,0.6)";
@@ -42,41 +42,23 @@ function Row({ selected, title, detail, onPick }: { selected: boolean; title: st
       }}
     >
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</span>
-        {detail && <span style={{ display: "block", fontSize: "0.66rem", color: dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{detail}</span>}
+        <span style={{ display: "block" }}>{title}</span>
+        {detail && <span style={{ display: "block", fontSize: "0.66rem", color: dim }}>{detail}</span>}
       </span>
       {selected && <Check size={15} aria-hidden="true" />}
     </button>
   );
 }
 
-function Slider({ label, value, min, max, step, onChange, format }: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void; format: (v: number) => string }) {
-  return (
-    <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "0.74rem", color: gold, margin: "0.35rem 0" }}>
-      <span style={{ width: 44 }}>{label}</span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        style={{ flex: 1, accentColor: "#d4af37" }}
-      />
-      <span style={{ width: 38, textAlign: "right", fontVariantNumeric: "tabular-nums", color: dim }}>{format(value)}</span>
-    </label>
-  );
-}
-
 /**
- * Voice menu for the read-aloud player: natural voices (where the device can
- * run them), the device's own voices, speed and pitch. Picking a voice plays
- * it straight away (restarting the current sentence, or a short sample).
+ * Voice menu for the read-aloud player: the Kokoro voices and speed, plus the
+ * voice's download / speed status and (on slow devices) the faster
+ * graphics-chip mode. Picking a voice plays it straight away (restarting the
+ * current sentence, or a short sample).
  */
 export function VoicePicker({ onClose }: { onClose: () => void }) {
   const voice = useNeuralVoiceState();
   const settings = useVoiceSettings();
-  const deviceVoices = useDeviceVoices(true);
   const panel = useRef<HTMLDivElement>(null);
   const restart = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -97,34 +79,29 @@ export function VoicePicker({ onClose }: { onClose: () => void }) {
     };
   }, [onClose]);
 
-  const naturalOk = voice.status === "idle" || voice.status === "loading" || voice.status === "ready";
-  const usingNatural = naturalOk && voice.enabled;
-
-  const pickNatural = (id: string) => {
+  const pick = (id: string) => {
     voiceSettings.set({ naturalVoice: id });
-    neuralVoice.setEnabled(true);
     readAloud.voiceChanged();
   };
-  const pickDevice = (uri: string | null) => {
-    voiceSettings.set({ deviceVoice: uri });
-    neuralVoice.setEnabled(false);
-    readAloud.voiceChanged();
-  };
-  // Sliders: apply after the thumb settles, not on every step.
-  const tune = (patch: { rate?: number; pitch?: number }) => {
-    voiceSettings.set(patch);
+  // Speed: apply after the thumb settles, not on every step.
+  const setRate = (rate: number) => {
+    voiceSettings.set({ rate });
     if (restart.current) clearTimeout(restart.current);
     restart.current = setTimeout(() => readAloud.voiceChanged(), 450);
   };
 
-  const naturalStatus =
+  const mode = voice.device === "webgpu" ? "graphics chip" : "processor";
+  const status =
     voice.status === "ready"
-      ? "Downloaded · works offline"
+      ? `Ready · works offline · running on this device's ${mode}`
       : voice.status === "loading"
         ? voice.progress >= 0.999
-          ? "Checking it runs smoothly on this device…"
-          : `Downloading… ${Math.round(voice.progress * 100)}%`
-        : `One-time ${voice.sizeLabel} download, then works offline`;
+          ? "Starting the voice…"
+          : `Downloading the voice… ${Math.round(voice.progress * 100)}% (one-time ${voice.sizeLabel})`
+        : voice.status === "error"
+          ? `The voice couldn't load${voice.error ? ` (${voice.error})` : ""}. Check your connection, then pick a voice to try again.`
+          : `One-time ${voice.sizeLabel} download the first time you listen, then it works offline.`;
+  const offerGpu = voice.status === "ready" && neuralVoice.slow && voice.device === "wasm" && voice.gpuAvailable && !voice.gpuFailed;
 
   return (
     <div
@@ -154,56 +131,66 @@ export function VoicePicker({ onClose }: { onClose: () => void }) {
           <X size={16} />
         </button>
       </div>
+      <div role="status" style={{ fontSize: "0.68rem", color: dim, margin: "0.3rem 0 0.2rem", lineHeight: 1.45 }}>
+        {status}
+      </div>
 
-      {naturalOk && (
-        <div role="radiogroup" aria-label="Natural voices">
-          <div style={sectionTitle}>Natural voices · most lifelike</div>
-          <div style={{ fontSize: "0.66rem", color: dim, marginBottom: 6 }}>{naturalStatus}</div>
-          {NATURAL_VOICES.map((v) => (
-            <Row
-              key={v.id}
-              selected={usingNatural && settings.naturalVoice === v.id}
-              title={`${v.name}${v.note ? ` · ${v.note}` : ""}`}
-              detail={`${v.accent} ${v.gender.toLowerCase()} · grade ${v.grade}`}
-              onPick={() => pickNatural(v.id)}
-            />
-          ))}
+      {voice.status === "ready" && neuralVoice.slow && (
+        <div style={{ fontSize: "0.68rem", lineHeight: 1.45, margin: "0.4rem 0", padding: "0.5rem 0.6rem", borderRadius: 10, background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.3)" }}>
+          This device makes speech about {voice.rtf.toFixed(1)}× slower than it's spoken, so there are pauses between sentences.
+          {offerGpu ? (
+            <>
+              {" "}Its graphics chip can usually do it much faster.
+              <button
+                type="button"
+                onClick={() => {
+                  neuralVoice.unlock();
+                  void neuralVoice.useGpu().catch(() => {});
+                }}
+                style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, padding: "0.4rem 0.7rem", borderRadius: 999, border: "none", background: "#d4af37", color: "#1a0d33", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}
+              >
+                <Zap size={14} /> Use the faster mode (one-time 325 MB)
+              </button>
+            </>
+          ) : voice.gpuFailed ? (
+            " The faster graphics-chip mode didn't work in this browser."
+          ) : (
+            " Pauses get shorter on a faster device."
+          )}
         </div>
       )}
 
-      <div role="radiogroup" aria-label="Device voices">
-        <div style={sectionTitle}>This device's voices</div>
-        {voice.status === "slow" && (
-          <div style={{ fontSize: "0.66rem", color: dim, marginBottom: 6 }}>
-            The natural voices run too slowly on this device to read smoothly, so its own voices are listed here.
-          </div>
-        )}
-        <Row selected={!usingNatural && !settings.deviceVoice} title="Automatic" detail="The device's default English voice" onPick={() => pickDevice(null)} />
-        {deviceVoices.map((v) => (
+      <div role="radiogroup" aria-label="Voices">
+        <div style={sectionTitle}>Voices</div>
+        {NATURAL_VOICES.map((v) => (
           <Row
-            key={v.voiceURI}
-            selected={!usingNatural && settings.deviceVoice === v.voiceURI}
-            title={v.name}
-            detail={`${accentLabel(v.lang)}${v.localService ? " · offline" : " · needs internet"}`}
-            onPick={() => pickDevice(v.voiceURI)}
+            key={v.id}
+            selected={settings.naturalVoice === v.id}
+            title={`${v.name}${v.note ? ` · ${v.note}` : ""}`}
+            detail={`${v.accent} ${v.gender.toLowerCase()} · grade ${v.grade}`}
+            onPick={() => pick(v.id)}
           />
         ))}
-        <div style={{ fontSize: "0.64rem", color: dim, margin: "0.4rem 0 0.2rem", lineHeight: 1.45 }}>
-          {deviceVoices.length <= 1 ? "Only one voice is installed. " : ""}
-          More voices can be added in your phone's settings: Android — Settings › Accessibility › Text-to-speech › Install voice data; iPhone — Settings › Accessibility › Spoken Content › Voices.
-        </div>
       </div>
 
-      <div style={sectionTitle}>Sound</div>
-      <Slider label="Speed" value={settings.rate} min={0.6} max={1.6} step={0.05} onChange={(rate) => tune({ rate })} format={(v) => `${v.toFixed(2)}×`} />
-      {!usingNatural && <Slider label="Pitch" value={settings.pitch} min={0.6} max={1.6} step={0.05} onChange={(pitch) => tune({ pitch })} format={(v) => (v === 1 ? "normal" : v.toFixed(2))} />}
-      {(settings.rate !== 1 || settings.pitch !== 1) && (
-        <button
-          type="button"
-          onClick={() => tune({ rate: 1, pitch: 1 })}
-          style={{ background: "none", border: "none", color: dim, fontSize: "0.66rem", textDecoration: "underline", cursor: "pointer", padding: 0 }}
-        >
-          Reset speed and pitch
+      <div style={sectionTitle}>Speed</div>
+      <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "0.74rem", color: gold, margin: "0.35rem 0" }}>
+        <span className="sr-only">Speed</span>
+        <input
+          type="range"
+          min={0.6}
+          max={1.6}
+          step={0.05}
+          value={settings.rate}
+          onChange={(e) => setRate(Number(e.target.value))}
+          style={{ flex: 1, accentColor: "#d4af37" }}
+          aria-label="Speed"
+        />
+        <span style={{ width: 42, textAlign: "right", fontVariantNumeric: "tabular-nums", color: dim }}>{settings.rate.toFixed(2)}×</span>
+      </label>
+      {settings.rate !== 1 && (
+        <button type="button" onClick={() => setRate(1)} style={{ background: "none", border: "none", color: dim, fontSize: "0.66rem", textDecoration: "underline", cursor: "pointer", padding: 0 }}>
+          Normal speed
         </button>
       )}
     </div>

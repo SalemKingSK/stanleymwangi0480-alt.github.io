@@ -1,9 +1,6 @@
 /**
- * The listener's voice choices, remembered on the device:
- * - which natural (Kokoro) voice to use,
- * - which of the device's own voices to use (null = automatic),
- * - speaking speed and pitch.
- * Whether the natural voice is on at all is kept by neural-voice.ts.
+ * The listener's voice choices, remembered on the device: which Kokoro
+ * voice reads, and how fast.
  */
 
 const KEY = "mc-voice-settings";
@@ -11,12 +8,8 @@ const KEY = "mc-voice-settings";
 export interface VoiceSettings {
   /** Kokoro voice id, e.g. "af_heart". */
   naturalVoice: string;
-  /** voiceURI of the chosen device voice; null picks one automatically. */
-  deviceVoice: string | null;
   /** 1 = normal speed. */
   rate: number;
-  /** 1 = normal pitch (device voices only; the natural voices have their own). */
-  pitch: number;
 }
 
 export interface NaturalVoiceInfo {
@@ -48,7 +41,7 @@ export const NATURAL_VOICES: NaturalVoiceInfo[] = [
   { id: "bf_isabella", name: "Isabella", accent: "British", gender: "Female", grade: "C" },
 ];
 
-const DEFAULTS: VoiceSettings = { naturalVoice: "af_heart", deviceVoice: null, rate: 1, pitch: 1 };
+const DEFAULTS: VoiceSettings = { naturalVoice: "af_heart", rate: 1 };
 
 const clamp = (n: unknown, lo: number, hi: number, d: number) => (typeof n === "number" && Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d);
 
@@ -58,9 +51,7 @@ function read(): VoiceSettings {
     if (!raw) return { ...DEFAULTS };
     return {
       naturalVoice: NATURAL_VOICES.some((v) => v.id === raw.naturalVoice) ? (raw.naturalVoice as string) : DEFAULTS.naturalVoice,
-      deviceVoice: typeof raw.deviceVoice === "string" ? raw.deviceVoice : null,
       rate: clamp(raw.rate, 0.5, 2, 1),
-      pitch: clamp(raw.pitch, 0.5, 2, 1),
     };
   } catch {
     return { ...DEFAULTS };
@@ -94,33 +85,3 @@ export const voiceSettings = {
     current = read();
   },
 };
-
-/** The device's English voices, best candidates first (Kenyan English first if installed). */
-export function deviceEnglishVoices(): SpeechSynthesisVoice[] {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return [];
-  const all = window.speechSynthesis.getVoices?.() ?? [];
-  const norm = (l: string) => l.replace("_", "-").toLowerCase();
-  const rank = (v: SpeechSynthesisVoice) => {
-    const l = norm(v.lang);
-    if (l === "en-ke") return 0;
-    if (l === "en-us" || l === "en-gb") return 1;
-    return 2;
-  };
-  const seen = new Set<string>();
-  return all
-    .filter((v) => norm(v.lang).startsWith("en"))
-    .filter((v) => (seen.has(v.voiceURI) ? false : (seen.add(v.voiceURI), true)))
-    .sort((a, b) => rank(a) - rank(b) || norm(a.lang).localeCompare(norm(b.lang)) || a.name.localeCompare(b.name));
-}
-
-/** "English (Kenya)"-style label for a voice's accent. */
-export function accentLabel(lang: string): string {
-  const region = lang.replace("_", "-").split("-")[1];
-  if (!region) return "English";
-  try {
-    const name = new Intl.DisplayNames(["en"], { type: "region" }).of(region.toUpperCase());
-    return name ? `English (${name})` : lang;
-  } catch {
-    return lang;
-  }
-}

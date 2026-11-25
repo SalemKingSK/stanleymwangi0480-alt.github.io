@@ -1,282 +1,184 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import { fake, installFakeVoice, resetFakes, tick, endClip, playedTexts, lastPlayed, generated } from "./helpers/fake-voice";
 
-// ── Fakes: Web Speech (device voice), a Kokoro worker, and Web Audio ──────────
-class FakeUtterance {
-  text: string;
-  lang = "";
-  rate = 1;
-  onend: (() => void) | null = null;
-  onerror: ((e: { error: string }) => void) | null = null;
-  constructor(text: string) {
-    this.text = text;
-  }
-}
-const spoken: FakeUtterance[] = [];
-const synth = { speaking: false, pending: false, paused: false, speak: (u: FakeUtterance) => spoken.push(u), cancel: vi.fn(), pause: vi.fn(), resume: vi.fn() };
-
-type Msg = { type: string; id?: number; text?: string; voice?: string; speed?: number; device?: string };
-let worker: FakeWorker | null = null;
-let failText: string | null = null;
-let hangText: string | null = null;
-class FakeWorker {
-  onmessage: ((ev: { data: unknown }) => void) | null = null;
-  onerror: ((ev: unknown) => void) | null = null;
-  sent: Msg[] = [];
-  constructor() {
-    worker = this; // eslint-disable-line @typescript-eslint/no-this-alias
-  }
-  postMessage(msg: Msg) {
-    this.sent.push(msg);
-    if (msg.type === "generate") {
-      // one "sample" per character, so tests can tell clips apart;
-      // hangText takes 3 s, like a long sentence on a slow phone
-      setTimeout(() => {
-        if (msg.text === failText) this.onmessage?.({ data: { type: "error", id: msg.id, message: "boom" } });
-        else this.onmessage?.({ data: { type: "audio", id: msg.id, audio: new Float32Array(msg.text!.length), sampleRate: 24000 } });
-      }, msg.text === hangText ? 3000 : 1);
-    }
-  }
-  emit(data: unknown) {
-    this.onmessage?.({ data });
-  }
-  terminate() {}
-}
-
-interface FakeSource {
-  buffer: { length: number } | null;
-  onended: (() => void) | null;
-  stopped: boolean;
-}
-const played: FakeSource[] = [];
-const audioClock = { frozen: false, t: 0 };
-class FakeAudioContext {
-  state = "running";
-  private t0 = performance.now();
-  get currentTime() {
-    return audioClock.frozen ? 0 : (performance.now() - this.t0) / 1000;
-  }
-  destination = {};
-  resume = vi.fn(() => Promise.resolve());
-  createBuffer(_c: number, length: number) {
-    return { length, getChannelData: () => new Float32Array(length) };
-  }
-  createBufferSource() {
-    const s: FakeSource & { connect: () => void; start: () => void; stop: () => void } = {
-      buffer: null,
-      onended: null,
-      stopped: false,
-      connect() {},
-      start() {
-        if ((s.buffer?.length ?? 0) > 1) played.push(s); // ignore the 1-sample unlock blip
-      },
-      stop() {
-        s.stopped = true;
-      },
-    };
-    return s;
-  }
-}
-
-Object.assign(globalThis, { SpeechSynthesisUtterance: FakeUtterance, Worker: FakeWorker, AudioContext: FakeAudioContext });
-Object.defineProperty(window, "speechSynthesis", { value: synth, configurable: true });
-Object.assign(window, { AudioContext: FakeAudioContext });
-
+installFakeVoice();
+localStorage.setItem("mc-voice", "system"); // a setting from the old version that mixed in the device voice
 const { readAloud } = await import("@/lib/read-aloud/engine");
 const { neuralVoice, NEURAL_VOICE } = await import("@/lib/read-aloud/neural-voice");
+const { voiceSettings } = await import("@/lib/read-aloud/voice-settings");
 
-const tick = () => new Promise((r) => setTimeout(r, 20));
-const generated = () => worker!.sent.filter((m) => m.type === "generate").map((m) => m.text);
-async function endClip() {
-  played.at(-1)!.onended?.();
-  await tick();
-}
 function mount(html: string): HTMLElement {
   document.body.innerHTML = `<main>${html}</main>`;
   return document.querySelector("main")!;
 }
 
-describe("natural voice (Kokoro af_heart)", () => {
+describe("the voice (Kokoro, on the device) is the only voice", () => {
   beforeEach(() => {
     readAloud.stop();
-    spoken.length = 0;
-    played.length = 0;
-    failText = null;
-    hangText = null;
-    audioClock.frozen = false;
+    resetFakes();
   });
 
-  it("uses the device voice while the model downloads, then switches at the next sentence", async () => {
+  it("drops the old 'device voice' setting", () => {
+    expect(localStorage.getItem("mc-voice")).toBeNull();
+  });
+
+  it("first Listen downloads the voice, shows it's waiting, then reads with af_heart", async () => {
+    fake.autoReady = false;
     expect(neuralVoice.getState().status).toBe("idle");
-    const root = mount(`<p>One. Two. Three. Four.</p>`);
+    const root = mount(`<p>One. Two. Three. Four. Five. Six. Seven.</p>`);
     readAloud.start("t", root);
     await tick();
-    // Pressing Listen starts the one-time download...
     expect(neuralVoice.getState().status).toBe("loading");
-    expect(worker!.sent[0]).toMatchObject({ type: "load" });
-    // ...and reading starts at once with the device voice.
-    expect(spoken.map((u) => u.text)).toEqual(["One."]);
+    expect(fake.worker!.sent[0]).toMatchObject({ type: "load", device: "wasm" });
+    expect(readAloud.getState()).toMatchObject({ status: "playing", index: 0, waiting: true });
+    expect(fake.played).toHaveLength(0); // nothing else speaks meanwhile
+    expect(fake.speechSpy.speak).not.toHaveBeenCalled();
 
-    worker!.emit({ type: "progress", loaded: 46, total: 92 });
+    fake.worker!.emit({ type: "progress", loaded: 46, total: 92 });
     expect(neuralVoice.getState().progress).toBeCloseTo(0.5);
-    worker!.emit({ type: "ready", device: "wasm" });
-    expect(neuralVoice.getState().status).toBe("ready");
-
-    spoken[0].onend?.(); // device voice finishes "One."
+    fake.worker!.emit({ type: "ready", device: "wasm", rtf: 0.4 });
     await tick();
-    expect(spoken).toHaveLength(1); // no more device speech
-    expect(played).toHaveLength(1); // "Two." comes from the natural voice
-    expect(played[0].buffer!.length).toBe("Two.".length);
-    // the next two sentences were generated ahead, with the af_heart voice
-    expect(generated()).toEqual(["Two.", "Three.", "Four."]);
-    expect(worker!.sent.filter((m) => m.type === "generate").every((m) => m.voice === NEURAL_VOICE)).toBe(true);
-    expect(readAloud.getState().index).toBe(1);
+    expect(neuralVoice.getState().status).toBe("ready");
+    expect(readAloud.getState().waiting).toBe(false);
+    expect(playedTexts()).toEqual(["One."]);
+    // the next four sentences are generated ahead, all in the chosen voice
+    expect(generated().map((m) => m.text)).toEqual(["One.", "Two.", "Three.", "Four.", "Five."]);
+    expect(generated().every((m) => m.voice === NEURAL_VOICE)).toBe(true);
 
     await endClip();
-    expect(readAloud.getState().index).toBe(2);
-    expect(played.at(-1)!.buffer!.length).toBe("Three.".length);
-    expect(generated().filter((t) => t === "Three.")).toHaveLength(1); // reused, not regenerated
-    await endClip();
-    await endClip();
-    expect(readAloud.getState().status).toBe("idle");
+    expect(lastPlayed()).toBe("Two.");
+    expect(generated().filter((m) => m.text === "Two.")).toHaveLength(1); // reused, not regenerated
   });
 
-  it("pause stops the audio and resume replays the sentence from cache", async () => {
+  it("pause stops the sound; resume replays the sentence without regenerating it", async () => {
     const root = mount(`<p>Alpha. Beta.</p>`);
     readAloud.start("t", root);
     await tick();
-    const clip = played.at(-1)!;
+    const clip = fake.played.at(-1)!;
     const before = generated().length;
     readAloud.pause();
     expect(clip.stopped).toBe(true);
-    clip.onended?.(); // a late "ended" must not advance
-    await tick();
-    expect(readAloud.getState()).toMatchObject({ status: "paused", index: 0 });
     readAloud.resume();
     await tick();
-    expect(played.at(-1)!.buffer!.length).toBe("Alpha.".length);
+    expect(lastPlayed()).toBe("Alpha.");
     expect(generated().length).toBe(before);
-    expect(spoken).toHaveLength(0);
   });
 
-  it("splits a very long sentence into model-sized parts and plays them in order", async () => {
-    const long = Array.from({ length: 30 }, (_, i) => `part ${i} of a long thought`).join(", ") + ".";
-    const root = mount(`<p>${long} After.</p>`);
-    const from = generated().length;
-    readAloud.start("t", root);
-    await tick();
-    const parts = generated().slice(from, -1); // last one is "After." generated ahead
-    expect(parts.length).toBeGreaterThan(1);
-    expect(parts.join(" ")).toBe(long);
-    expect(parts.every((t) => t!.length <= 200)).toBe(true);
-    // the first part plays as soon as it's ready; the rest follow
-    for (let i = 0; i < parts.length; i++) {
-      expect(played.at(-1)!.buffer!.length).toBe(parts[i]!.length);
-      expect(readAloud.getState().index).toBe(0);
-      await endClip();
-    }
-    expect(readAloud.getState().index).toBe(1);
-    expect(played.at(-1)!.buffer!.length).toBe("After.".length);
-  });
-
-  it("if the audio output is blocked, the device voice reads instead of going quiet", async () => {
-    audioClock.frozen = true; // e.g. iOS interrupted the audio session
-    const root = mount(`<p>Muted one. Muted two.</p>`);
-    readAloud.start("t", root);
-    await new Promise((r) => setTimeout(r, 450));
-    expect(played).toHaveLength(1);
-    expect(spoken.map((u) => u.text)).toEqual(["Muted one."]);
-    expect(readAloud.getState()).toMatchObject({ status: "playing", index: 0 });
-  });
-
-  it("if a sentence isn't generated in time, the device voice says it and reading continues", async () => {
-    hangText = "Stuck sentence here.";
-    const root = mount(`<p>Stuck sentence here. Flowing sentence.</p>`);
-    readAloud.start("t", root);
-    await tick();
-    expect(played).toHaveLength(0);
-    expect(spoken).toHaveLength(0);
-    await new Promise((r) => setTimeout(r, 2600));
-    expect(spoken.map((u) => u.text)).toEqual(["Stuck sentence here."]);
-    spoken[0].onend?.();
-    await new Promise((r) => setTimeout(r, 600)); // the slow part finishes, then the next one
-    expect(spoken).toHaveLength(1);
-    expect(played.at(-1)!.buffer!.length).toBe("Flowing sentence.".length);
-    readAloud.stop();
-  }, 8000);
-
-  it("falls back to the device voice for a sentence the model can't say", async () => {
-    failText = "Gamma.";
-    const root = mount(`<p>Gamma. Delta.</p>`);
-    readAloud.start("t", root);
-    await tick();
-    expect(spoken.map((u) => u.text)).toEqual(["Gamma."]);
-    spoken[0].onend?.();
-    await tick();
-    expect(played.at(-1)!.buffer!.length).toBe("Delta.".length);
-  });
-
-  it("can be switched off for the device voice, and it's remembered", async () => {
-    const root = mount(`<p>Eins. Zwei.</p>`);
-    readAloud.start("t", root);
-    await tick();
-    expect(played).toHaveLength(1);
-    readAloud.setNaturalVoice(false);
-    await tick();
-    expect(played[0].stopped).toBe(true);
-    expect(spoken.at(-1)!.text).toBe("Eins.");
-    expect(localStorage.getItem("mc-voice")).toBe("system");
-    readAloud.setNaturalVoice(true);
-    await tick();
-    expect(localStorage.getItem("mc-voice")).toBe("natural");
-    expect(played.at(-1)!.buffer!.length).toBe("Eins.".length);
-  });
-
-  it("non-English readings keep the device voice", async () => {
-    const root = mount(`<p>Bonjour. Merci.</p>`);
-    readAloud.start("t", root, { lang: "fr-FR" });
-    await tick();
-    expect(spoken.map((u) => u.text)).toEqual(["Bonjour."]);
-    expect(played).toHaveLength(0);
-  });
-
-  it("speaks with the natural voice picked in the voice menu", async () => {
-    const { voiceSettings } = await import("@/lib/read-aloud/voice-settings");
-    voiceSettings.set({ naturalVoice: "af_bella" });
+  it("speaks with the voice picked in the menu, and switching regenerates in the new voice", async () => {
+    voiceSettings.set({ naturalVoice: "am_michael" });
     try {
-      const root = mount(`<p>Picked voice.</p>`);
-      readAloud.start("t", root);
+      readAloud.start("t", mount(`<p>Picked voice.</p>`));
       await tick();
-      const last = worker!.sent.filter((m) => m.type === "generate").at(-1)!;
-      expect(last).toMatchObject({ text: "Picked voice.", voice: "af_bella" });
-      expect(played).toHaveLength(1);
-      // switching voice regenerates the sentence in the new voice
-      voiceSettings.set({ naturalVoice: "bm_george" });
+      expect(generated().at(-1)).toMatchObject({ text: "Picked voice.", voice: "am_michael" });
+      voiceSettings.set({ naturalVoice: "af_bella" });
       readAloud.voiceChanged();
       await tick();
-      expect(worker!.sent.filter((m) => m.type === "generate").at(-1)).toMatchObject({ text: "Picked voice.", voice: "bm_george" });
-      expect(played).toHaveLength(2);
+      expect(generated().at(-1)).toMatchObject({ text: "Picked voice.", voice: "af_bella" });
+      expect(fake.played).toHaveLength(2);
+      expect(fake.played[0].stopped).toBe(true);
     } finally {
-      readAloud.stop();
       voiceSettings.set({ naturalVoice: "af_heart" });
     }
   });
 
-  it("a device too slow to keep up is detected, remembered, and uses its own voice", async () => {
-    // Make the singleton reload so it runs the speed test again.
-    (neuralVoice as unknown as { fail(m: string): void }).fail("reset");
-    expect(neuralVoice.getState().status).toBe("error");
-    const ready = neuralVoice.load();
-    worker!.emit({ type: "ready", device: "wasm", rtf: 3.1 }); // 3 s of work per second of speech
-    await expect(ready).rejects.toThrow(/too slow/);
-    expect(neuralVoice.getState().status).toBe("slow");
-    expect(JSON.parse(localStorage.getItem("mc-voice-speed")!)).toMatchObject({ device: "wasm", slow: true, rtf: 3.1 });
-    expect(neuralVoice.wanted("en-US")).toBe(false);
+  it("when idle, picking a voice or speed plays a short sample", async () => {
+    voiceSettings.set({ naturalVoice: "bf_emma", rate: 1.2 });
+    try {
+      readAloud.voiceChanged();
+      await tick();
+      expect(generated().at(-1)).toMatchObject({ voice: "bf_emma", speed: 1.2 });
+      expect(lastPlayed()).toMatch(/^Hello\./);
+    } finally {
+      voiceSettings.set({ naturalVoice: "af_heart", rate: 1 });
+    }
+  });
 
-    const root = mount(`<p>Plain one. Plain two.</p>`);
-    readAloud.start("t", root);
+  it("waits (and says so) while a slow sentence is generated, instead of skipping it", async () => {
+    fake.slowText = "Slow to make.";
+    readAloud.start("t", mount(`<p>Slow to make. Then this.</p>`));
+    await tick(200);
+    expect(readAloud.getState()).toMatchObject({ index: 0, waiting: true });
+    expect(fake.played).toHaveLength(0);
+    await tick(200);
+    expect(readAloud.getState().waiting).toBe(false);
+    expect(lastPlayed()).toBe("Slow to make.");
+  });
+
+  it("skips a sentence the model can't say, and stops after repeated failures", async () => {
+    fake.failText = "Broken.";
+    readAloud.start("t", mount(`<p>Broken. Fine.</p>`));
     await tick();
-    expect(spoken.map((u) => u.text)).toEqual(["Plain one."]);
-    expect(played).toHaveLength(0);
+    expect(lastPlayed()).toBe("Fine.");
+    readAloud.stop();
+
+    const errors: string[] = [];
+    readAloud.setErrorHandler((m) => errors.push(m));
+    readAloud.start("t", mount(`<p>Broken. Broken. Broken. Never.</p>`));
+    await tick(60);
+    expect(readAloud.getState().status).toBe("idle");
+    expect(errors[0]).toMatch(/Reading stopped/);
+    readAloud.setErrorHandler(null);
+  });
+
+  it("if the phone blocks sound, it pauses and asks for a tap instead of hanging", async () => {
+    fake.audioFrozen = true;
+    const errors: string[] = [];
+    readAloud.setErrorHandler((m) => errors.push(m));
+    readAloud.start("t", mount(`<p>Muted. Later.</p>`));
+    await tick(450);
+    expect(readAloud.getState()).toMatchObject({ status: "paused", index: 0 });
+    expect(errors).toEqual(["Tap play to allow sound."]);
+    expect(fake.speechSpy.speak).not.toHaveBeenCalled();
+    readAloud.setErrorHandler(null);
+  });
+});
+
+describe("slow devices", () => {
+  beforeEach(() => {
+    readAloud.stop();
+    resetFakes();
+  });
+
+  it("still read with the natural voice, and can switch to the faster graphics-chip mode", async () => {
+    fake.rtf = 3.1; // 3 s of work per second of speech, like a phone processor
+    await (neuralVoice as unknown as { start(d: string): Promise<void> }).start("wasm");
+    expect(neuralVoice.slow).toBe(true);
+    readAloud.start("t", mount(`<p>Slow but natural.</p>`));
+    await tick();
+    expect(lastPlayed()).toBe("Slow but natural.");
+    expect(fake.speechSpy.speak).not.toHaveBeenCalled();
+
+    fake.rtf = 0.2;
+    await neuralVoice.useGpu();
+    expect(fake.worker!.sent[0]).toMatchObject({ type: "load", device: "webgpu" });
+    expect(neuralVoice.getState()).toMatchObject({ status: "ready", device: "webgpu", gpuFailed: false });
+    expect(neuralVoice.slow).toBe(false);
+    expect(localStorage.getItem("mc-voice-device")).toBe("webgpu");
+  });
+
+  it("if the graphics-chip mode doesn't work, it stays on the processor and remembers", async () => {
+    fake.readyDevice = "wasm"; // the worker fell back
+    await neuralVoice.useGpu();
+    expect(neuralVoice.getState()).toMatchObject({ status: "ready", device: "wasm", gpuFailed: true });
+    expect(localStorage.getItem("mc-voice-device")).toBe("wasm");
+  });
+
+  it("a failed download is reported and Listen tries again", async () => {
+    fake.autoReady = false;
+    const errors: string[] = [];
+    readAloud.setErrorHandler((m) => errors.push(m));
+    const p = (neuralVoice as unknown as { start(d: string): Promise<void> }).start("wasm");
+    p.catch(() => {});
+    readAloud.start("t", mount(`<p>Offline first time.</p>`));
+    fake.worker!.emit({ type: "error", message: "Failed to fetch" });
+    await tick();
+    expect(readAloud.getState().status).toBe("idle");
+    expect(errors[0]).toMatch(/couldn't load: Failed to fetch/);
+    fake.autoReady = true;
+    readAloud.start("t", mount(`<p>Back online.</p>`));
+    await tick();
+    expect(lastPlayed()).toBe("Back online.");
+    readAloud.setErrorHandler(null);
   });
 });

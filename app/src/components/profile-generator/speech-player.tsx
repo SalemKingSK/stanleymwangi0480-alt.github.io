@@ -15,6 +15,7 @@ interface Props {
   sentences?: string[];
   onBoundary?: (index: number) => void;
   onEnd?: () => void;
+  /** Legacy prop, ignored: the voice reads English. */
   lang?: string;
 }
 
@@ -42,7 +43,7 @@ function resolveRoot(wrapper: HTMLElement, text?: string): HTMLElement | null {
  * Per-field Listen button. Reads the field one sentence at a time and
  * highlights only the sentence being spoken.
  */
-export const SpeechPlayer: React.FC<Props> = ({ targetRef, text, onEnd, lang = "en-US" }) => {
+export const SpeechPlayer: React.FC<Props> = ({ targetRef, text, onEnd }) => {
   const owner = useId();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const state = useReadAloudState();
@@ -62,8 +63,8 @@ export const SpeechPlayer: React.FC<Props> = ({ targetRef, text, onEnd, lang = "
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
     const root = targetRef?.current ?? resolveRoot(wrapper, text);
-    if (root) readAloud.start(owner, root, { lang });
-  }, [owner, targetRef, text, lang]);
+    if (root) readAloud.start(owner, root);
+  }, [owner, targetRef, text]);
 
   if (!readAloud.supported) return null;
 

@@ -1,36 +1,9 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import { fake, installFakeVoice, resetFakes, tick, endClip, playedTexts, lastPlayed } from "./helpers/fake-voice";
 
-// Minimal Web Speech API: records what is spoken; `finish()` ends the current utterance.
-class FakeUtterance {
-  text: string;
-  lang = "";
-  rate = 1;
-  onend: (() => void) | null = null;
-  onerror: ((e: { error: string }) => void) | null = null;
-  constructor(text: string) {
-    this.text = text;
-  }
-}
-const spoken: FakeUtterance[] = [];
-const synth = {
-  speaking: false,
-  paused: false,
-  speak: (u: FakeUtterance) => spoken.push(u),
-  cancel: vi.fn(),
-  pause: vi.fn(),
-  resume: vi.fn(),
-};
-Object.assign(globalThis, { SpeechSynthesisUtterance: FakeUtterance });
-Object.defineProperty(window, "speechSynthesis", { value: synth, configurable: true });
-
+installFakeVoice();
 const { collectSentences, readAloud } = await import("@/lib/read-aloud/engine");
-
-const tick = () => new Promise((r) => setTimeout(r, 40));
-async function finish() {
-  spoken[spoken.length - 1].onend?.();
-  await tick();
-}
 
 function mount(html: string): HTMLElement {
   document.body.innerHTML = `<main>${html}</main>`;
@@ -40,7 +13,6 @@ function mount(html: string): HTMLElement {
 describe("read-aloud: collecting sentences from the page", () => {
   beforeEach(() => {
     readAloud.stop();
-    spoken.length = 0;
   });
 
   it("splits a paragraph into sentences that map onto the exact text", () => {
@@ -95,19 +67,19 @@ describe("read-aloud: collecting sentences from the page", () => {
 describe("read-aloud: playback", () => {
   beforeEach(() => {
     readAloud.stop();
-    spoken.length = 0;
+    resetFakes();
   });
 
   it("reads one sentence at a time, in order, then stops", async () => {
     const root = mount(`<p>One. Two. Three.</p>`);
     readAloud.start("t", root);
     await tick();
-    expect(spoken.map((u) => u.text)).toEqual(["One."]);
+    expect(playedTexts()).toEqual(["One."]);
     expect(readAloud.getState()).toMatchObject({ status: "playing", index: 0, total: 3 });
-    await finish();
-    await finish();
-    expect(spoken.map((u) => u.text)).toEqual(["One.", "Two.", "Three."]);
-    await finish();
+    await endClip();
+    await endClip();
+    expect(playedTexts()).toEqual(["One.", "Two.", "Three."]);
+    await endClip();
     expect(readAloud.getState().status).toBe("idle");
   });
 
@@ -117,19 +89,20 @@ describe("read-aloud: playback", () => {
     await tick();
     readAloud.next();
     await tick();
-    expect(spoken.at(-1)!.text).toBe("Two.");
+    expect(lastPlayed()).toBe("Two.");
+    const clip = fake.played.at(-1)!;
     readAloud.pause();
     expect(readAloud.getState().status).toBe("paused");
-    // the cancelled utterance's late "end" must not advance
-    spoken.at(-1)!.onend?.();
+    expect(clip.stopped).toBe(true);
+    clip.onended?.(); // a stopped clip's late "ended" must not advance
     await tick();
     expect(readAloud.getState().index).toBe(1);
     readAloud.resume();
     await tick();
-    expect(spoken.at(-1)!.text).toBe("Two.");
+    expect(lastPlayed()).toBe("Two.");
     readAloud.prev();
     await tick();
-    expect(spoken.at(-1)!.text).toBe("One.");
+    expect(lastPlayed()).toBe("One.");
   });
 
   it("only one reader at a time: starting another stops the first", async () => {
@@ -139,7 +112,7 @@ describe("read-aloud: playback", () => {
     readAloud.start("b", root.querySelector("#b") as HTMLElement);
     await tick();
     expect(readAloud.getState()).toMatchObject({ owner: "b", total: 1 });
-    expect(spoken.at(-1)!.text).toBe("Beta one.");
+    expect(lastPlayed()).toBe("Beta one.");
   });
 
   it("speaks a very long sentence in parts and highlights it once", async () => {
@@ -147,9 +120,12 @@ describe("read-aloud: playback", () => {
     const root = mount(`<p>${long} Next.</p>`);
     readAloud.start("t", root);
     await tick();
-    const first = spoken.length;
-    while (spoken.at(-1)!.text !== "Next.") await finish();
-    const parts = spoken.slice(first - 1, -1).map((u) => u.text);
+    const first = fake.played.length;
+    while (lastPlayed() !== "Next.") {
+      expect(readAloud.getState().index).toBe(0);
+      await endClip();
+    }
+    const parts = playedTexts().slice(first - 1, -1);
     expect(parts.length).toBeGreaterThan(1);
     expect(parts.join(" ")).toBe(long);
     expect(readAloud.getState().index).toBe(1);
@@ -159,41 +135,28 @@ describe("read-aloud: playback", () => {
     const root = mount(`<p id="p1">One. Two.</p><div id="slot"></div><p>Four.</p>`);
     readAloud.start("t", root);
     await tick();
-    await finish(); // now on "Two."
+    await endClip(); // now on "Two."
     root.querySelector("#slot")!.innerHTML = "<p>Three.</p>"; // an accordion opens
     await tick();
-    await finish();
-    expect(spoken.at(-1)!.text).toBe("Three.");
-    await finish();
-    expect(spoken.at(-1)!.text).toBe("Four.");
+    await endClip();
+    expect(lastPlayed()).toBe("Three.");
+    await endClip();
+    expect(lastPlayed()).toBe("Four.");
   });
 
-  it("uses the voice, speed and pitch chosen in the voice menu", async () => {
-    const { voiceSettings } = await import("@/lib/read-aloud/voice-settings");
-    const voices = [
-      { name: "English United States", lang: "en-US", voiceURI: "us", default: true, localService: true },
-      { name: "English Kenya", lang: "en-KE", voiceURI: "ke", default: false, localService: true },
-      { name: "Français", lang: "fr-FR", voiceURI: "fr", default: false, localService: true },
-    ];
-    Object.assign(synth, { getVoices: () => voices });
-    voiceSettings.set({ deviceVoice: "ke", rate: 1.2, pitch: 1.3 });
-    try {
-      const root = mount(`<p>Habari. Karibu.</p>`);
-      readAloud.start("t", root);
-      await tick();
-      const u = spoken.at(-1) as FakeUtterance & { voice?: { voiceURI: string }; pitch?: number };
-      expect(u.voice?.voiceURI).toBe("ke");
-      expect(u.pitch).toBe(1.3);
-      expect(u.rate).toBeCloseTo(0.95 * 1.2);
-      readAloud.stop();
-      // a chosen English voice isn't forced onto another language
-      readAloud.start("t", mount(`<p>Bonjour.</p>`), { lang: "fr-FR" });
-      await tick();
-      expect((spoken.at(-1) as unknown as { voice?: { voiceURI: string } }).voice?.voiceURI).toBe("fr");
-    } finally {
-      readAloud.stop();
-      voiceSettings.set({ deviceVoice: null, rate: 1, pitch: 1 });
-      Object.assign(synth, { getVoices: undefined });
-    }
+  it("never uses the browser's built-in voice", async () => {
+    const root = mount(`<p>Only the natural voice. Always.</p>`);
+    readAloud.start("t", root);
+    await tick();
+    await endClip();
+    readAloud.pause();
+    readAloud.resume();
+    readAloud.voiceChanged();
+    await tick();
+    readAloud.stop();
+    expect(fake.speechSpy.speak).not.toHaveBeenCalled();
+    expect(fake.speechSpy.cancel).not.toHaveBeenCalled();
+    expect(fake.speechSpy.getVoices).not.toHaveBeenCalled();
+    expect(globalThis.SpeechSynthesisUtterance).not.toHaveBeenCalled();
   });
 });
