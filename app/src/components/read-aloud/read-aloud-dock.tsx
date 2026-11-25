@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { AudioLines, Headphones, Pause, Play, Square, SkipBack, SkipForward } from "lucide-react";
-import { readAloud } from "@/lib/read-aloud/engine";
+import { readAloud, type ReadTarget } from "@/lib/read-aloud/engine";
+import { neuralVoice } from "@/lib/read-aloud/neural-voice";
+import { voiceSettings } from "@/lib/read-aloud/voice-settings";
 import { useReadAloudState } from "@/hooks/use-read-aloud";
 import { useNeuralVoiceState } from "@/hooks/use-neural-voice";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +14,88 @@ const OWNER = "read-aloud-dock";
 function pageRoot(): HTMLElement | null {
   const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]'));
   return dialogs[dialogs.length - 1] ?? document.querySelector("main");
+}
+
+/** On screen (at least partly), below the header and above the dock. */
+function onScreen(el: Element): boolean {
+  const r = el.getBoundingClientRect();
+  return r.bottom > 72 && r.top < window.innerHeight - 40 && r.width > 0;
+}
+
+/** Where a Listen tap would start right now: this button, then the fields on screen. */
+function likelyTargets(): ReadTarget[] {
+  const targets: ReadTarget[] = [];
+  const root = pageRoot();
+  if (root) targets.push({ root, fromVisible: true });
+  const scopes = Array.from((root ?? document).querySelectorAll<HTMLElement>("[data-tts-scope]")).filter(onScreen);
+  for (const scope of scopes.slice(0, 3)) targets.push({ root: scope });
+  return targets;
+}
+
+const idle = (fn: () => void) => {
+  const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+  if (w.requestIdleCallback) w.requestIdleCallback(fn, { timeout: 1500 });
+  else setTimeout(fn, 50);
+};
+
+/**
+ * Gets the voice ready before Listen is tapped: starts an already
+ * downloaded voice once the app has settled, then — whenever nothing is
+ * being read and the screen has settled (after scrolling, a tap, a voice or
+ * speed change) — prepares the first sentence each Listen button would read.
+ */
+function usePrepareVoice() {
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const prepare = () => {
+      timer = null;
+      if (document.visibilityState === "hidden") return;
+      idle(() => {
+        try {
+          readAloud.prefetch(likelyTargets());
+        } catch {
+          /* best effort */
+        }
+      });
+    };
+    const schedule = (ms = 700) => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(prepare, ms);
+    };
+    const onScroll = () => schedule();
+    const onTap = () => schedule(900);
+    const onShow = () => {
+      if (document.visibilityState !== "visible") return;
+      void neuralVoice.warmUp();
+      schedule();
+    };
+    const warm = setTimeout(() => idle(() => void neuralVoice.warmUp()), 1200);
+    let wasReady = neuralVoice.getState().status === "ready";
+    const offVoice = neuralVoice.subscribe((s) => {
+      const ready = s.status === "ready";
+      if (ready && !wasReady) schedule(200);
+      wasReady = ready;
+    });
+    const offReader = readAloud.subscribe((s) => {
+      if (s.status === "idle") schedule(1000);
+    });
+    const offSettings = voiceSettings.subscribe(() => schedule(1500));
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    document.addEventListener("click", onTap, true);
+    document.addEventListener("visibilitychange", onShow);
+    return () => {
+      clearTimeout(warm);
+      if (timer) clearTimeout(timer);
+      offVoice();
+      offReader();
+      offSettings();
+      window.removeEventListener("scroll", onScroll, { capture: true });
+      window.removeEventListener("resize", onScroll);
+      document.removeEventListener("click", onTap, true);
+      document.removeEventListener("visibilitychange", onShow);
+    };
+  }, []);
 }
 
 const btn: React.CSSProperties = {
@@ -38,6 +122,7 @@ export function ReadAloudDock() {
   const voice = useNeuralVoiceState();
   const { toast } = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
+  usePrepareVoice();
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   useEffect(() => {

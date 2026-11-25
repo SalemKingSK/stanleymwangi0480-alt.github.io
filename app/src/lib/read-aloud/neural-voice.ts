@@ -12,6 +12,14 @@
  * second worker starts once the first is ready and makes the next sentences
  * in parallel, so the reader stays well ahead of the speech. Each voice is a
  * one-time ~63 MB download, kept for offline use (the last few voices used).
+ *
+ * To start reading the moment Listen is tapped:
+ * - warmUp(): once the app has settled, a voice that is already downloaded
+ *   is started in the background (no download is ever started unasked);
+ * - prefetch(): while nothing is being read, the opening of what each
+ *   Listen button would read is made in advance and kept ready;
+ * - the opening of a reading is cut at its first comma when that comes
+ *   early, so even something not prepared starts sooner.
  */
 import { chunkForSpeech } from "./split-sentences";
 import { voiceSettings, NATURAL_VOICES } from "./voice-settings";
@@ -24,6 +32,9 @@ const VOICE_CACHE = "mc-piper-voices";
 const RECENT_KEY = "mc-voice-recent";
 const KEEP_VOICES = 3;
 const MAX_PART = 180; // characters per model call; parts play as they're ready
+/** A reading's first part ends at the first clause break within this many characters. */
+const OPENING_MAX = 80;
+const PREFETCH_LIMIT = 4;
 const CACHE_LIMIT = 40;
 /** Above this speed-test result a second worker is worth its memory. */
 const PARALLEL_RTF = 0.2;
@@ -351,15 +362,81 @@ class NeuralVoice {
   }
 
   /**
+   * The same, for the sentence a reading starts with: a long first part is
+   * cut at its first clause break ("Similar to the PY4," | "this is…"), so
+   * the voice can start after making only a few words.
+   */
+  openingParts(text: string): string[] {
+    const parts = this.partsOf(text);
+    const first = parts[0] ?? "";
+    if (first.length <= OPENING_MAX) return parts;
+    const m = /^([\s\S]{20,}?[,;:—–])\s+([\s\S]+)$/.exec(first);
+    if (!m || m[1].length > OPENING_MAX) return parts;
+    return [m[1], m[2], ...parts.slice(1)];
+  }
+
+  private key(voice: string, speed: number, text: string): string {
+    return `${voice}|${speed}|${text}`;
+  }
+
+  /**
+   * Start a voice that is already downloaded, in the background, so the
+   * first Listen doesn't wait for it. Never downloads.
+   */
+  async warmUp(): Promise<void> {
+    if (this.state.status !== "idle") return;
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+    const voice = currentVoice();
+    try {
+      if (typeof caches === "undefined") return;
+      const cache = await caches.open(VOICE_CACHE);
+      if (!(await cache.match(voiceFiles(voice).model))) return;
+    } catch {
+      return;
+    }
+    if (this.state.status !== "idle") return;
+    void this.start(voice).catch(() => {});
+  }
+
+  /**
+   * Make the opening of each text in advance (low priority, nothing else
+   * dropped), so starting a reading with one of them plays at once.
+   */
+  prefetch(texts: string[], speed: number) {
+    if (this.state.status !== "ready") return;
+    const voice = this.state.voice;
+    for (const text of texts.slice(0, PREFETCH_LIMIT)) {
+      const part = this.openingParts(text)[0];
+      if (!part) continue;
+      const key = this.key(voice, speed, part);
+      if (this.cache.has(key)) continue;
+      const p = new Promise<Clip>((resolve, reject) => this.queue.push({ key, text: part, voice, speed, resolve, reject }));
+      p.catch(() => {});
+      this.cache.set(key, p);
+    }
+    while (this.cache.size > CACHE_LIMIT) this.cache.delete(this.cache.keys().next().value as string);
+    this.pump();
+  }
+
+  /** Whether the opening of this text is ready (or being made) already. */
+  prepared(text: string, speed: number): boolean {
+    const part = this.openingParts(text)[0];
+    return !!part && this.cache.has(this.key(this.state.voice, speed, part));
+  }
+
+  /**
    * Audio for each part of texts[0] (see partsOf); texts[1..] are generated
    * next, in order, so the following sentences are ready when they're needed.
    * Queued work for anything not in the list is dropped (the reader jumped).
    */
   want(texts: string[], speed: number): Promise<Clip>[] {
     const voice = this.state.voice;
-    const firstParts = this.partsOf(texts[0] ?? "");
+    // The sentence to play now: as already made (it was read ahead, or
+    // paused), else split for a quick start.
+    const whole = this.partsOf(texts[0] ?? "");
+    const firstParts = whole.every((t) => this.cache.has(this.key(voice, speed, t))) ? whole : this.openingParts(texts[0] ?? "");
     const parts = [...firstParts, ...texts.slice(1).flatMap((t) => this.partsOf(t))];
-    const keys = parts.map((t) => `${voice}|${speed}|${t}`);
+    const keys = parts.map((t) => this.key(voice, speed, t));
     parts.forEach((text, i) => {
       const key = keys[i];
       if (this.cache.has(key)) {

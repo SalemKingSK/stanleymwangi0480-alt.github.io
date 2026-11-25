@@ -12,6 +12,8 @@
  *
  * - Only one reading runs at a time; starting another stops the first.
  * - The voice downloads once on first use; reading starts when it's ready.
+ * - While idle, the first sentence each Listen button would read is made in
+ *   advance (prefetch), so pressing Listen plays at once.
  * - Upcoming sentences are generated while the current one plays. When the
  *   device is slower than speech, the reader waits (state.waiting) rather
  *   than skipping.
@@ -288,7 +290,22 @@ function rangeAlive(r: Range): boolean {
   return r.startContainer.isConnected && r.endContainer.isConnected && !r.collapsed;
 }
 
+/** Index of the first sentence on screen (0 if none is). */
+function firstVisible(sentences: TtsSentence[]): number {
+  const found = sentences.findIndex((s) => {
+    const r = s.ranges[0].getBoundingClientRect();
+    return r.bottom > 72 && r.top < window.innerHeight - 40;
+  });
+  return found >= 0 ? found : 0;
+}
+
 // ── Controller ──────────────────────────────────────────────────────────────
+
+/** Somewhere a Listen button would start reading. */
+export interface ReadTarget {
+  root: HTMLElement;
+  fromVisible?: boolean;
+}
 
 export interface StartOptions {
   /** Start at the first sentence visible on screen (global reader). */
@@ -363,16 +380,26 @@ class ReadAloudController {
     this.observe();
     root.addEventListener("click", this.handleClick, true);
 
-    let index = 0;
-    if (opts.fromVisible) {
-      const found = this.sentences.findIndex((s) => {
-        const r = s.ranges[0].getBoundingClientRect();
-        return r.bottom > 72 && r.top < window.innerHeight - 40;
-      });
-      index = found >= 0 ? found : 0;
-    }
+    const index = opts.fromVisible ? firstVisible(this.sentences) : 0;
     this.set({ status: "playing", owner, index, total: this.sentences.length });
     this.speak(index);
+  }
+
+  /**
+   * While nothing is being read, prepare the first sentence each of these
+   * would start with (same text and split as start() uses), so tapping
+   * Listen plays immediately instead of "Preparing speech…".
+   */
+  prefetch(targets: ReadTarget[]) {
+    if (this.state.status !== "idle" || neuralVoice.getState().status !== "ready") return;
+    const texts: string[] = [];
+    for (const t of targets) {
+      if (!t.root?.isConnected) continue;
+      const sentences = collectSentences(t.root);
+      const s = sentences[t.fromVisible ? firstVisible(sentences) : 0];
+      if (s && !texts.includes(s.speech)) texts.push(s.speech);
+    }
+    if (texts.length) neuralVoice.prefetch(texts, voiceSettings.get().rate);
   }
 
   pause() {

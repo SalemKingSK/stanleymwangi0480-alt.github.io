@@ -137,6 +137,41 @@ describe("the voice (Piper, on the device) is the only voice", () => {
     readAloud.setErrorHandler(null);
   });
 
+  it("prepares the opening sentence in advance, so Listen plays at once", async () => {
+    const root = mount(`<p>Prepared before the tap. And the rest.</p>`);
+    readAloud.prefetch([{ root }]);
+    await tick();
+    expect(generated().filter((m) => m.text === "Prepared before the tap.")).toHaveLength(1);
+    expect(fake.played).toHaveLength(0); // prepared, not played
+    expect(neuralVoice.prepared("Prepared before the tap.", voiceSettings.get().rate)).toBe(true);
+
+    fake.slowText = "Prepared before the tap."; // would take a while if it were made now
+    readAloud.start("t", root);
+    await tick(5);
+    expect(lastPlayed()).toBe("Prepared before the tap.");
+    expect(readAloud.getState().waiting).toBe(false);
+    expect(generated().filter((m) => m.text === "Prepared before the tap.")).toHaveLength(1); // not made again
+  });
+
+  it("doesn't prepare anything while a reading is going on", async () => {
+    readAloud.start("t", mount(`<p>Reading now.</p>`));
+    await tick();
+    const before = generated().length;
+    readAloud.prefetch([{ root: mount(`<p>Something else entirely.</p>`) }]);
+    await tick();
+    expect(generated().length).toBe(before);
+  });
+
+  it("a long opening sentence starts after its first clause, then continues", async () => {
+    const sentence = "Similar to the PY4 in many ways, this is a trough year of consolidation when no major change should be undertaken at all.";
+    readAloud.start("t", mount(`<p>${sentence}</p>`));
+    await tick();
+    expect(lastPlayed()).toBe("Similar to the PY4 in many ways,");
+    await endClip();
+    expect(lastPlayed()).toBe("this is a trough year of consolidation when no major change should be undertaken at all.");
+    expect(readAloud.getState().index).toBe(0); // one sentence, highlighted once
+  });
+
   it("if the phone blocks sound, it pauses and asks for a tap instead of hanging", async () => {
     fake.audioFrozen = true;
     const errors: string[] = [];
