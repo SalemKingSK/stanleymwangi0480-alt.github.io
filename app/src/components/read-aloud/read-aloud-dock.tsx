@@ -1,10 +1,10 @@
-import { useEffect, useRef } from "react";
-import { Headphones, Pause, Play, Square, SkipBack, SkipForward, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AudioLines, Headphones, Pause, Play, Square, SkipBack, SkipForward } from "lucide-react";
 import { readAloud } from "@/lib/read-aloud/engine";
-import { neuralVoice } from "@/lib/read-aloud/neural-voice";
 import { useReadAloudState } from "@/hooks/use-read-aloud";
 import { useNeuralVoiceState } from "@/hooks/use-neural-voice";
 import { useToast } from "@/hooks/use-toast";
+import { VoicePicker } from "./voice-picker";
 
 const OWNER = "read-aloud-dock";
 
@@ -37,6 +37,8 @@ export function ReadAloudDock() {
   const state = useReadAloudState();
   const voice = useNeuralVoiceState();
   const { toast } = useToast();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   // Tell the user once when the natural voice drops out (not on every load).
   const lastStatus = useRef(voice.status);
@@ -68,10 +70,6 @@ export function ReadAloudDock() {
 
   if (!readAloud.supported) return null;
   const active = state.status !== "idle";
-  const voiceAvailable = voice.status !== "unsupported" && voice.status !== "error" && voice.status !== "slow";
-  const natural = voice.enabled && voiceAvailable;
-  // Shown above the controls while the natural voice downloads (or when a
-  // data-saver device is waiting for the user to ask for it).
   const voiceNote = !active || !voice.enabled
     ? null
     : voice.status === "loading"
@@ -79,16 +77,22 @@ export function ReadAloudDock() {
         ? "Checking the natural voice runs smoothly on this device…"
         : `Getting the natural voice… ${Math.round(voice.progress * 100)}% (one-time ${voice.sizeLabel})`
       : voice.status === "idle"
-        ? `Tap ✦ for the natural voice (one-time ${voice.sizeLabel} download)`
+        ? `Pick a natural voice in the voice menu (one-time ${voice.sizeLabel} download)`
         : null;
-  const onVoiceButton = () => {
-    if (voice.enabled && voice.status === "idle") {
-      neuralVoice.unlock();
-      void neuralVoice.load().catch(() => {});
-      return;
-    }
-    readAloud.setNaturalVoice(!voice.enabled);
-  };
+  const voiceButton = (
+    <button
+      type="button"
+      data-voice-toggle
+      style={{ ...btn, color: menuOpen ? "#1a0d33" : "#f1d98a", background: menuOpen ? "rgba(241,217,138,0.85)" : "transparent" }}
+      onClick={() => setMenuOpen((o) => !o)}
+      aria-expanded={menuOpen}
+      aria-haspopup="dialog"
+      aria-label="Choose voice, speed and pitch"
+      title="Choose voice, speed and pitch"
+    >
+      <AudioLines size={16} />
+    </button>
+  );
 
   return (
     <div
@@ -128,7 +132,9 @@ export function ReadAloudDock() {
           <Headphones size={16} />
           Listen
         </button>
-      ) : (
+      ) : null}
+      {!active && <span style={{ paddingRight: 4, display: "inline-flex" }}>{voiceButton}</span>}
+      {active && (
         <>
           <button type="button" style={btn} onClick={() => readAloud.prev()} aria-label="Previous sentence">
             <SkipBack size={16} />
@@ -144,18 +150,7 @@ export function ReadAloudDock() {
           <button type="button" style={btn} onClick={() => readAloud.next()} aria-label="Next sentence">
             <SkipForward size={16} />
           </button>
-          {voiceAvailable && (
-            <button
-              type="button"
-              style={{ ...btn, color: natural ? "#f1d98a" : "rgba(241,217,138,0.4)" }}
-              onClick={onVoiceButton}
-              aria-pressed={natural}
-              aria-label={natural ? "Natural voice on (tap for device voice)" : "Device voice (tap for natural voice)"}
-              title={natural ? "Natural voice (Kokoro, works offline). Tap to use your device's voice." : "Your device's voice. Tap for the natural voice."}
-            >
-              <Sparkles size={15} />
-            </button>
-          )}
+          {voiceButton}
           <span className="mc-tts-count" style={{ color: "rgba(241,217,138,0.75)", fontSize: "0.66rem", fontVariantNumeric: "tabular-nums", padding: "0 0.3rem", fontFamily: "'Cinzel',serif" }}>
             {state.index + 1}/{state.total}
           </span>
@@ -164,7 +159,8 @@ export function ReadAloudDock() {
           </button>
         </>
       )}
-      {voiceNote && (
+      {menuOpen && <VoicePicker onClose={closeMenu} />}
+      {voiceNote && !menuOpen && (
         <div
           role="status"
           style={{

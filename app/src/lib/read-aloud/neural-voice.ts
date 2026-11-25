@@ -17,7 +17,9 @@
  * and the verdict is remembered so the phone isn't asked to load it again.
  */
 import { chunkForSpeech } from "./split-sentences";
+import { voiceSettings } from "./voice-settings";
 
+/** Default (and best) voice; the listener can pick another in the voice menu. */
 export const NEURAL_VOICE = "af_heart";
 const PREF_KEY = "mc-voice"; // "natural" (default) | "system"
 const SPEED_KEY = "mc-voice-speed"; // remembered speed-test verdict
@@ -50,6 +52,7 @@ export interface Clip {
 interface Job {
   key: string;
   text: string;
+  voice: string;
   speed: number;
   resolve: (c: Clip) => void;
   reject: (e: Error) => void;
@@ -287,13 +290,13 @@ class NeuralVoice {
     return chunkForSpeech(text, MAX_PART);
   }
 
-  private rpc(text: string, speed: number): Promise<Clip> {
+  private rpc(text: string, voice: string, speed: number): Promise<Clip> {
     const worker = this.worker;
     if (!worker) return Promise.reject(new Error("Voice not loaded"));
     const id = this.nextId++;
     return new Promise<Clip>((resolve, reject) => {
       this.calls.set(id, { resolve, reject });
-      worker.postMessage({ type: "generate", id, text, voice: NEURAL_VOICE, speed });
+      worker.postMessage({ type: "generate", id, text, voice, speed });
     });
   }
 
@@ -303,7 +306,7 @@ class NeuralVoice {
     if (!job) return;
     this.busy = true;
     try {
-      job.resolve(await this.rpc(job.text, job.speed));
+      job.resolve(await this.rpc(job.text, job.voice, job.speed));
     } catch (err) {
       this.cache.delete(job.key);
       job.reject(err instanceof Error ? err : new Error(String(err)));
@@ -321,7 +324,8 @@ class NeuralVoice {
   want(texts: string[], speed: number): Promise<Clip>[] {
     const firstParts = this.partsOf(texts[0] ?? "");
     const parts = [...firstParts, ...texts.slice(1).flatMap((t) => this.partsOf(t))];
-    const keys = parts.map((t) => `${speed}|${t}`);
+    const voice = voiceSettings.get().naturalVoice || NEURAL_VOICE;
+    const keys = parts.map((t) => `${voice}|${speed}|${t}`);
     parts.forEach((text, i) => {
       const key = keys[i];
       if (this.cache.has(key)) {
@@ -330,7 +334,7 @@ class NeuralVoice {
         this.cache.set(key, p);
         return;
       }
-      const p = new Promise<Clip>((resolve, reject) => this.queue.push({ key, text, speed, resolve, reject }));
+      const p = new Promise<Clip>((resolve, reject) => this.queue.push({ key, text, voice, speed, resolve, reject }));
       p.catch(() => {});
       this.cache.set(key, p);
     });

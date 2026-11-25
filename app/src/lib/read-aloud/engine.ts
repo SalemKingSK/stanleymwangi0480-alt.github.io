@@ -23,6 +23,7 @@
  */
 import { splitSentences, toSpeechText, isSpeakable, chunkForSpeech } from "./split-sentences";
 import { neuralVoice } from "./neural-voice";
+import { voiceSettings } from "./voice-settings";
 
 export interface TtsSentence {
   ranges: Range[];
@@ -281,13 +282,20 @@ function caretPoint(x: number, y: number): { node: Node; offset: number } | null
   return null;
 }
 
-/** An installed voice for the language (devices set to another language may default to it). */
+/**
+ * The device voice to use: the one chosen in the voice menu if it speaks this
+ * language, else an installed voice for the language (devices set to another
+ * language may default to it).
+ */
 function pickVoice(lang: string): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices?.() ?? [];
   if (!voices.length) return null;
   const norm = (l: string) => l.replace("_", "-").toLowerCase();
   const want = norm(lang);
   const base = want.split("-")[0];
+  const chosenUri = voiceSettings.get().deviceVoice;
+  const chosen = chosenUri ? voices.find((v) => v.voiceURI === chosenUri) : undefined;
+  if (chosen && norm(chosen.lang).split("-")[0] === base) return chosen;
   const exact = voices.filter((v) => norm(v.lang) === want);
   const sameBase = voices.filter((v) => norm(v.lang).split("-")[0] === base);
   const pool = exact.length ? exact : sameBase;
@@ -308,8 +316,11 @@ export interface StartOptions {
   /** Start at the first sentence visible on screen (global reader). */
   fromVisible?: boolean;
   lang?: string;
+  /** Base speaking rate for device voices (the listener's speed setting multiplies it). */
   rate?: number;
 }
+
+const PREVIEW_TEXT = "Hello. This is how I'll sound reading your profile.";
 
 class ReadAloudController {
   private state: ReaderState = { status: "idle", owner: null, index: 0, total: 0 };
@@ -435,10 +446,54 @@ class ReadAloudController {
   /** Switch between the natural voice and the device voice (remembered). */
   setNaturalVoice(on: boolean) {
     neuralVoice.setEnabled(on);
+    this.voiceChanged();
+  }
+
+  /**
+   * Call (inside the tap) after the voice, speed or pitch changed: a reading
+   * restarts its sentence in the new voice; otherwise a short sample plays.
+   */
+  voiceChanged() {
+    if (neuralVoice.wanted(this.lang)) neuralVoice.unlock();
     if (this.state.status === "playing") {
-      if (on) neuralVoice.unlock();
-      this.speak(this.state.index); // restart the sentence in the chosen voice
+      this.speak(this.state.index);
+      return;
     }
+    if (this.state.status === "paused") return; // used on resume
+    this.preview();
+  }
+
+  private preview() {
+    const gen = ++this.generation;
+    const busy = this.hasSystemVoice && (window.speechSynthesis.speaking || window.speechSynthesis.pending);
+    this.silence();
+    const lang = "en-US";
+    if (neuralVoice.usable(lang)) {
+      neuralVoice
+        .want([PREVIEW_TEXT], voiceSettings.get().rate)[0]
+        .then((clip) => {
+          if (gen === this.generation) return neuralVoice.play(clip);
+        })
+        .catch(() => {});
+      return;
+    }
+    if (neuralVoice.wanted(lang)) void neuralVoice.load().catch(() => {}); // chosen: fetch it now
+    if (!this.hasSystemVoice || neuralVoice.wanted(lang)) return;
+    const u = new SpeechSynthesisUtterance(PREVIEW_TEXT);
+    const { rate, pitch } = voiceSettings.get();
+    u.lang = lang;
+    u.rate = Math.min(2, Math.max(0.3, 0.95 * rate));
+    u.pitch = pitch;
+    const voice = pickVoice(lang);
+    if (voice) u.voice = voice;
+    this.utterance = u;
+    // Speak now when nothing was playing (iOS needs it inside the tap);
+    // after a cancel(), some engines drop a speak() in the same tick.
+    if (!busy) window.speechSynthesis.speak(u);
+    else
+      setTimeout(() => {
+        if (gen === this.generation) window.speechSynthesis.speak(u);
+      }, 60);
   }
 
   private silence() {
@@ -569,7 +624,7 @@ class ReadAloudController {
     const ahead = [sentence.speech];
     for (let i = index + 1; i < Math.min(index + 3, this.sentences.length); i++) ahead.push(this.sentences[i].speech);
     const parts = neuralVoice.partsOf(sentence.speech);
-    const clips = neuralVoice.want(ahead, this.rate / 0.95);
+    const clips = neuralVoice.want(ahead, voiceSettings.get().rate);
 
     // Play each part as soon as it's ready. If a part isn't ready in time,
     // the device voice says the rest of the sentence, so reading never goes
@@ -627,7 +682,9 @@ class ReadAloudController {
     const sayPart = (p: number) => {
       const u = new SpeechSynthesisUtterance(parts[p]);
       u.lang = this.lang;
-      u.rate = this.rate;
+      const { rate, pitch } = voiceSettings.get();
+      u.rate = Math.min(2, Math.max(0.3, this.rate * rate));
+      u.pitch = pitch;
       const voice = pickVoice(this.lang);
       if (voice) u.voice = voice;
       u.onend = () => {

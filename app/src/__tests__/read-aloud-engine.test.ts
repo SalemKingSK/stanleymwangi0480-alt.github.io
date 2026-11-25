@@ -167,4 +167,33 @@ describe("read-aloud: playback", () => {
     await finish();
     expect(spoken.at(-1)!.text).toBe("Four.");
   });
+
+  it("uses the voice, speed and pitch chosen in the voice menu", async () => {
+    const { voiceSettings } = await import("@/lib/read-aloud/voice-settings");
+    const voices = [
+      { name: "English United States", lang: "en-US", voiceURI: "us", default: true, localService: true },
+      { name: "English Kenya", lang: "en-KE", voiceURI: "ke", default: false, localService: true },
+      { name: "Français", lang: "fr-FR", voiceURI: "fr", default: false, localService: true },
+    ];
+    Object.assign(synth, { getVoices: () => voices });
+    voiceSettings.set({ deviceVoice: "ke", rate: 1.2, pitch: 1.3 });
+    try {
+      const root = mount(`<p>Habari. Karibu.</p>`);
+      readAloud.start("t", root);
+      await tick();
+      const u = spoken.at(-1) as FakeUtterance & { voice?: { voiceURI: string }; pitch?: number };
+      expect(u.voice?.voiceURI).toBe("ke");
+      expect(u.pitch).toBe(1.3);
+      expect(u.rate).toBeCloseTo(0.95 * 1.2);
+      readAloud.stop();
+      // a chosen English voice isn't forced onto another language
+      readAloud.start("t", mount(`<p>Bonjour.</p>`), { lang: "fr-FR" });
+      await tick();
+      expect((spoken.at(-1) as unknown as { voice?: { voiceURI: string } }).voice?.voiceURI).toBe("fr");
+    } finally {
+      readAloud.stop();
+      voiceSettings.set({ deviceVoice: null, rate: 1, pitch: 1 });
+      Object.assign(synth, { getVoices: undefined });
+    }
+  });
 });

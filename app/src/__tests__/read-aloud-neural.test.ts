@@ -240,6 +240,28 @@ describe("natural voice (Kokoro af_heart)", () => {
     expect(played).toHaveLength(0);
   });
 
+  it("speaks with the natural voice picked in the voice menu", async () => {
+    const { voiceSettings } = await import("@/lib/read-aloud/voice-settings");
+    voiceSettings.set({ naturalVoice: "af_bella" });
+    try {
+      const root = mount(`<p>Picked voice.</p>`);
+      readAloud.start("t", root);
+      await tick();
+      const last = worker!.sent.filter((m) => m.type === "generate").at(-1)!;
+      expect(last).toMatchObject({ text: "Picked voice.", voice: "af_bella" });
+      expect(played).toHaveLength(1);
+      // switching voice regenerates the sentence in the new voice
+      voiceSettings.set({ naturalVoice: "bm_george" });
+      readAloud.voiceChanged();
+      await tick();
+      expect(worker!.sent.filter((m) => m.type === "generate").at(-1)).toMatchObject({ text: "Picked voice.", voice: "bm_george" });
+      expect(played).toHaveLength(2);
+    } finally {
+      readAloud.stop();
+      voiceSettings.set({ naturalVoice: "af_heart" });
+    }
+  });
+
   it("a device too slow to keep up is detected, remembered, and uses its own voice", async () => {
     // Make the singleton reload so it runs the speed test again.
     (neuralVoice as unknown as { fail(m: string): void }).fail("reset");
