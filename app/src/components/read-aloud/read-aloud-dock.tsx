@@ -1,7 +1,9 @@
 import { useEffect } from "react";
-import { Headphones, Pause, Play, Square, SkipBack, SkipForward } from "lucide-react";
+import { Headphones, Pause, Play, Square, SkipBack, SkipForward, Sparkles } from "lucide-react";
 import { readAloud } from "@/lib/read-aloud/engine";
+import { neuralVoice } from "@/lib/read-aloud/neural-voice";
 import { useReadAloudState } from "@/hooks/use-read-aloud";
+import { useNeuralVoiceState } from "@/hooks/use-neural-voice";
 import { useToast } from "@/hooks/use-toast";
 
 const OWNER = "read-aloud-dock";
@@ -33,7 +35,14 @@ const btn: React.CSSProperties = {
  */
 export function ReadAloudDock() {
   const state = useReadAloudState();
+  const voice = useNeuralVoiceState();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (voice.status === "error" && voice.enabled) {
+      toast({ title: "Natural voice unavailable", description: "Reading with your device's voice instead." });
+    }
+  }, [voice.status, voice.enabled, toast]);
 
   useEffect(() => {
     readAloud.setErrorHandler((message) => toast({ title: "Read aloud", description: message }));
@@ -49,6 +58,25 @@ export function ReadAloudDock() {
 
   if (!readAloud.supported) return null;
   const active = state.status !== "idle";
+  const voiceAvailable = voice.status !== "unsupported" && voice.status !== "error";
+  const natural = voice.enabled && voiceAvailable;
+  // Shown above the controls while the natural voice downloads (or when a
+  // data-saver device is waiting for the user to ask for it).
+  const voiceNote = !active || !voice.enabled
+    ? null
+    : voice.status === "loading"
+      ? `Getting the natural voice… ${Math.round(voice.progress * 100)}% (one-time ${voice.sizeLabel})`
+      : voice.status === "idle"
+        ? `Tap ✦ for the natural voice (one-time ${voice.sizeLabel} download)`
+        : null;
+  const onVoiceButton = () => {
+    if (voice.enabled && voice.status === "idle") {
+      neuralVoice.unlock();
+      void neuralVoice.load().catch(() => {});
+      return;
+    }
+    readAloud.setNaturalVoice(!voice.enabled);
+  };
 
   return (
     <div
@@ -104,6 +132,18 @@ export function ReadAloudDock() {
           <button type="button" style={btn} onClick={() => readAloud.next()} aria-label="Next sentence">
             <SkipForward size={16} />
           </button>
+          {voiceAvailable && (
+            <button
+              type="button"
+              style={{ ...btn, color: natural ? "#f1d98a" : "rgba(241,217,138,0.4)" }}
+              onClick={onVoiceButton}
+              aria-pressed={natural}
+              aria-label={natural ? "Natural voice on (tap for device voice)" : "Device voice (tap for natural voice)"}
+              title={natural ? "Natural voice (Kokoro, works offline). Tap to use your device's voice." : "Your device's voice. Tap for the natural voice."}
+            >
+              <Sparkles size={15} />
+            </button>
+          )}
           <span className="mc-tts-count" style={{ color: "rgba(241,217,138,0.75)", fontSize: "0.66rem", fontVariantNumeric: "tabular-nums", padding: "0 0.3rem", fontFamily: "'Cinzel',serif" }}>
             {state.index + 1}/{state.total}
           </span>
@@ -111,6 +151,29 @@ export function ReadAloudDock() {
             <Square size={14} />
           </button>
         </>
+      )}
+      {voiceNote && (
+        <div
+          role="status"
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 6px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            whiteSpace: "nowrap",
+            maxWidth: "92vw",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            padding: "0.2rem 0.6rem",
+            borderRadius: 999,
+            background: "rgba(20,10,45,0.92)",
+            border: "1px solid rgba(212,175,55,0.3)",
+            color: "rgba(241,217,138,0.85)",
+            fontSize: "0.62rem",
+          }}
+        >
+          {voiceNote}
+        </div>
       )}
     </div>
   );

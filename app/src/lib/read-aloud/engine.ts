@@ -3,20 +3,26 @@
  *
  * It reads what is actually on screen. Given a root element it collects the
  * visible text, splits it into sentences (split-sentences.ts), and speaks
- * them one at a time with the Web Speech API. Only the sentence being spoken
+ * them one at a time. The voice is Kokoro "af_heart" (neural-voice.ts), run
+ * on the device; until it has downloaded, or where it can't run, the
+ * device's own Web Speech voice is used. Only the sentence being spoken
  * is highlighted, through the CSS Custom Highlight API, which paints DOM
  * Ranges without touching React's DOM. Browsers without that API fall back to
  * outlining the paragraph.
  *
  * - Only one reading runs at a time; starting another stops the first.
  * - Pause/resume restarts the current sentence: speechSynthesis.pause() is
- *   unreliable on Android and some desktops, and a sentence is short.
+ *   unreliable on Android and some desktops, and a sentence is short. (With
+ *   the natural voice the sentence is already generated, so it's instant.)
+ * - With the natural voice the next two sentences are generated while the
+ *   current one plays.
  * - If the page changes while reading (an accordion opens, a tab re-renders),
  *   the sentence list is rebuilt and reading continues after the last spoken
  *   sentence.
  * - While reading, tapping a sentence inside the root jumps to it.
  */
 import { splitSentences, toSpeechText, isSpeakable, chunkForSpeech } from "./split-sentences";
+import { neuralVoice } from "./neural-voice";
 
 export interface TtsSentence {
   ranges: Range[];
@@ -317,8 +323,13 @@ class ReadAloudController {
   private onError: ((message: string) => void) | null = null;
   private delayNextSpeak = false;
 
-  get supported(): boolean {
+  /** The device has a Web Speech voice. */
+  get hasSystemVoice(): boolean {
     return typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined";
+  }
+
+  get supported(): boolean {
+    return this.hasSystemVoice || neuralVoice.getState().status !== "unsupported";
   }
 
   getState(): ReaderState {
@@ -356,12 +367,16 @@ class ReadAloudController {
   }
 
   private begin(owner: string, root: HTMLElement, opts: StartOptions) {
-    const synth = window.speechSynthesis;
-    this.delayNextSpeak = synth.speaking || synth.pending; // switching from another reading
+    const synth = this.hasSystemVoice ? window.speechSynthesis : null;
+    this.delayNextSpeak = !!synth && (synth.speaking || synth.pending); // switching from another reading
     this.stop();
     this.root = root;
     this.lang = opts.lang ?? "en-US";
     this.rate = opts.rate ?? 0.95;
+    if (neuralVoice.wanted(this.lang)) {
+      neuralVoice.unlock(); // still inside the tap
+      neuralVoice.autoLoad();
+    }
     this.sentences = collectSentences(root);
     if (!this.sentences.length) {
       this.onError?.("There's no text to read here yet.");
@@ -385,12 +400,13 @@ class ReadAloudController {
   pause() {
     if (this.state.status !== "playing") return;
     this.generation++;
-    window.speechSynthesis.cancel();
+    this.silence();
     this.set({ status: "paused" });
   }
 
   resume() {
     if (this.state.status !== "paused") return;
+    if (neuralVoice.wanted(this.lang)) neuralVoice.unlock();
     this.set({ status: "playing" });
     this.refreshIfDirty();
     this.speak(Math.min(this.state.index, this.sentences.length - 1));
@@ -413,9 +429,23 @@ class ReadAloudController {
     this.jump(Math.max(this.state.index - 1, 0));
   }
 
+  /** Switch between the natural voice and the device voice (remembered). */
+  setNaturalVoice(on: boolean) {
+    neuralVoice.setEnabled(on);
+    if (this.state.status === "playing") {
+      if (on) neuralVoice.unlock();
+      this.speak(this.state.index); // restart the sentence in the chosen voice
+    }
+  }
+
+  private silence() {
+    neuralVoice.stopPlayback();
+    if (this.hasSystemVoice) window.speechSynthesis.cancel();
+  }
+
   stop() {
     this.generation++;
-    if (this.supported) window.speechSynthesis.cancel();
+    this.silence();
     this.utterance = null;
     this.observer?.disconnect();
     this.observer = null;
@@ -428,6 +458,7 @@ class ReadAloudController {
   }
 
   private jump(index: number) {
+    if (neuralVoice.wanted(this.lang)) neuralVoice.unlock();
     this.set({ status: "playing" });
     this.speak(index);
   }
@@ -501,6 +532,59 @@ class ReadAloudController {
     paint(sentence);
     bringIntoView(sentence);
 
+    if (neuralVoice.usable(this.lang)) {
+      if (this.hasSystemVoice) window.speechSynthesis.cancel();
+      this.speakNatural(sentence, index, gen);
+      return;
+    }
+    neuralVoice.stopPlayback();
+    if (!this.hasSystemVoice) {
+      // No device voice: wait for the natural voice to finish downloading.
+      neuralVoice.load().then(
+        () => {
+          if (gen === this.generation) this.speak(index);
+        },
+        (err: Error) => {
+          if (gen !== this.generation) return;
+          this.stop();
+          this.onError?.(`The voice couldn't load: ${err.message}`);
+        },
+      );
+      return;
+    }
+    this.speakSystem(sentence, index, gen);
+  }
+
+  /** Called when a sentence has been fully spoken. */
+  private finished(sentence: TtsSentence, index: number) {
+    const last = sentence.ranges[sentence.ranges.length - 1];
+    if (rangeAlive(last)) this.lastEnd = { node: last.endContainer, offset: last.endOffset };
+    this.speak(index + 1);
+  }
+
+  private speakNatural(sentence: TtsSentence, index: number, gen: number) {
+    const ahead = [sentence.speech];
+    for (let i = index + 1; i < Math.min(index + 3, this.sentences.length); i++) ahead.push(this.sentences[i].speech);
+    const speed = this.rate / 0.95;
+    neuralVoice
+      .want(ahead, speed)
+      .then((clip) => {
+        if (gen !== this.generation) return;
+        return neuralVoice.play(clip).then(() => {
+          if (gen === this.generation) this.finished(sentence, index);
+        });
+      })
+      .catch(() => {
+        if (gen !== this.generation) return;
+        neuralVoice.reportFailure();
+        // Say this sentence with the device voice instead.
+        if (this.hasSystemVoice) return this.speakSystem(sentence, index, gen);
+        this.stop();
+        this.onError?.("Speech stopped: the voice couldn't read this part.");
+      });
+  }
+
+  private speakSystem(sentence: TtsSentence, index: number, gen: number) {
     const synth = window.speechSynthesis;
     const parts = chunkForSpeech(sentence.speech);
     const sayPart = (p: number) => {
@@ -512,9 +596,7 @@ class ReadAloudController {
       u.onend = () => {
         if (gen !== this.generation) return;
         if (p + 1 < parts.length) return sayPart(p + 1);
-        const last = sentence.ranges[sentence.ranges.length - 1];
-        if (rangeAlive(last)) this.lastEnd = { node: last.endContainer, offset: last.endOffset };
-        this.speak(index + 1);
+        this.finished(sentence, index);
       };
       u.onerror = (e) => {
         if (gen !== this.generation) return;
