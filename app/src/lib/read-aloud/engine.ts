@@ -387,19 +387,28 @@ class ReadAloudController {
 
   /**
    * While nothing is being read, prepare the first sentence each of these
-   * would start with (same text and split as start() uses), so tapping
-   * Listen plays immediately instead of "Preparing speech…".
+   * would start with (same text and split as start() uses), then the
+   * sentences that follow, so tapping Listen — and everything after — plays
+   * immediately instead of "Preparing speech…". Made speech is kept on the
+   * device, so this work is done once.
    */
   prefetch(targets: ReadTarget[]) {
     if (this.state.status !== "idle" || neuralVoice.getState().status !== "ready") return;
-    const texts: string[] = [];
+    const openings: string[] = [];
+    const lists: string[][] = [];
     for (const t of targets) {
       if (!t.root?.isConnected) continue;
       const sentences = collectSentences(t.root);
-      const s = sentences[t.fromVisible ? firstVisible(sentences) : 0];
-      if (s && !texts.includes(s.speech)) texts.push(s.speech);
+      const from = t.fromVisible ? firstVisible(sentences) : 0;
+      const s = sentences[from];
+      if (!s || openings.includes(s.speech)) continue;
+      openings.push(s.speech);
+      lists.push(sentences.slice(from + 1, from + 1 + (t.fromVisible ? 24 : 8)).map((x) => x.speech));
     }
-    if (texts.length) neuralVoice.prefetch(texts, voiceSettings.get().rate);
+    // Following sentences, the nearest of every target first.
+    const more: string[] = [];
+    for (let i = 0; lists.some((l) => i < l.length); i++) for (const l of lists) if (i < l.length && !more.includes(l[i])) more.push(l[i]);
+    if (openings.length) neuralVoice.prefetch(openings, voiceSettings.get().rate, more);
   }
 
   pause() {
@@ -552,9 +561,17 @@ class ReadAloudController {
     neuralVoice.stopPlayback();
 
     if (neuralVoice.getState().status !== "ready") {
-      // Very first use: wait for the voice to finish arriving, then start.
+      const loading = neuralVoice.load();
+      loading.catch(() => {});
+      // Kept on the device from before: play it now; the voice starts
+      // meanwhile for whatever isn't kept.
+      if (neuralVoice.canStart(sentence.speech, voiceSettings.get().rate)) {
+        this.speakSentence(sentence, index, gen);
+        return;
+      }
+      // Otherwise wait for the voice (on the very first use, for it to arrive).
       this.set({ waiting: true });
-      neuralVoice.load().then(
+      loading.then(
         () => {
           if (gen === this.generation) this.speak(index);
         },
@@ -614,7 +631,8 @@ class ReadAloudController {
           ready = true;
           clearTimeout(waitTimer);
           if (gen !== this.generation) return;
-          if (++this.failures >= 3 || neuralVoice.getState().status !== "ready") {
+          const voice = neuralVoice.getState().status;
+          if (++this.failures >= 3 || voice === "error" || voice === "unsupported") {
             this.stop();
             this.onError?.(`Reading stopped: ${err.message}`);
             return;

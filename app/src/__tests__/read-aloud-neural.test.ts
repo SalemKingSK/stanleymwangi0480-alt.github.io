@@ -30,12 +30,12 @@ describe("the voice (Piper, on the device) is the only voice", () => {
     readAloud.start("t", root);
     await tick();
     expect(neuralVoice.getState().status).toBe("loading");
-    expect(NEURAL_VOICE).toBe("jenny-dioco-v1");
+    expect(NEURAL_VOICE).toBe("cori-v1");
     expect(fake.worker!.sent[0]).toMatchObject({
       type: "load",
       voice: NEURAL_VOICE,
-      parts: [expect.stringMatching(/\/voice\/jenny-dioco-v1\/model\.onnx\.part0$/), expect.stringMatching(/\/voice\/jenny-dioco-v1\/model\.onnx\.part1$/)],
-      config: expect.stringMatching(/\/voice\/jenny-dioco-v1\/config\.json$/),
+      parts: [expect.stringMatching(/\/voice\/cori-v1\/model\.onnx\.part0$/), expect.stringMatching(/\/voice\/cori-v1\/model\.onnx\.part1$/)],
+      config: expect.stringMatching(/\/voice\/cori-v1\/config\.json$/),
     });
     expect(readAloud.getState()).toMatchObject({ status: "playing", index: 0, waiting: true });
     expect(fake.played).toHaveLength(0); // nothing else speaks meanwhile
@@ -76,7 +76,7 @@ describe("the voice (Piper, on the device) is the only voice", () => {
     await tick();
     expect(generated().at(-1)).toMatchObject({ text: "App voice.", voice: NEURAL_VOICE });
     const load = fake.workers[0].sent.find((m) => m.type === "load")!;
-    expect(load).toMatchObject({ voice: NEURAL_VOICE, parts: [expect.stringContaining("/voice/jenny-dioco-v1/model.onnx.part0"), expect.stringContaining("part1")], config: expect.stringContaining("/voice/jenny-dioco-v1/config.json") });
+    expect(load).toMatchObject({ voice: NEURAL_VOICE, parts: [expect.stringContaining("/voice/cori-v1/model.onnx.part0"), expect.stringContaining("part1")], config: expect.stringContaining("/voice/cori-v1/config.json") });
     expect(JSON.stringify(load)).not.toMatch(/huggingface/);
   });
 
@@ -162,21 +162,30 @@ describe("the voice (Piper, on the device) is the only voice", () => {
     readAloud.start("t", mount(`<p>${sentence}</p>`));
     await tick();
     expect(lastPlayed()).toBe("Similar to the PY4 in many ways,");
-    await endClip();
-    expect(lastPlayed()).toBe("this is a trough year of consolidation when no major change should be undertaken at all.");
+    const rest: string[] = [];
+    while (readAloud.getState().status === "playing" && rest.length < 4) {
+      await endClip();
+      if (readAloud.getState().status === "playing") rest.push(lastPlayed()!);
+    }
+    expect(rest[0].length).toBeLessThanOrEqual(60); // made while the first piece plays
+    expect(rest.join(" ")).toBe("this is a trough year of consolidation when no major change should be undertaken at all.");
     expect(readAloud.getState().index).toBe(0); // one sentence, highlighted once
   });
 
-  it("a long opening with no early comma starts after a few words, cut between words", async () => {
-    const sentence = "This is a trough year of consolidation when no major change should be undertaken by anyone at all.";
+  it("a long opening with no early comma starts after a few words, then a mid piece, then the rest", async () => {
+    const sentence = "This is a trough year of consolidation when no major change should be undertaken by anyone at all, and patience is rewarded.";
     readAloud.start("t", mount(`<p>${sentence}</p>`));
     await tick();
-    const first = lastPlayed()!;
-    expect(first).toBe("This is a trough year of consolidation when no");
-    expect(first.length).toBeLessThanOrEqual(80);
+    const pieces = [lastPlayed()!];
+    expect(pieces[0]).toBe("This is a trough year of"); // ~half a second of work before the first word
     await endClip();
-    expect(`${first} ${lastPlayed()}`).toBe(sentence);
-    expect(readAloud.getState().index).toBe(0);
+    pieces.push(lastPlayed()!);
+    expect(pieces[1].length).toBeLessThanOrEqual(60);
+    expect(pieces[1]).toMatch(/^consolidation when no major change should be undertaken/);
+    await endClip();
+    pieces.push(lastPlayed()!);
+    expect(pieces.join(" ")).toBe(sentence);
+    expect(readAloud.getState().index).toBe(0); // one sentence, highlighted once
   });
 
   it("if the phone blocks sound, it pauses and asks for a tap instead of hanging", async () => {

@@ -18,8 +18,8 @@ const sectionTitle: React.CSSProperties = {
 };
 
 /**
- * Voice menu for the read-aloud player: the app's voice (Jenny, credited as
- * its licence asks), its status, and the reading speed. Changing the speed
+ * Voice menu for the read-aloud player: the app's voice (Cori), its status,
+ * and the reading speed. Changing the speed
  * plays it straight away (restarting the current sentence, or a short sample).
  */
 export function VoicePicker({ onClose }: { onClose: () => void }) {
@@ -54,7 +54,7 @@ export function VoicePicker({ onClose }: { onClose: () => void }) {
 
   const status =
     voice.status === "ready"
-      ? "Ready · works offline"
+      ? `Ready · works offline${voice.rtf > 0 ? ` · this device makes speech ${(1 / voice.rtf).toFixed(1)}× faster than it's spoken` : ""}`
       : voice.status === "loading"
         ? voice.progress >= 0.999
           ? "Starting the voice…"

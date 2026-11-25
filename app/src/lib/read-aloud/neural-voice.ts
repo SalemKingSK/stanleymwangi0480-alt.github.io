@@ -1,39 +1,42 @@
 /**
- * The read-aloud voice: "Jenny (Dioco)", a Piper neural voice that ships with
- * the app (public/voice/) and speaks on the device. It is the app's only
- * voice — the browser's built-in speech is not used.
+ * The read-aloud voice: "Cori", a British English Piper neural voice that
+ * ships with the app (public/voice/) and speaks on the device. It is the
+ * app's only voice — the browser's built-in speech is not used.
  *
- * Piper (VITS) makes a whole sentence in a single pass, several times faster
- * than it's spoken on a phone processor, so reading flows from sentence to
- * sentence without "Preparing speech" waits. (The earlier Kokoro model took
- * about three seconds of work per second of speech on a processor.)
- *
- * The voice runs in Web Workers (piper.worker.ts). On devices with 4+ cores a
- * second worker starts once the first is ready and makes the next sentences
- * in parallel, so the reader stays well ahead of the speech. Its ~32 MB model
- * comes from the app's own site the first time the app opens (in the
- * background, like the rest of the app) and is then kept for offline use.
- *
- * To start reading the moment Listen is tapped:
+ * A device voice starts at once because nothing has to be worked out when
+ * Listen is tapped. This voice gets the same effect by having the audio made
+ * before it's needed, and keeping it:
+ * - clipStore: every sentence made is kept on the device, so reading it
+ *   again — this visit or any later one, even before the voice has started
+ *   after the app opens — plays at once;
  * - warmUp(): once the app has settled, the voice starts in the background
- *   (fetching it with the app the very first time);
- * - prefetch(): while nothing is being read, the opening of what each
- *   Listen button would read is made in advance and kept ready (on one
- *   worker at a time; dropped when it scrolls out of view);
+ *   (fetching its ~32 MB model with the app the very first time);
+ * - prefetch(): while nothing is being read, the opening of what each Listen
+ *   button would read is made first, then every sentence on screen, one
+ *   after another (on one worker at a time; dropped when scrolled away);
  * - primeAudio(): the audio output is created on the first touch;
- * - the opening of a reading is cut at its first comma when that comes
- *   early, so even something not prepared starts sooner.
+ * - openingParts(): something not made yet starts after its first few words
+ *   (about half a second of work), the rest following while they play.
+ *
+ * Piper (VITS) makes speech several times faster than it's spoken. The voice
+ * runs in Web Workers (piper.worker.ts); on devices with 4+ cores a second
+ * worker makes upcoming sentences in parallel.
  */
 import { chunkForSpeech } from "./split-sentences";
 import { APP_VOICE } from "./voice-settings";
+import { clipStore } from "./clip-store";
 
 /** The app's voice. */
 export const NEURAL_VOICE = APP_VOICE.id;
 const VOICE_CACHE = "mc-piper-voices";
 const MAX_PART = 180; // characters per model call; parts play as they're ready
-/** A reading's first part ends at the first clause break within this many characters. */
-const OPENING_MAX = 80;
+/** A reading that isn't made yet starts with a piece this short (a few words)… */
+const FIRST_PIECE = 34;
+/** …then one up to this long, then whole parts. */
+const SECOND_PIECE = 60;
 const PREFETCH_LIMIT = 4;
+/** Sentences made in the background while nothing is read. */
+const BACKGROUND_LIMIT = 40;
 const CACHE_LIMIT = 40;
 /** Above this speed-test result a second worker is worth its memory. */
 const PARALLEL_RTF = 0.2;
@@ -156,6 +159,20 @@ async function dropOtherVoices() {
   }
 }
 
+/**
+ * The start of `text` up to a clause break between `min` and `max`
+ * characters, else up to a word boundary between `wordMin` and `wordMax`;
+ * null when neither exists.
+ */
+function cutEarly(text: string, min: number, max: number, wordMin: number, wordMax: number): string | null {
+  const clause = new RegExp(`^([\\s\\S]{${min},${max}}?[,;:—–])\\s`).exec(text);
+  if (clause) return clause[1];
+  const space = text.lastIndexOf(" ", wordMax);
+  if (space >= wordMin) return text.slice(0, space);
+  const next = text.indexOf(" ", wordMin);
+  return next > 0 && next <= wordMax + 12 ? text.slice(0, next) : null;
+}
+
 class NeuralVoice {
   private state: NeuralState;
   private listeners = new Set<(s: NeuralState) => void>();
@@ -170,6 +187,7 @@ class NeuralVoice {
   private source: AudioBufferSourceNode | null = null;
 
   constructor() {
+    if (typeof window !== "undefined") void clipStore.open(NEURAL_VOICE);
     const capable = NeuralVoice.capable();
     if (capable) {
       dropOldVersions();
@@ -342,6 +360,7 @@ class NeuralVoice {
 
   /** Hands the most urgent queued parts to free workers. */
   private earlyRunning = 0;
+  private batteryLow = false;
 
   private pump() {
     for (const slot of this.slots) {
@@ -355,7 +374,12 @@ class NeuralVoice {
       slot.busy = true;
       if (job.early) this.earlyRunning++;
       this.rpc(slot, job)
-        .then(job.resolve, (err) => {
+        .then((clip) => {
+          job.resolve(clip);
+          clipStore.put(job.key, clip);
+          // Made in the background: it's kept in the store, not in memory.
+          if (job.early && clipStore.has(job.key)) this.cache.delete(job.key);
+        }, (err) => {
           this.cache.delete(job.key);
           job.reject(err instanceof Error ? err : new Error(String(err)));
         })
@@ -373,21 +397,21 @@ class NeuralVoice {
   }
 
   /**
-   * The same, for the sentence a reading starts with: a long first part is
-   * cut at its first clause break ("Similar to the PY4," | "this is…"), or,
-   * when none comes early, at a word boundary after ~45 characters, so the
-   * voice can start after making only a few words.
+   * The same, for a sentence a reading starts with that isn't made yet: the
+   * voice starts after a few words — at a clause break that comes early
+   * ("Similar to the PY4,"), else between words — then a piece of up to
+   * ~60 characters, made while the first plays, then the rest.
    */
   openingParts(text: string): string[] {
     const parts = this.partsOf(text);
     const first = parts[0] ?? "";
-    if (first.length <= OPENING_MAX) return parts;
-    const m = /^([\s\S]{20,}?[,;:—–])\s+([\s\S]+)$/.exec(first);
-    if (m && m[1].length <= OPENING_MAX) return [m[1], m[2], ...parts.slice(1)];
-    // No early clause break: cut at a word boundary between 45 and 80 characters.
-    const cut = first.indexOf(" ", 45);
-    if (cut > 0 && cut <= OPENING_MAX) return [first.slice(0, cut), first.slice(cut + 1), ...parts.slice(1)];
-    return parts;
+    if (first.length <= FIRST_PIECE) return parts;
+    const head = cutEarly(first, 12, FIRST_PIECE + 14, 16, FIRST_PIECE);
+    if (!head) return parts;
+    const rest = first.slice(head.length).trimStart();
+    const second = rest.length > SECOND_PIECE ? cutEarly(rest, 24, SECOND_PIECE, 36, SECOND_PIECE) : null;
+    const pieces = second ? [head, second, rest.slice(second.length).trimStart()] : [head, rest];
+    return [...pieces.filter(Boolean), ...parts.slice(1)];
   }
 
   private key(voice: string, speed: number, text: string): string {
@@ -402,7 +426,8 @@ class NeuralVoice {
   async warmUp(): Promise<void> {
     if (this.state.status !== "idle") return;
     if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-    if (await lowBattery()) return; // it starts on the first Listen instead
+    this.batteryLow = await lowBattery();
+    if (this.batteryLow) return; // it starts on the first Listen instead
     // Audio output too, so the Listen tap only has to resume it (parked
     // suspended, so it doesn't interrupt other apps' sound).
     this.primeAudio();
@@ -411,22 +436,32 @@ class NeuralVoice {
   }
 
   /**
-   * Make the opening of each text in advance (low priority, nothing else
-   * dropped), so starting a reading with one of them plays at once.
+   * Make speech in advance, at low priority: first the opening of each of
+   * `openings` (what Listen buttons on screen would start with), then each
+   * of `more` whole (the sentences after them), so starting — and carrying
+   * on — plays at once. What is kept already is skipped.
    */
-  prefetch(texts: string[], speed: number) {
+  prefetch(openings: string[], speed: number, more: string[] = []) {
     if (this.state.status !== "ready") return;
     const voice = this.state.voice;
     const keys = new Set<string>();
-    for (const text of texts.slice(0, PREFETCH_LIMIT)) {
-      const part = this.openingParts(text)[0];
-      if (!part) continue;
+    const add = (part: string) => {
       const key = this.key(voice, speed, part);
       keys.add(key);
-      if (this.cache.has(key)) continue;
+      if (this.cache.has(key) || clipStore.has(key)) return;
       const p = new Promise<Clip>((resolve, reject) => this.queue.push({ key, text: part, voice, speed, early: true, resolve, reject }));
       p.catch(() => {});
       this.cache.set(key, p);
+    };
+    for (const text of openings.slice(0, PREFETCH_LIMIT)) {
+      if (this.wholeKept(text, speed)) continue;
+      const part = this.openingParts(text)[0];
+      if (part) add(part);
+    }
+    // Then whole sentences — only where they can be kept (else they'd crowd
+    // memory) and not on low battery.
+    if (clipStore.ready && !this.batteryLow) {
+      for (const text of more.slice(0, BACKGROUND_LIMIT)) for (const part of this.partsOf(text)) add(part);
     }
     // Advance work for what is no longer on screen is dropped (not started).
     this.queue = this.queue.filter((j) => {
@@ -439,10 +474,29 @@ class NeuralVoice {
     this.pump();
   }
 
+  /** Every part of this sentence is made (in memory or kept on the device). */
+  private wholeKept(text: string, speed: number): boolean {
+    const parts = this.partsOf(text);
+    return parts.length > 0 && parts.every((t) => this.known(this.key(this.state.voice, speed, t)));
+  }
+
+  private known(key: string): boolean {
+    return this.cache.has(key) || clipStore.has(key);
+  }
+
+  /**
+   * Whether a reading starting with this sentence can play at once without
+   * the model: it is kept on the device (or in memory) already.
+   */
+  canStart(text: string, speed: number): boolean {
+    if (this.wholeKept(text, speed)) return true;
+    const part = this.openingParts(text)[0];
+    return !!part && this.known(this.key(this.state.voice, speed, part));
+  }
+
   /** Whether the opening of this text is ready (or being made) already. */
   prepared(text: string, speed: number): boolean {
-    const part = this.openingParts(text)[0];
-    return !!part && this.cache.has(this.key(this.state.voice, speed, part));
+    return this.canStart(text, speed);
   }
 
   /**
@@ -455,7 +509,7 @@ class NeuralVoice {
     // The sentence to play now: as already made (it was read ahead, or
     // paused), else split for a quick start.
     const whole = this.partsOf(texts[0] ?? "");
-    const firstParts = whole.every((t) => this.cache.has(this.key(voice, speed, t))) ? whole : this.openingParts(texts[0] ?? "");
+    const firstParts = whole.every((t) => this.known(this.key(voice, speed, t))) ? whole : this.openingParts(texts[0] ?? "");
     const parts = [...firstParts, ...texts.slice(1).flatMap((t) => this.partsOf(t))];
     const keys = parts.map((t) => this.key(voice, speed, t));
     parts.forEach((text, i) => {
@@ -466,7 +520,9 @@ class NeuralVoice {
         this.cache.set(key, p);
         return;
       }
-      const p = new Promise<Clip>((resolve, reject) => this.queue.push({ key, text, voice, speed, resolve, reject }));
+      const make = () => new Promise<Clip>((resolve, reject) => this.queue.push({ key, text, voice, speed, resolve, reject }));
+      // Kept on the device: played from there (made again only if it's gone).
+      const p = clipStore.has(key) ? clipStore.get(key).then((c) => c ?? this.enqueueNow(make)) : make();
       p.catch(() => {});
       this.cache.set(key, p);
     });
@@ -483,6 +539,13 @@ class NeuralVoice {
     while (this.cache.size > CACHE_LIMIT) this.cache.delete(this.cache.keys().next().value as string);
     this.pump();
     return out;
+  }
+
+  /** Queue a job outside want() (a kept sentence turned out to be missing). */
+  private enqueueNow(make: () => Promise<Clip>): Promise<Clip> {
+    const p = make();
+    this.pump();
+    return p;
   }
 
   // ── Playback ──────────────────────────────────────────────────────────────

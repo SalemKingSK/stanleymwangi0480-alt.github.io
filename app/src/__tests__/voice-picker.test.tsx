@@ -18,10 +18,11 @@ async function openMenu() {
 }
 
 describe("voice menu in the player", () => {
-  it("shows the app's one voice, credited as Jenny (Dioco), and the speed — no voice list, device voices or pitch", async () => {
+  it("shows the app's one voice, Cori, and the speed — no voice list, device voices or pitch", async () => {
     const { root, menu } = await openMenu();
     const text = menu.textContent!;
-    expect(text).toContain("Jenny (Dioco)");
+    expect(text).toContain("Cori");
+    expect(text).toContain("British English");
     expect(text).toContain("Speed");
     expect(menu.querySelectorAll('[role="radio"]')).toHaveLength(0);
     expect(text).not.toMatch(/Lessac|Amy|Ryan|Automatic|device's voices|Pitch|MB download/);

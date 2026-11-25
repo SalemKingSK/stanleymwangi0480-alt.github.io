@@ -76,14 +76,19 @@ export function phonemesToIds(phonemes: string, map: Record<string, number[]>): 
  * Even loudness (Piper normalises every utterance the same way) plus a
  * natural gap after the clip: longer after a full stop than after a comma.
  */
-export function finishAudio(samples: Float32Array, sampleRate: number, text: string): Float32Array {
+export function finishAudio(samples: Float32Array, sampleRate: number, text: string, level = 0): Float32Array {
   let peak = 0;
   for (let i = 0; i < samples.length; i++) {
     const a = Math.abs(samples[i]);
     if (a > peak) peak = a;
   }
-  const gain = 0.9 / Math.max(peak, 0.01);
-  const gap = Math.round(sampleRate * (/[.!?…]["'’”)\]]*\s*$/.test(text) ? 0.22 : 0.1));
+  // Loudness follows the voice's usual level (from its warm-up sentence), so
+  // a short piece of a sentence isn't boosted louder than the rest of it.
+  const gain = 0.9 / Math.max(peak, level * 0.75, 0.01);
+  // Pause after the piece: a sentence end, a clause break, or (a sentence cut
+  // between words so it can start sooner) barely any, so the pieces join up.
+  const end = /[.!?…]["'’”)\]]*\s*$/.test(text) ? 0.22 : /[,;:—–]["'’”)\]]*\s*$/.test(text) ? 0.1 : 0.02;
+  const gap = Math.round(sampleRate * end);
   const out = new Float32Array(samples.length + gap);
   for (let i = 0; i < samples.length; i++) out[i] = samples[i] * gain;
   return out;

@@ -37,6 +37,16 @@ describe("Piper text handling", () => {
     expect(Math.max(...Array.from(end, Math.abs))).toBeCloseTo(0.9);
     expect(end.length).toBe(3 + 220);
     expect(finishAudio(quiet, 1000, "A part,").length).toBe(3 + 100);
+    // a sentence cut between words joins the next piece almost seamlessly
+    expect(finishAudio(quiet, 1000, "Similar to the").length).toBe(3 + 20);
+  });
+
+  it("a short piece is not boosted louder than the voice's usual level", () => {
+    const tiny = new Float32Array([0.05, -0.1]);
+    const out = finishAudio(tiny, 1000, "Yes", 0.3);
+    expect(Math.max(...Array.from(out, Math.abs))).toBeCloseTo(0.4); // 0.1 × 0.9/(0.3×0.75)
+    const loud = finishAudio(new Float32Array([0.5]), 1000, "Yes", 0.3);
+    expect(loud[0]).toBeCloseTo(0.9); // its own peak when louder
   });
 
   it("the voice ships with the app: its pieces are on the app's own site, each under the 25 MiB hosting limit", () => {

@@ -31,6 +31,8 @@ interface Loaded {
   voice: string;
   session: ort.InferenceSession;
   cfg: PiperConfig;
+  /** Usual peak level of this voice's raw output (0 until the warm-up). */
+  level: number;
 }
 
 const CACHE = "mc-piper-voices";
@@ -130,7 +132,11 @@ async function speak(v: Loaded, text: string, speed: number): Promise<Float32Arr
   if ((v.cfg.num_speakers ?? 1) > 1) feeds.sid = new ort.Tensor("int64", BigInt64Array.from([0n]), [1]);
   const out = await v.session.run(feeds);
   const wav = out.output.data as Float32Array;
-  return finishAudio(wav, sr, text);
+  if (!v.level) {
+    // the warm-up sentence sets the voice's usual loudness
+    for (let i = 0; i < wav.length; i++) v.level = Math.max(v.level, Math.abs(wav[i]));
+  }
+  return finishAudio(wav, sr, text, v.level);
 }
 
 async function load(msg: Extract<InMsg, { type: "load" }>) {
@@ -151,7 +157,7 @@ async function load(msg: Extract<InMsg, { type: "load" }>) {
   }
   const session = await ort.InferenceSession.create(model, { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
   const old = current;
-  current = { voice: msg.voice, session, cfg: config };
+  current = { voice: msg.voice, session, cfg: config, level: 0 };
   if (old) void old.session.release().catch(() => {});
   // Warm-up (prepares the phoneme dictionary and the model) and speed check:
   // seconds of work per second of speech.

@@ -10,20 +10,19 @@ export interface VoiceSettings {
 }
 
 /**
- * The app's only voice: "Jenny" (Piper en_GB-jenny_dioco-medium), built from
- * the Jenny TTS dataset by Dioco. Its licence asks that the voice be credited
- * as "Jenny (Dioco)" wherever practical — shown in the voice menu.
+ * The app's only voice: "Cori" (Piper en_GB-cori-medium), a British English
+ * female voice trained by Bryce Beattie on public-domain LibriVox recordings.
  */
 export const APP_VOICE = {
-  id: "jenny-dioco-v1",
-  name: "Jenny",
-  credit: "Jenny (Dioco)",
-  description: "Natural female voice, built into the app",
+  id: "cori-v1",
+  name: "Cori",
+  credit: "Cori",
+  description: "British English · built into the app · recordings from LibriVox (public domain)",
   /** Files under public/voice/<id>/ (the model in pieces, each under hosting limits). */
   parts: ["model.onnx.part0", "model.onnx.part1"],
   config: "config.json",
   /** Model size in bytes (fp16 weights; full-precision maths at run time). */
-  bytes: 31_946_789,
+  bytes: 32_276_874,
 } as const;
 
 const DEFAULTS: VoiceSettings = { rate: 1 };
