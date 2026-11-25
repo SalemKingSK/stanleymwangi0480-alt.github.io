@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 
 interface Props {
   text: string;
-  activeSentenceIndex: number;
-  sentences: string[];
+  /** Legacy: highlighting is now done per sentence by the read-aloud engine. */
+  activeSentenceIndex?: number;
+  sentences?: string[];
 }
 
 type BlockKind = 'hero' | 'heading' | 'subheading' | 'probability' | 'bullet' | 'numbered' | 'divider' | 'empty' | 'body' | 'compound';
@@ -123,32 +124,15 @@ function ProbabilityBar({ label, percent }: { label: string; percent: number }) 
   );
 }
 
-export const ScrollableTextDisplay: React.FC<Props> = ({ text, activeSentenceIndex, sentences }) => {
-  const sentenceRefs = useRef<(HTMLElement | null)[]>([]);
+export const ScrollableTextDisplay: React.FC<Props> = ({ text }) => {
   const blocks = useMemo(() => parseBlocks(text || ''), [text]);
-  const activeSnippet = activeSentenceIndex >= 0 ? (sentences[activeSentenceIndex] || '').trim().replace(/\s+/g, ' ').slice(0, 64) : '';
-
-  useEffect(() => {
-    sentenceRefs.current = sentenceRefs.current.slice(0, blocks.length);
-  }, [blocks.length]);
-
-  useEffect(() => {
-    if (activeSentenceIndex >= 0) {
-      const idx = blocks.findIndex((b) => activeSnippet && b.text.replace(/\s+/g, ' ').includes(activeSnippet));
-      if (idx >= 0) sentenceRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [activeSentenceIndex, activeSnippet, blocks]);
-
   if (!text) return null;
 
   return (
     <div style={{ lineHeight: 1.72, paddingBottom: '0.5rem' }}>
       {blocks.map((block, idx) => {
-        const isActive = !!activeSnippet && block.text.replace(/\s+/g, ' ').includes(activeSnippet);
-        const activeWrap: React.CSSProperties = isActive
-          ? { background: 'rgba(212,175,55,0.11)', borderRadius: 10, outline: '1px solid rgba(212,175,55,0.2)' }
-          : {};
-        const setRef = (el: HTMLElement | null) => { sentenceRefs.current[idx] = el; };
+        const activeWrap: React.CSSProperties = {};
+        const setRef = undefined;
 
         if (block.kind === 'empty') return <div key={idx} ref={setRef} style={{ height: '0.45rem' }} />;
         if (block.kind === 'divider') return <div key={idx} ref={setRef} style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.35), transparent)', margin: '1.25rem 0' }} />;

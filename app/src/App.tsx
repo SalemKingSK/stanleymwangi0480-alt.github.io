@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
+import { ReadAloudDock } from "@/components/read-aloud/read-aloud-dock";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ProfileGenerator } from "@/components/profile-generator";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
@@ -217,6 +218,7 @@ function App() {
           </a>
         </footer>
       </div>
+      <ReadAloudDock />
       <Toaster />
       <PwaInstallPrompt
         pwa={pwa}

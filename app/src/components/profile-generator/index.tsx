@@ -1,4 +1,5 @@
 import * as React from "react";
+import { stopReadAloud } from "@/lib/read-aloud/engine";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -301,7 +302,7 @@ export function ProfileGenerator() {
     }
   };
   const handleReset = () => {
-    if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel();
+    stopReadAloud();
     setInsight(null);
     setNumerology(null);
     setFormData({ name: "", day: 0, month: 0, year: 0, gender: "" });

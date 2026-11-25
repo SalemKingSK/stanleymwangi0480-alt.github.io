@@ -2,6 +2,7 @@
  * MYSTIQUE COMPASS — Premium Results Display
  */
 import * as React from "react";
+import { stopReadAloud } from "@/lib/read-aloud/engine";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import type {
@@ -1936,10 +1937,8 @@ export function ResultsDisplay({
   const alerts = React.useMemo(() => generateAlerts(numerology), [numerology]);
   const synthesis = useSynthesis(insight, numerology);
   React.useEffect(() => {
-    return () => {
-      if (typeof window !== "undefined" && window.speechSynthesis?.speaking)
-        window.speechSynthesis.cancel();
-    };
+    // Switching tabs replaces the text being read, so stop the reader.
+    return () => stopReadAloud();
   }, [activeTab]);
   const getOrdinalSuffix = (day: number) => {
     if (day > 3 && day < 21) return "th";

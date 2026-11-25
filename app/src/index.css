@@ -1252,3 +1252,14 @@ html {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Read aloud: only the sentence being spoken is highlighted. */
+::highlight(mc-tts) {
+  background-color: rgba(212, 175, 55, 0.34);
+  color: #fff8dc;
+}
+.mc-tts-fallback {
+  background-color: rgba(212, 175, 55, 0.14);
+  outline: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 6px;
+}

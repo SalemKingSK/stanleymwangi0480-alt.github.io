@@ -23,8 +23,7 @@ import {
   Compass, Telescope,
   RotateCcw
 } from 'lucide-react';
-import { SpeechPlayer } from './speech-player';
-import { ScrollableTextDisplay } from './scrollable-text-display';
+import { AccordionContentWithPlayer } from './accordion-content-with-player';
 import { CosmicRiskScanner } from './cosmic-risk-scanner';
 
 // Helper to reduce numbers
@@ -98,27 +97,8 @@ export function CosmicFateDisplay({ insight, numerology }: { insight: AstroInsig
   else activeChallenge = c4;
 
   // --- RENDER HELPERS ---
-  const renderReadAloud = (text: string) => {
-    const sentences = text.match(/[^.!?\n]+[.!?\n]+/g) || [text];
-    const [activeSentenceIndex, setActiveSentenceIndex] = useState(-1);
-    return (
-      <div className="flex flex-col space-y-4">
-        <div className="flex justify-start">
-          <SpeechPlayer
-            text={text}
-            sentences={sentences}
-            onBoundary={setActiveSentenceIndex}
-            onEnd={() => setActiveSentenceIndex(-1)}
-          />
-        </div>
-        <ScrollableTextDisplay
-          text={text}
-          sentences={sentences}
-          activeSentenceIndex={activeSentenceIndex}
-        />
-      </div>
-    );
-  };
+  // Plain helper (no hooks): the reading component owns its own state.
+  const renderReadAloud = (text: string) => <AccordionContentWithPlayer text={text} />;
 
   const renderOracle = () => {
     const yr = yearDescription(currentPY);

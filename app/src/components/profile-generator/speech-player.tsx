@@ -1,193 +1,121 @@
-
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Play, Pause, RotateCcw, FastForward, Rewind, Volume2 } from "lucide-react";
-import { useToast } from '@/hooks/use-toast';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useCallback, useId, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Play, Pause, Square, FastForward, Rewind, Volume2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { readAloud } from "@/lib/read-aloud/engine";
+import { useReadAloudState } from "@/hooks/use-read-aloud";
 
 interface Props {
-  text: string;
-  sentences: string[];
-  onBoundary: (index: number) => void;
-  onEnd: () => void;
+  /** Element whose visible text is read. Defaults to the nearest
+   * `[data-tts-scope]` ancestor, else the closest ancestor holding the text. */
+  targetRef?: React.RefObject<HTMLElement | null>;
+  /** Used only to find the right container when no scope is marked. */
+  text?: string;
+  /** Legacy props, kept so older call sites compile; reading now follows the DOM. */
+  sentences?: string[];
+  onBoundary?: (index: number) => void;
+  onEnd?: () => void;
   lang?: string;
 }
 
-export const SpeechPlayer: React.FC<Props> = ({ text, sentences, onBoundary, onEnd, lang = 'en-US' }) => {
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [isPaused, setIsPaused] = useState(false);
-    const [isExpanded, setIsExpanded] = useState(false);
-    const currentSentenceIndexRef = useRef(0);
-    const userInitiatedStop = useRef(false);
-    const { toast } = useToast();
+function textLength(el: Element, exclude: Element): number {
+  let n = 0;
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+    if (!exclude.contains(t)) n += (t as Text).data.trim().length;
+  }
+  return n;
+}
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            userInitiatedStop.current = true;
-            window.speechSynthesis.cancel();
-        };
-    }, []);
+function resolveRoot(wrapper: HTMLElement, text?: string): HTMLElement | null {
+  const scoped = wrapper.closest<HTMLElement>("[data-tts-scope]");
+  if (scoped) return scoped;
+  const want = Math.max(40, Math.min(400, Math.round((text?.trim().length ?? 0) * 0.5)));
+  let el = wrapper.parentElement;
+  for (let hops = 0; el && hops < 8; hops++, el = el.parentElement) {
+    if (textLength(el, wrapper) >= want) return el;
+  }
+  return wrapper.parentElement;
+}
 
-    const speakSentence = useCallback((index: number) => {
-        if (userInitiatedStop.current || index >= sentences.length || index < 0) {
-            setIsPlaying(false);
-            setIsPaused(false);
-            if (index >= sentences.length) {
-                onEnd();
-                currentSentenceIndexRef.current = 0;
-                setIsExpanded(false);
-            }
-            userInitiatedStop.current = false;
-            return;
-        }
+/**
+ * Per-field Listen button. Reads the field one sentence at a time and
+ * highlights only the sentence being spoken.
+ */
+export const SpeechPlayer: React.FC<Props> = ({ targetRef, text, onEnd, lang = "en-US" }) => {
+  const owner = useId();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const state = useReadAloudState();
+  const mine = state.owner === owner && state.status !== "idle";
+  const wasMine = useRef(false);
 
-        onBoundary(index);
-        currentSentenceIndexRef.current = index;
+  React.useEffect(() => {
+    if (wasMine.current && !mine) onEnd?.();
+    wasMine.current = mine;
+  }, [mine, onEnd]);
 
-        const utterance = new SpeechSynthesisUtterance(sentences[index]);
-        utterance.lang = lang;
-        utterance.rate = 0.95;
+  React.useEffect(() => () => {
+    if (readAloud.isOwner(owner)) readAloud.stop();
+  }, [owner]);
 
-        utterance.onend = () => {
-            if (!userInitiatedStop.current) {
-                speakSentence(index + 1);
-            }
-        };
+  const start = useCallback(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const root = targetRef?.current ?? resolveRoot(wrapper, text);
+    if (root) readAloud.start(owner, root, { lang });
+  }, [owner, targetRef, text, lang]);
 
-        utterance.onerror = (event) => {
-            if (event.error === 'canceled' || event.error === 'interrupted') return; 
-            console.error("SpeechSynthesis Error:", event);
-            toast({
-                variant: 'destructive',
-                title: 'Speech Error',
-                description: `An error occurred: ${event.error}`,
-            });
-            setIsPlaying(false);
-            setIsPaused(false);
-            onEnd();
-            currentSentenceIndexRef.current = 0;
-        };
-        
-        window.speechSynthesis.speak(utterance);
-    }, [lang, sentences, onBoundary, onEnd, toast]);
+  if (!readAloud.supported) return null;
 
-    const handlePlayPause = useCallback(() => {
-        const synth = window.speechSynthesis;
-        
-        if (synth.speaking && !isPaused) {
-            userInitiatedStop.current = true;
-            synth.pause();
-            setIsPlaying(false);
-            setIsPaused(true);
-        } else if (synth.paused && isPaused) {
-            userInitiatedStop.current = false;
-            synth.resume();
-            setIsPlaying(true);
-            setIsPaused(false);
-        } else {
-            userInitiatedStop.current = false;
-            if (synth.speaking) synth.cancel();
-            setIsPlaying(true);
-            setIsPaused(false);
-            setIsExpanded(true);
-            speakSentence(currentSentenceIndexRef.current);
-        }
-    }, [isPaused, speakSentence]);
-
-    const handleStop = useCallback(() => {
-        userInitiatedStop.current = true;
-        window.speechSynthesis.cancel();
-        setIsPlaying(false);
-        setIsPaused(false);
-        setIsExpanded(false);
-        onEnd();
-        currentSentenceIndexRef.current = 0;
-    }, [onEnd]);
-
-    const skipForward = () => {
-        window.speechSynthesis.cancel();
-        speakSentence(currentSentenceIndexRef.current + 1);
-    };
-
-    const skipBackward = () => {
-        window.speechSynthesis.cancel();
-        speakSentence(Math.max(0, currentSentenceIndexRef.current - 1));
-    };
-
-    return (
-        <motion.div 
-            initial={false}
-            animate={{ width: isExpanded ? 'auto' : '120px' }}
-            className="flex items-center bg-primary/10 border border-primary/20 rounded-full p-1 overflow-hidden"
-        >
-            <AnimatePresence mode="wait">
-                {!isExpanded ? (
-                    <motion.div
-                        key="idle"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        className="w-full"
-                    >
-                        <Button 
-                            onClick={handlePlayPause} 
-                            variant="ghost" 
-                            size="sm" 
-                            className="w-full rounded-full hover:bg-primary/20 text-primary font-cinzel text-[0.7rem] tracking-widest uppercase py-0 h-8"
-                        >
-                            <Volume2 className="h-3 w-3 mr-2" />
-                            Listen
-                        </Button>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        key="active"
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="flex items-center gap-1 px-1"
-                    >
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 rounded-full text-primary/70 hover:text-primary hover:bg-primary/10"
-                            onClick={skipBackward}
-                        >
-                            <Rewind className="h-4 w-4" />
-                        </Button>
-
-                        <Button 
-                            onClick={handlePlayPause} 
-                            variant="default" 
-                            size="icon" 
-                            className="h-8 w-8 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
-                        >
-                            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
-                        </Button>
-
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 rounded-full text-primary/70 hover:text-primary hover:bg-primary/10"
-                            onClick={skipForward}
-                        >
-                            <FastForward className="h-4 w-4" />
-                        </Button>
-
-                        <div className="w-px h-4 bg-primary/20 mx-1" />
-
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 rounded-full text-rose-400 hover:text-rose-500 hover:bg-rose-500/10"
-                            onClick={handleStop}
-                        >
-                            <RotateCcw className="h-4 w-4" />
-                        </Button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
-    );
+  return (
+    <motion.div
+      ref={wrapperRef}
+      data-tts-skip
+      initial={false}
+      animate={{ width: mine ? "auto" : "120px" }}
+      className="flex items-center bg-primary/10 border border-primary/20 rounded-full p-1 overflow-hidden"
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {!mine ? (
+          <motion.div key="idle" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="w-full">
+            <Button
+              onClick={start}
+              variant="ghost"
+              size="sm"
+              aria-label="Listen: read this section aloud"
+              className="w-full rounded-full hover:bg-primary/20 text-primary font-cinzel text-[0.7rem] tracking-widest uppercase py-0 h-8"
+            >
+              <Volume2 className="h-3 w-3 mr-2" />
+              Listen
+            </Button>
+          </motion.div>
+        ) : (
+          <motion.div key="active" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="flex items-center gap-1 px-1">
+            <Button variant="ghost" size="icon" aria-label="Previous sentence" className="h-8 w-8 rounded-full text-primary/70 hover:text-primary hover:bg-primary/10" onClick={() => readAloud.prev()}>
+              <Rewind className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => readAloud.toggle()}
+              variant="default"
+              size="icon"
+              aria-label={state.status === "playing" ? "Pause" : "Resume"}
+              className="h-8 w-8 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+            >
+              {state.status === "playing" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+            </Button>
+            <Button variant="ghost" size="icon" aria-label="Next sentence" className="h-8 w-8 rounded-full text-primary/70 hover:text-primary hover:bg-primary/10" onClick={() => readAloud.next()}>
+              <FastForward className="h-4 w-4" />
+            </Button>
+            <span className="text-[0.62rem] tabular-nums text-primary/60 px-1 font-cinzel" aria-live="off">
+              {state.index + 1}/{state.total}
+            </span>
+            <div className="w-px h-4 bg-primary/20 mx-0.5" />
+            <Button variant="ghost" size="icon" aria-label="Stop reading" className="h-8 w-8 rounded-full text-rose-400 hover:text-rose-500 hover:bg-rose-500/10" onClick={() => readAloud.stop()}>
+              <Square className="h-3.5 w-3.5" />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
 };

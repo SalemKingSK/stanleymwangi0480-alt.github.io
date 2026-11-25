@@ -2141,7 +2141,7 @@ function JohariPairCard({
   }, [fullText]);
   const [, setActiveSentenceIndex] = React.useState(-1);
   return (
-    <div
+    <div data-tts-scope
       style={{
         padding: "0.72rem 0.78rem",
         borderRadius: 14,
@@ -2646,7 +2646,7 @@ function ChineseZodiacCompatTextCard({ report }: { report: SoulResonanceReport }
   const [, setActiveSentenceIndex] = React.useState(-1);
 
   return (
-    <div
+    <div data-tts-scope
       style={{
         padding: "0.82rem 0.88rem",
         borderRadius: 14,
@@ -2791,7 +2791,7 @@ function NewAstrologyCompatCard({ report }: { report: SoulResonanceReport }) {
 
       {/* A's compat paragraph */}
       {na.aCompatText && (
-        <div
+        <div data-tts-scope
           style={{
             padding: "0.65rem 0.72rem",
             borderRadius: 13,
@@ -2888,7 +2888,7 @@ function NewAstrologyCompatCard({ report }: { report: SoulResonanceReport }) {
 
       {/* B's compat paragraph */}
       {na.bCompatText && (
-        <div
+        <div data-tts-scope
           style={{
             padding: "0.65rem 0.72rem",
             borderRadius: 13,
@@ -3063,7 +3063,7 @@ function StoryCard({
   }, [text]);
   const [, setActiveSentenceIndex] = React.useState(-1);
   return (
-    <div
+    <div data-tts-scope
       style={{
         padding: "0.72rem 0.78rem",
         borderRadius: 14,

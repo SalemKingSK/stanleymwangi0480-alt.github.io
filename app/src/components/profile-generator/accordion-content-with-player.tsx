@@ -1,35 +1,17 @@
-import React from 'react';
-import { SpeechPlayer } from './speech-player';
-import { ScrollableTextDisplay } from './scrollable-text-display';
+import React from "react";
+import { SpeechPlayer } from "./speech-player";
+import { ScrollableTextDisplay } from "./scrollable-text-display";
 
+/** A reading with its own Listen button; reads and highlights one sentence at a time. */
 export function AccordionContentWithPlayer({ text = "" }: { text?: string }) {
-    const [activeSentenceIndex, setActiveSentenceIndex] = React.useState(-1);
-    
-    // Safety check: ensure text is a string before matching
-    const sentences = React.useMemo(() => {
-        if (!text) return [""];
-        // Split by major punctuation while preserving it
-        const matches = text.match(/[^.!?\n]+[.!?\n]+/g);
-        return matches || [text];
-    }, [text]);
-
-    if (!text) return null;
-
-    return (
-        <div className="flex flex-col space-y-4">
-            <div className="flex justify-start">
-                <SpeechPlayer
-                    text={text}
-                    sentences={sentences}
-                    onBoundary={setActiveSentenceIndex}
-                    onEnd={() => setActiveSentenceIndex(-1)}
-                />
-            </div>
-            <ScrollableTextDisplay
-                text={text}
-                sentences={sentences}
-                activeSentenceIndex={activeSentenceIndex}
-            />
-        </div>
-    )
+  const scopeRef = React.useRef<HTMLDivElement>(null);
+  if (!text) return null;
+  return (
+    <div ref={scopeRef} data-tts-scope className="flex flex-col space-y-4">
+      <div className="flex justify-start">
+        <SpeechPlayer targetRef={scopeRef} text={text} />
+      </div>
+      <ScrollableTextDisplay text={text} />
+    </div>
+  );
 }
