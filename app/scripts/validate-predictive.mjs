@@ -132,22 +132,30 @@ else ok("yearDescription present");
 const synthesis = read("numerology/personal-year-synthesis.ts");
 if (!synthesis.includes("buildWovenSynthesis")) fail("woven synthesis builder missing");
 else ok("buildWovenSynthesis present");
-if (!synthesis.includes("Its clearest precedent is")) fail("woven synthesis lacks real-life precedent phrasing");
-else ok("woven synthesis cites real precedents");
-if (!synthesis.includes("ONE SENTENCE, TWO ALTITUDES")) fail("woven synthesis lacks the fused one-sentence thesis");
-else ok("woven synthesis carries the fused thesis");
-if (!synthesis.includes("on the surface, ${what}; underneath, the blueprint paid it out")) fail("woven synthesis does not show both essences inside each real-life precedent");
-else ok("each precedent shows both essences at work");
+// The skeleton now varies by year shape (coronation / ordeal / threshold /
+// quiet) with several openers each, so these guards check behaviour, not
+// fixed headers.
+if (!synthesis.includes("Precedents (illustrations, not predictions)")) fail("woven synthesis lacks real-life precedents framed as illustrations");
+else ok("woven synthesis cites real precedents as illustrations, not proof");
+for (const shape of ["coronation", "ordeal", "threshold", "quiet"]) {
+  if (!new RegExp(`${shape}: \\[`).test(synthesis)) fail(`year shape "${shape}" has no opener set / paragraph order`);
+}
+if (!synthesis.includes("function determineShape(")) fail("year-shape selector missing");
+else ok("narrative skeleton varies by year shape");
+if (!synthesis.includes("is the Surface Journey, what happens to you") || !synthesis.includes("is the Destiny Blueprint, what it means")) fail("woven synthesis does not present both essences");
+else ok("both essences are presented in their own words");
 if (!synthesis.includes("your exact pair")) fail("woven synthesis does not mark exact-pair precedents");
-else ok("precedents marked when they carry the user's exact pair");
-if (!synthesis.includes("How to live it")) fail("woven synthesis lacks the fused strategic instruction");
+else ok("exact-pair precedents are marked");
+if (!synthesis.includes("on the surface, ${directMove}; underneath, ${classicMove}")) fail("woven synthesis lacks the fused strategic instruction");
 else ok("the two strategic moves are woven into one instruction");
 if (!synthesis.includes("married to itself, redoubled")) fail("same-pair doubling handling missing");
 else ok("same-pair years are read as a redoubled vibration");
 if (!synthesis.includes("the essences set the stage, but conduct decides")) fail("woven synthesis lacks the honesty clause (triumph + reversal)");
 else ok("woven synthesis carries the honesty clause");
-if (!synthesis.includes("isEntity")) fail("famous-mirror entity filter missing");
-else ok("famous mirrors filter non-people entities");
+if (/MANIFESTATION PROBABILITY MAP|outcome probability sits/.test(synthesis)) fail("domain emphasis is still labelled as probability");
+else ok("domain scores are labelled as emphasis, not probability");
+if (!synthesis.includes("precedentLedger: PrecedentLedgerData")) fail("precedent ledger not exposed for UI");
+else ok("precedent ledger (outcome mix + base rate) exposed for UI");
 if (!synthesis.includes("wovenSynthesis: string")) fail("wovenSynthesis not exposed in the interface");
 else ok("wovenSynthesis exposed for UI");
 

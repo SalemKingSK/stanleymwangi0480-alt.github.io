@@ -40,8 +40,9 @@ import { cheiroPsychicNumbers } from "@/lib/numerology/cheiro-psychic-numbers";
 import {
   buildSoulVitals,
   generateSoulResonance,
-  getFamousTwins,
   getFamousSoulBank,
+  johariRelation,
+  chineseZodiacRelation,
   getFamousSoulWeather,
   getCosmicTwinsForSoul,
   classifySuzanneWhiteMentions,
@@ -121,6 +122,8 @@ const WEEKDAY_BY_NUMBER: Record<number, string[]> = {
   8: ["Saturday", "Sunday", "Monday"],
   9: ["Tuesday", "Thursday", "Friday"],
 };
+// Planet tables for the daily timing guide. Pair scoring uses the shared
+// johariRelation() from compatibility-engine.ts (same friend/neutral/growth sets).
 const JOHARI_RELATIONS: Record<
   number,
   {
@@ -195,47 +198,6 @@ const JOHARI_RELATIONS: Record<
     note: "Mars numbers bond through courage, direct action and shared struggle.",
   },
 };
-function johariRelation(
-  a: number,
-  b: number,
-): { score: number; label: string; note: string } {
-  const x = reduceSingle(a);
-  const y = reduceSingle(b);
-  const ax = JOHARI_RELATIONS[x];
-  const by = JOHARI_RELATIONS[y];
-  if (x === y)
-    return {
-      score: 86,
-      label: "same-number mirror",
-      note: `Johari lens: both carry ${ax.planet}. Similarity creates recognition and ease, but can become passive unless the pair keeps a shared aim.`,
-    };
-  const friend = ax.friends.includes(y) || by.friends.includes(x);
-  const growth = ax.growth.includes(y) || by.growth.includes(x);
-  const neutral = ax.neutrals.includes(y) || by.neutrals.includes(x);
-  if (friend)
-    return {
-      score: 82,
-      label: "friendly planets",
-      note: `Johari lens: ${ax.planet} and ${by.planet} are friendly. This brings ease, affection and low friction; the caution is relaxation without progress.`,
-    };
-  if (growth)
-    return {
-      score: 74,
-      label: "growth-producing tension",
-      note: `Johari lens: ${ax.planet} and ${by.planet} create alertness. Johari treats enemy/tension numbers as useful for growth because they keep each other active, awake and improving.`,
-    };
-  if (neutral)
-    return {
-      score: 58,
-      label: "neutral planets",
-      note: `Johari lens: ${ax.planet} and ${by.planet} neither strongly feed nor strongly provoke one another. This is workable, but it needs conscious purpose.`,
-    };
-  return {
-    score: 50,
-    label: "unclassified mixed field",
-    note: `Johari lens: this pair is mixed; judge by conduct, maturity and the rest of the chart.`,
-  };
-}
 function westernSign(day: number, month: number): string {
   const md = month * 100 + day;
   if (md >= 321 && md <= 419) return "Aries";
@@ -255,74 +217,6 @@ function combinedSign(
   s: Pick<AstroInsightInput, "day" | "month" | "year">,
 ): string {
   return `${westernSign(Number(s.day), Number(s.month))}/${zodiacAnimal(Number(s.year), Number(s.month), Number(s.day))}`;
-}
-const SECRET_FRIENDS: Record<string, string> = {
-  Rat: "Ox",
-  Ox: "Rat",
-  Tiger: "Pig",
-  Pig: "Tiger",
-  Rabbit: "Dog",
-  Dog: "Rabbit",
-  Dragon: "Rooster",
-  Rooster: "Dragon",
-  Snake: "Monkey",
-  Monkey: "Snake",
-  Horse: "Goat",
-  Goat: "Horse",
-};
-const ENEMIES: Record<string, string> = {
-  Rat: "Horse",
-  Horse: "Rat",
-  Ox: "Goat",
-  Goat: "Ox",
-  Tiger: "Monkey",
-  Monkey: "Tiger",
-  Rabbit: "Rooster",
-  Rooster: "Rabbit",
-  Dragon: "Dog",
-  Dog: "Dragon",
-  Snake: "Pig",
-  Pig: "Snake",
-};
-const TRIANGLES = [
-  new Set(["Rat", "Dragon", "Monkey"]),
-  new Set(["Ox", "Snake", "Rooster"]),
-  new Set(["Tiger", "Horse", "Dog"]),
-  new Set(["Rabbit", "Goat", "Pig"]),
-] as const;
-function chineseZodiacScore(
-  aAnimal: string,
-  bAnimal: string,
-): { score: number; label: string; note: string } {
-  if (aAnimal === bAnimal)
-    return {
-      score: 72,
-      label: "same animal",
-      note: `Chinese zodiac: both are ${aAnimal}. They understand each other's rhythm, but may double the same blind spot.`,
-    };
-  if (SECRET_FRIENDS[aAnimal] === bAnimal)
-    return {
-      score: 94,
-      label: "secret friends",
-      note: `Chinese zodiac: ${aAnimal} and ${bAnimal} are secret friends, a private support bond with unusually natural trust.`,
-    };
-  if (ENEMIES[aAnimal] === bAnimal)
-    return {
-      score: 24,
-      label: "opposition pair",
-      note: `Chinese zodiac: ${aAnimal} and ${bAnimal} are opposition signs. Attraction may exist, but life rhythm and priorities clash unless both are mature.`,
-    };
-  if (TRIANGLES.some((t) => t.has(aAnimal) && t.has(bAnimal)))
-    return {
-      score: 86,
-      label: "affinity triangle",
-      note: `Chinese zodiac: ${aAnimal} and ${bAnimal} share an affinity triangle, giving common instinct and easier collaboration.`,
-    };
-  return {
-    score: 55,
-    label: "ordinary zodiac relation",
-    note: `Chinese zodiac: no major secret-friend, triangle or opposition signature; judge by the numerology and lived behaviour.`,
-  };
 }
 function suzanneWhiteScore(
   a: StoredSoul,
@@ -358,10 +252,15 @@ function suzanneWhiteScore(
     else if (v.animal === "mixed") points += 6;
     return points;
   };
+  // Both directions count equally, so A×B and B×A always get the same score.
+  // (Previously A's paragraph counted fully and B's only half.) The 0.75
+  // factor keeps the range unchanged: when both texts agree, 0.75 × 2 = 1.5,
+  // the same total the old 1 + ½ weighting gave.
   const raw =
     50 +
-    contribute(text, bSign, bWestern, bAnimal) +
-    contribute(reverseText, aSign, aWestern, aAnimal) / 2;
+    0.75 *
+      (contribute(text, bSign, bWestern, bAnimal) +
+        contribute(reverseText, aSign, aWestern, aAnimal));
   const score = Math.max(15, Math.min(98, Math.round(raw)));
   const label =
     score >= 86
@@ -1225,7 +1124,8 @@ function buildRelationshipAnalysis(
   const cheiroDestiny = sameOrHarmonious(aDestiny, bDestiny);
   const johariPsychic = johariRelation(aPsychic, bPsychic);
   const johariDestiny = johariRelation(aDestiny, bDestiny);
-  const chinese = chineseZodiacScore(aAnimal, bAnimal);
+  // Same scale and relation table as the Soul Resonance report.
+  const chinese = chineseZodiacRelation(aAnimal, bAnimal);
   const suzanne = suzanneWhiteScore(a, b);
   if (cheiroPsychic >= 80)
     addEvidence(evidence, {
@@ -1326,22 +1226,23 @@ function buildRelationshipAnalysis(
       detail: suzanne.note,
       systems: ["Suzanne White New Astrology"],
     });
-  if (chinese.score >= 84)
+  const chineseDetail = `Chinese zodiac (${aAnimal} and ${bAnimal}): ${chinese.note}.`;
+  if (chinese.relation === "secret-friend" || chinese.relation === "trine")
     addEvidence(evidence, {
       polarity: "positive",
       domain: "trust",
       weight: 12,
       title: "Chinese zodiac support",
-      detail: chinese.note,
+      detail: chineseDetail,
       systems: ["Chinese Zodiac"],
     });
-  else if (chinese.score <= 35)
+  else if (chinese.relation === "six-clash" || chinese.relation === "six-harm")
     addEvidence(evidence, {
       polarity: "negative",
       domain: "emotional",
-      weight: 13,
-      title: "Chinese zodiac conflict rhythm",
-      detail: chinese.note,
+      weight: chinese.relation === "six-clash" ? 13 : 9,
+      title: chinese.relation === "six-clash" ? "Chinese zodiac conflict rhythm" : "Chinese zodiac hidden friction",
+      detail: chineseDetail,
       systems: ["Chinese Zodiac"],
     });
   else
@@ -1350,7 +1251,7 @@ function buildRelationshipAnalysis(
       domain: "trust",
       weight: 5,
       title: "Chinese zodiac is moderate",
-      detail: chinese.note,
+      detail: chineseDetail,
       systems: ["Chinese Zodiac"],
     });
   const aMissing = missingNumbers(a),
@@ -2064,7 +1965,6 @@ export function SoulResonancePanel({ history }: { history: StoredSoul[] }) {
   const va = buildSoulVitals(a);
   const vb = buildSoulVitals(b);
   const resonance: SoulResonanceReport = generateSoulResonance(va, vb);
-  resonance.famousTwins = getFamousTwins(va, vb);
   return (
     <Panel
       title="Soul Resonance"

@@ -4,7 +4,7 @@
     "jsx": "react-jsx", "strict": false, "skipLibCheck": true, "noEmit": true,
     "lib": ["esnext", "dom", "dom.iterable"], "resolveJsonModule": true,
     "allowImportingTsExtensions": true, "esModuleInterop": true,
-    "types": ["vite/client"], "baseUrl": ".", "paths": { "@/*": ["./src/*"] }
+    "types": ["vite/client"], "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src"]
 }

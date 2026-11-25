@@ -773,7 +773,7 @@ Johari growth-tension dates: ${todayTimingGuidance.johariGrowthDates.join(", ") 
         `Current Personal Year ${synthesis.personalYearAnalysis.rawYear === synthesis.personalYearAnalysis.year ? synthesis.personalYearAnalysis.year : `${synthesis.personalYearAnalysis.rawYear}/${synthesis.personalYearAnalysis.year}`} — ${synthesis.personalYearAnalysis.title}`,
         [
           synthesis.personalYearAnalysis.dualEssenceSynthesis
-            ? `<h3>Forensic Dual-Essence Synthesis</h3>${synthesis.personalYearAnalysis.predictionFocusAreas?.length ? `<p><strong>Probability ranking:</strong> ${esc(synthesis.personalYearAnalysis.predictionFocusAreas.join(" · "))}</p>` : ""}${p(synthesis.personalYearAnalysis.dualEssenceSynthesis)}`
+            ? `<h3>Forensic Dual-Essence Synthesis</h3>${synthesis.personalYearAnalysis.predictionFocusAreas?.length ? `<p><strong>Domain emphasis (not probability):</strong> ${esc(synthesis.personalYearAnalysis.predictionFocusAreas.join(" · "))}</p>` : ""}${p(synthesis.personalYearAnalysis.dualEssenceSynthesis)}`
             : "",
           p(synthesis.personalYearAnalysis.interpretation),
           synthesis.personalYearCustomized

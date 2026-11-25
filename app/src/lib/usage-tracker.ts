@@ -46,6 +46,9 @@
 const DEVICE_ID_KEY = 'mystique-device-id';
 const QUEUE_KEY = 'mystique-usage-queue';
 const INSTALL_RECORDED_KEY = 'mystique-install-recorded';
+// Set to "1" by the opt-out button on /privacy/ (public/privacy/privacy.js).
+// When present, nothing is queued or sent.
+export const OPT_OUT_KEY = 'mystique-analytics-optout';
 const MAX_QUEUE_SIZE = 200; // hard cap so an endless-offline device can't grow localStorage unbounded
 
 type EventType = 'pwa_install' | 'share' | 'session_start';
@@ -56,7 +59,16 @@ interface UsageEvent {
   meta?: Record<string, string | number | boolean>;
 }
 
+function isOptedOut(): boolean {
+  try {
+    return localStorage.getItem(OPT_OUT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 function getEndpoint(): string | null {
+  if (isOptedOut()) return null;
   try {
     const url = (import.meta as any)?.env?.VITE_ANALYTICS_ENDPOINT;
     // The endpoint is also inlined below so the optional-chained

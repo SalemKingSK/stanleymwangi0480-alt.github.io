@@ -15,6 +15,8 @@ import type {
   NumerologyData,
 } from "./types";
 import { ProfileForm } from "./profile-form";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { DeleteSoulDialog, RenameSoulDialog } from "./archivum-dialogs";
 import { TodayCard } from "./today-card";
 // The results screen and the calculation engines are big (megabytes of
 // interpretation text). Load them only when someone actually asks for a
@@ -212,8 +214,13 @@ export function ProfileGenerator() {
       tx.oncomplete = refreshHistory;
     } catch {}
   };
-  const deleteSoulRecord = async (record: StoredSoul) => {
-    if (!confirm(`Delete ${record.name} from the Archivum?`)) return;
+  // Delete and rename ask through accessible dialogs (archivum-dialogs.tsx)
+  // instead of the browser's blocking confirm()/prompt().
+  const [pendingDelete, setPendingDelete] = React.useState<StoredSoul | null>(null);
+  const [pendingRename, setPendingRename] = React.useState<StoredSoul | null>(null);
+  const deleteSoulRecord = (record: StoredSoul) => setPendingDelete(record);
+  const confirmDeleteSoulRecord = async (record: StoredSoul) => {
+    setPendingDelete(null);
     try {
       const db = await openDB();
       const tx = db.transaction(STORE_NAME, "readwrite");
@@ -232,10 +239,10 @@ export function ProfileGenerator() {
       tx.oncomplete = refreshHistory;
     } catch {}
   };
-  const renameSoulRecord = async (record: StoredSoul) => {
-    const next = prompt("Rename this soul:", record.name)?.trim();
-    if (!next || next === record.name) return;
-    await updateSoulRecord({ ...record, name: next });
+  const renameSoulRecord = (record: StoredSoul) => setPendingRename(record);
+  const confirmRenameSoulRecord = async (record: StoredSoul, name: string) => {
+    setPendingRename(null);
+    await updateSoulRecord({ ...record, name });
   };
   const exportArchivum = () => {
     const payload = {
@@ -398,13 +405,15 @@ export function ProfileGenerator() {
                 </div>
               }
             >
-              <ResultsDisplay
-                insight={insight}
-                numerology={numerology}
-                history={history}
-                onReset={handleReset}
-                onHistoryOpen={() => setIsHistoryOpen(true)}
-              />
+              <ErrorBoundary label="Your reading" onReset={handleReset}>
+                <ResultsDisplay
+                  insight={insight}
+                  numerology={numerology}
+                  history={history}
+                  onReset={handleReset}
+                  onHistoryOpen={() => setIsHistoryOpen(true)}
+                />
+              </ErrorBoundary>
             </React.Suspense>
           </motion.div>
         ) : (
@@ -519,6 +528,16 @@ export function ProfileGenerator() {
           </div>
         </ScrollArea>
       </SheetContent>
+      <DeleteSoulDialog
+        record={pendingDelete}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={(r) => void confirmDeleteSoulRecord(r)}
+      />
+      <RenameSoulDialog
+        record={pendingRename}
+        onCancel={() => setPendingRename(null)}
+        onConfirm={(r, name) => void confirmRenameSoulRecord(r, name)}
+      />
     </Sheet>
   );
 }

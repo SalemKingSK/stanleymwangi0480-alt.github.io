@@ -11,6 +11,7 @@ import type {
 } from "./types";
 import { AstroDisplay } from "./astro-display";
 import { NumerologyDisplay } from "./numerology-display";
+import { PrecedentLedger } from "@/components/personal-year/precedent-ledger";
 import { CosmicFateMap } from "./cosmic-fate-map";
 import {
   TemporalPredictionDisplay,
@@ -2066,6 +2067,15 @@ export function ResultsDisplay({
                       synthesis={synthesis}
                       numerology={numerology}
                     />
+                  )}
+                  {synthesis?.personalYearAnalysis?.dualEssence?.precedentLedger && (
+                    <CollapsibleSection
+                      title="Precedent Ledger"
+                      subtitle={`How this year's historical precedents actually turned out — ${synthesis.personalYearAnalysis.dualEssence.precedentLedger.pairLabel}`}
+                      icon={<History size={16} />}
+                    >
+                      <PrecedentLedger ledger={synthesis.personalYearAnalysis.dualEssence.precedentLedger} />
+                    </CollapsibleSection>
                   )}
                   <NumberMeaningsSection />
                 </>

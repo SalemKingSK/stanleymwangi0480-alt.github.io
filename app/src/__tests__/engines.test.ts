@@ -3,6 +3,9 @@ import { calculatePsyche, calculateDestiny, calculateKua, calculateKuaRaw, gener
 import { getChineseZodiacSign, getWesternZodiacSign, getWesternCusp } from '@/lib/astrology';
 import { personalNumbers } from '@/components/profile-generator/today-card';
 
+// Vitest runs under Node; declared locally so `tsc` (DOM-only types) passes.
+declare const process: { env: Record<string, string | undefined> };
+
 describe('core numbers', () => {
   it('psychic number reduces the birth day', () => {
     expect(calculatePsyche(8)).toBe(8);

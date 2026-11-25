@@ -2,27 +2,24 @@
 import React from 'react';
 import { Button } from './ui/button';
 import { Download } from 'lucide-react';
-import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { usePwaInstall } from '@/hooks/use-pwa-install';
 
 /**
  * A button component that triggers the PWA installation prompt.
  * Only renders if the app is installable and not already installed.
+ * Uses the same hook as the top install bar, which also picks up the
+ * `beforeinstallprompt` event captured in main.tsx before React mounts.
  */
 const InstallButton = ({ minimal = false }: { minimal?: boolean }) => {
-  const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
+  const { canInstall, isInstalled, install } = usePwaInstall();
 
   // Only render the button if the app is installable and not already installed
-  if (!isInstallable || isInstalled) {
+  if (!canInstall || isInstalled) {
     return null;
   }
 
-  const handleInstallClick = async () => {
-    const result = await promptInstall();
-    if (result === 'accepted') {
-      console.log('User accepted the PWA install prompt');
-    } else {
-      console.log('User dismissed the PWA install prompt');
-    }
+  const handleInstallClick = () => {
+    void install();
   };
 
   if (minimal) {

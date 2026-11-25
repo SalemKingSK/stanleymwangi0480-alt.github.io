@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Privacy — Mystique Compass</title>
+<meta name="description" content="What Mystique Compass stores on your device, what it sends, and how to opt out of anonymous usage counts." />
+<meta name="theme-color" content="#04001a" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="/privacy/privacy.css" />
+</head>
+<body>
+<main>
+  <p class="back"><a href="/">← Back to Mystique Compass</a></p>
+  <h1>Privacy</h1>
+  <p class="updated">Last updated 20 November 2026</p>
+
+  <p>Mystique Compass has no accounts and no login. Readings are calculated on your device.
+  This page lists everything the app keeps and everything it sends.</p>
+
+  <h2>Kept on your device only</h2>
+  <ul>
+    <li><strong>Your saved profiles (the Archivum)</strong>: names, birth dates and gender you enter. They're stored in your browser's IndexedDB and never uploaded. You can export, rename or delete them in the app, or clear them by clearing this site's data in your browser.</li>
+    <li><strong>Small settings</strong>, such as whether you dismissed the install banner.</li>
+    <li><strong>An offline copy of the app</strong>, kept by the service worker so it works without a connection.</li>
+  </ul>
+
+  <h2>Sent over the network</h2>
+  <ul>
+    <li><strong>Anonymous usage counts.</strong> When you open the app, install it or share it, the app sends a short event
+      (<code>session_start</code>, <code>pwa_install</code> or <code>share</code>), the time, and whether it's running as an installed app,
+      to our collector at <code>mystique-analytics.sksalemking.workers.dev</code>.
+      Each event carries a random ID created on your device the first time you open the app. The ID identifies an install, not a person.
+      The collector records the country that Cloudflare derives from the connection. The app never asks for your location.
+      <strong>No names, birth dates or readings are ever sent.</strong>
+      Events made offline wait on your device and are sent the next time you're online.</li>
+    <li><strong>Wikipedia lookups.</strong> If you use the Wikipedia search, the name you type is sent to Wikipedia
+      (<code>en.wikipedia.org</code>) to find a birth date. Wikipedia's own privacy policy applies to that request.</li>
+    <li><strong>Hosting.</strong> The site is served by Cloudflare Pages and GitHub Pages. Like any web host, they receive normal request information, such as your IP address, when you load the site.</li>
+  </ul>
+  <p>Fonts are served from this site, not from Google. There are no ads, no third-party trackers and no cookies.</p>
+
+  <h2>Opting out of usage counts</h2>
+  <p>This turns off the anonymous usage events on this browser. It also deletes the random ID and any events still waiting to be sent.</p>
+  <p class="status" id="optout-status" aria-live="polite">Usage counts are <strong>on</strong> for this browser.</p>
+  <p><button type="button" id="optout-toggle">Turn off usage counts</button></p>
+  <noscript><p>JavaScript is needed for the opt-out button.</p></noscript>
+
+  <h2>Contact</h2>
+  <p>Questions or deletion requests: open an issue at
+  <a href="https://github.com/stanleymwangi0480-alt/stanleymwangi0480-alt.github.io/issues">github.com/stanleymwangi0480-alt</a>.</p>
+</main>
+<script src="/privacy/privacy.js"></script>
+</body>
+</html>

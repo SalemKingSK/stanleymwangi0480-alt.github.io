@@ -201,7 +201,7 @@ async function fetchEntities(titles: string[]): Promise<Map<string, {
       entities: Record<string, {
         id: string; missing?: string;
         descriptions: Record<string, { value: string }>;
-        claims: Record<string, { mainsnak: { datavalue?: { value: { time?: string } } } }[]>;
+        claims: Record<string, { mainsnak: { datavalue?: { value: { time?: string; precision?: number } } } }[]>;
         sitelinks: Record<string, { title: string }>;
       }>;
     };
@@ -213,6 +213,11 @@ async function fetchEntities(titles: string[]): Promise<Map<string, {
       const dobClaims = entity.claims?.P569;
       if (!dobClaims?.length) continue;
       const timeStr = dobClaims[0]?.mainsnak?.datavalue?.value?.time ?? '';
+      // Wikidata precision 11 = exact day. Year-only (9) and month-only (10)
+      // dates are stored as YYYY-01-01 / YYYY-MM-01, which would otherwise be
+      // read as a real 1 January birthday.
+      const precision = dobClaims[0]?.mainsnak?.datavalue?.value?.precision;
+      if (typeof precision === 'number' && precision < 11) continue;
       const m = timeStr.match(/^[+-]?(\d{1,4})-(\d{2})-(\d{2})/);
       if (!m) continue;
       const year = parseInt(m[1]); const month = parseInt(m[2]); const day = parseInt(m[3]);

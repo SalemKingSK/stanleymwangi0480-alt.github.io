@@ -6,6 +6,29 @@ import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { Download, Share } from "lucide-react";
 import { shareApp } from "@/lib/usage-tracker";
+import { toast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+import { onUpdateReady } from "@/lib/sw-update";
+
+/** Shows a persistent "new version" toast when a service-worker update is waiting. */
+function useUpdatePrompt() {
+  useEffect(
+    () =>
+      onUpdateReady((apply) => {
+        toast({
+          title: "Update available",
+          description: "A new version of Mystique Compass is ready. Reload to use it.",
+          duration: Number.POSITIVE_INFINITY,
+          action: (
+            <ToastAction altText="Reload to update" onClick={apply}>
+              Reload
+            </ToastAction>
+          ),
+        });
+      }),
+    [],
+  );
+}
 function TopInstallBar({
   pwa,
   onInstallClick,
@@ -156,6 +179,7 @@ function TopInstallBar({
 }
 function App() {
   const pwa = usePwaInstall();
+  useUpdatePrompt();
   const [promptOpen, setPromptOpen] = useState(false);
   useEffect(() => {
     if (!pwa.isInstalled && !pwa.isDismissed && pwa.isIOS) {
@@ -187,6 +211,11 @@ function App() {
             <ProfileGenerator />
           </main>
         </div>
+        <footer className="px-4 pb-6 text-center text-xs" style={{ color: "rgba(210,195,250,0.55)" }}>
+          <a href="/privacy/" className="underline underline-offset-2 hover:text-white">
+            Privacy
+          </a>
+        </footer>
       </div>
       <Toaster />
       <PwaInstallPrompt

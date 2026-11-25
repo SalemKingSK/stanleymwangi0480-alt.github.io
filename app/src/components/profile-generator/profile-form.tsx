@@ -19,7 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import type { FamousPerson } from '@/lib/famous-birthdays';
 import InstallButton from '../InstallButton';
 import { useToast } from '@/hooks/use-toast';
-import { fetchBiographyResilient } from '@/lib/wikipedia-client';
+import { fetchBiographyResilient, hasCompleteBirthDate } from '@/lib/wikipedia-client';
 
 interface ProfileFormProps {
   formData: { name: string; day: number; month: number; year: number; gender: string };
@@ -121,8 +121,14 @@ export function ProfileForm({
       // falls back to fetching straight from Wikipedia in the browser. Only
       // fails outright if the device itself has no internet connection.
       const data = await fetchBiographyResilient(searchQuery);
-      if (data.found && data.birthYear && data.birthMonth && data.birthDay) {
+      if (hasCompleteBirthDate(data)) {
         handleSelectPerson({ name: data.title!, day: data.birthDay, month: data.birthMonth, year: data.birthYear, gender: data.gender || 'male', tags: ['Wikipedia', data.description].filter(Boolean) as string[] });
+      } else if (data.found && data.birthYear) {
+        // Year-only (or month-only) page: don't invent 1 January.
+        toast({
+          title: 'Date incomplete',
+          description: `Wikipedia gives only ${data.birthMonth ? 'the month and year' : 'the year'} of birth (${data.birthYear}) for ${data.title ?? searchQuery}. Enter the full date yourself for an accurate reading.`,
+        });
       } else if (data.error) {
         toast({ variant: 'destructive', title: 'Search Error', description: data.error });
       } else {

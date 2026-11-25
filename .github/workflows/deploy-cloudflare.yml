@@ -1,15 +1,23 @@
 name: Test and deploy to Cloudflare Pages
-# Runs on every push to main (i.e. when a PR is merged) and on demand.
-# Needs two repository secrets: CLOUDFLARE_API_TOKEN (Pages: Edit) and
-# CLOUDFLARE_ACCOUNT_ID. Without them the tests still run and the deploy step
-# is skipped. GitHub Pages serves the committed root build separately.
+# Runs on pull requests (checks only) and on every push to main, i.e. when a PR
+# is merged (checks + deploy). It can also be started by hand from the Actions tab.
+# The deploy needs two repository secrets: CLOUDFLARE_API_TOKEN (Pages: Edit)
+# and CLOUDFLARE_ACCOUNT_ID. Without them the checks still run and the deploy
+# step is skipped. GitHub Pages serves the committed root build separately.
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       deployments: write
@@ -26,11 +34,13 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - run: npm ci --legacy-peer-deps
-      - run: npm test
-      - run: npm run validate:accuracy
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests and validators
+        run: npm run validate
       - run: npm run build
       - name: Deploy to Cloudflare Pages
-        if: env.HAS_CF == 'true'
+        if: env.HAS_CF == 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

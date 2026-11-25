@@ -1246,7 +1246,7 @@ Johari growth-tension dates: ${timingGuidance.johariGrowthDates.join(", ") || "�
       subSection("Forensic Dual-Essence Synthesis", AMBER);
       if (synthesis.personalYearAnalysis.predictionFocusAreas?.length) {
         wrap(
-          `Probability ranking: ${synthesis.personalYearAnalysis.predictionFocusAreas.join(" · ")}`,
+          `Domain emphasis (not probability): ${synthesis.personalYearAnalysis.predictionFocusAreas.join(" · ")}`,
           margin + 2,
           contentW - 4,
           8,

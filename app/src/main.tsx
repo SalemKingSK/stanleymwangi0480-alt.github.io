@@ -1,7 +1,16 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
+// Self-hosted fonts (no request to Google Fonts; works offline once cached).
+import "@fontsource/cinzel/400.css";
+import "@fontsource/cinzel/600.css";
+import "@fontsource/cinzel/700.css";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
 import "./index.css";
 import { initUsageTracking } from "./lib/usage-tracker";
+import { registerServiceWorker } from "./lib/sw-update";
 
 // ─── Anonymous install/usage tracking (no login) ─────────────────────────────
 // Queues events locally and syncs when a connection is available — including
@@ -31,14 +40,5 @@ window.addEventListener("beforeinstallprompt", (e) => {
 
 createRoot(document.getElementById("root")!).render(<App />);
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch((err) => {
-      // Previously fully silent -- a registration failure (bad scope, MIME
-      // type issue, network hiccup) left zero trace anywhere, making a
-      // "why doesn't offline work" report impossible to diagnose. Logging
-      // it costs nothing and is the only way to ever notice next time.
-      console.error("[sw] registration failed:", err);
-    });
-  });
-}
+// Prompt-on-update registration: see src/lib/sw-update.ts.
+registerServiceWorker();

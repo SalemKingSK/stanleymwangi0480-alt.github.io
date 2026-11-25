@@ -44,7 +44,7 @@ function parseProbabilityItem(item: string): { label: string; percent: number } 
   return { label: match[1].trim(), percent: Math.max(0, Math.min(100, Number(match[2]))) };
 }
 
-function PersonalYearProbabilityGraph({ items }: { items?: string[] }) {
+function PersonalYearEmphasisGraph({ items }: { items?: string[] }) {
   const rows = (items || []).map(parseProbabilityItem).filter(Boolean) as { label: string; percent: number }[];
   if (!rows.length) return null;
   return (
@@ -68,8 +68,11 @@ function PersonalYearProbabilityGraph({ items }: { items?: string[] }) {
           marginBottom: "0.65rem",
         }}
       >
-        Personal Year Probability Graph
+        Personal Year Domain Emphasis
       </div>
+      <p style={{ margin: "-0.35rem 0 0.65rem", fontSize: "0.66rem", color: "rgba(231,221,255,0.55)", lineHeight: 1.35 }}>
+        Where this year's reading puts its weight. These are emphasis scores, not probabilities.
+      </p>
       {rows.map((row, index) => {
         const color = row.percent >= 85 ? "#f1d98a" : row.percent >= 70 ? "#86efac" : row.percent >= 50 ? "#67e8f9" : "#c4b5fd";
         return (
@@ -1106,7 +1109,7 @@ export function NumerologyDisplay({
                           </span>
                         )}
                       </div>
-                      <PersonalYearProbabilityGraph items={selectedPersonalYear.predictionFocusAreas} />
+                      <PersonalYearEmphasisGraph items={selectedPersonalYear.predictionFocusAreas} />
                       <AccordionContentWithPlayer
                         text={selectedPersonalYear.dualEssenceSynthesis}
                       />

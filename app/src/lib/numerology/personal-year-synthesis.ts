@@ -34,6 +34,43 @@ export interface PersonalYearDualEssenceSynthesis {
   domains: string[];
   polarity: 'predominantly constructive' | 'predominantly cautionary' | 'mixed ordeal-and-reward' | 'threshold / transition';
   intensityScore: number;
+  /** Overall shape of the year (polarity × dominance); drives the narrative skeleton. */
+  shape: 'coronation' | 'ordeal' | 'threshold' | 'quiet';
+  /** Structured precedents for the Precedent Ledger UI. */
+  precedentLedger: PrecedentLedgerData;
+}
+
+export type PrecedentOutcome = 'triumph' | 'legacy' | 'transition' | 'mixed' | 'loss';
+
+export interface PrecedentLedgerCase {
+  id: string;
+  person: string;
+  year: number;
+  age: number;
+  pair: string;
+  exactPair: boolean;
+  /** 0–100 similarity to this chart. */
+  similarity: number;
+  outcome: PrecedentOutcome;
+  event: string;
+  lesson: string;
+  caveat: string | null;
+  sources: string[];
+}
+
+export interface PrecedentLedgerData {
+  targetYear: number;
+  pairLabel: string;
+  libraryTotal: number;
+  libraryPeople: number;
+  /** Library cases with exactly this Direct × Classic pair. */
+  exactPairCount: number;
+  /** Outcome mix of the cases the ledger counts (exact-pair cases if any, else the closest cluster). */
+  outcomeCounts: Record<PrecedentOutcome, number>;
+  outcomeBasis: 'exact pair' | 'closest matches';
+  /** How common this pair is: birthdays in the target year that share it. */
+  baseRate: { sharers: number; birthdays: number; oneIn: number };
+  cases: PrecedentLedgerCase[];
 }
  
 interface BuildArgs {
@@ -366,7 +403,7 @@ const EXPANDED_HISTORICAL_CASES: HistoricalCase[] = [
   { id:'jobs-1997', person:'Steve Jobs', year:1997, age:42, occupation:'technology entrepreneur', wealth:'wealthy', relationshipStatus:'married', visibility:'global', eventCategory:'returned to Apple and began turnaround', direct:52, classic:16, directReduced:7, classicReduced:7, domains:d({money:.86, career:.88, leadership:.74, creativeOutput:.72, publicVisibility:.62, legacy:.75}), eventIntensity:86, outcome:'transition', narrative:'A shattered company became the vehicle of return and redesign.', falsePositives:['Expanded library seed; verify against detailed biography before treating as decisive analogue.'], decisions:['returned through NeXT acquisition', 'cut product lines'], personalityShift:'focused, ruthless, restorative', protectiveLesson:'A comeback works when simplification comes before expansion.' },
 ];
  
-const HISTORICAL_CASE_LIBRARY: HistoricalCase[] = [...HISTORICAL_CASES, ...EXPANDED_HISTORICAL_CASES, ...HISTORICAL_CASES_EXPANSION_200, ...HISTORICAL_CASES_EXPANSION_300_EXTRA, ...HISTORICAL_CASES_EXPANSION_300_MORE, ...HISTORICAL_CASES_EXPANSION_FINAL];
+export const HISTORICAL_CASE_LIBRARY: HistoricalCase[] = [...HISTORICAL_CASES, ...EXPANDED_HISTORICAL_CASES, ...HISTORICAL_CASES_EXPANSION_200, ...HISTORICAL_CASES_EXPANSION_300_EXTRA, ...HISTORICAL_CASES_EXPANSION_300_MORE, ...HISTORICAL_CASES_EXPANSION_FINAL];
  
 function intelligenceFor(compound: ChaldeanPYNCompound | null, reduced: number, raw: number): CompoundIntelligence {
   const base = REDUCED_INTELLIGENCE[reduced] || REDUCED_INTELLIGENCE[((reduced % 9) || 9)];
@@ -627,22 +664,6 @@ function famousMirrorRows(args: BuildArgs): Array<{ name: string; score: number 
   }).filter(r => r.score >= 80 && !r.isEntity).sort((a, b) => b.score - a.score || a.name.localeCompare(b.name)).slice(0, 3);
 }
 
-/** Ties a precedent's real outcome back to the essence's own stated warning or
- * promise, so the example expounds the meaning instead of merely sitting next
- * to it. This runs for every pair (not only curated ones) so the two systems —
- * essence meaning and real-life precedent — stay in the same conversation. */
-function buildEssenceBridge(directIntel: CompoundIntelligence, classicIntel: CompoundIntelligence): string {
-  const shadowIntel = [directIntel, classicIntel].find(i => i.polarity === 'cautionary' || i.polarity === 'threshold');
-  if (shadowIntel) {
-    return ` — this is the essence's own warning in motion: ${shadowIntel.likelyMistake}, which is exactly what this compound cautions against`;
-  }
-  const brightIntel = [directIntel, classicIntel].find(i => i.polarity === 'constructive');
-  if (brightIntel) {
-    return ` — this confirms the essence's own promise: ${brightIntel.strategicMove} is what the compound rewards`;
-  }
-  return '';
-}
-
 /** One short, factual description of a historical case, for inline weaving. */
 function shortEvent(c: HistoricalCase): string {
   const raw = c.eventDetails || c.narrative || c.eventCategory;
@@ -653,8 +674,58 @@ function shortEvent(c: HistoricalCase): string {
   return cut.slice(0, lastSpace > 90 ? lastSpace : 147) + '…';
 }
 
-/** The intermarriage itself: Direct × Classic read as ONE story, proven by
- * the real lives that carried the same compound pair. */
+/** First sentence of a compound text field ("" when absent). */
+function firstSentence(text: string | undefined | null): string {
+  if (!text) return '';
+  const flat = text.replace(/\s+/g, ' ').trim();
+  const m = flat.match(/^.*?[.!?](?=\s|$)/);
+  return (m ? m[0] : flat).trim();
+}
+
+/** Small deterministic hash so the same chart always gets the same wording. */
+function variantIndex(args: BuildArgs, n: number): number {
+  const key = `${args.directRaw}-${args.classicRaw}-${args.targetYear}-${args.birthDay}-${args.birthMonth}`;
+  let h = 2166136261;
+  for (let k = 0; k < key.length; k++) { h ^= key.charCodeAt(k); h = Math.imul(h, 16777619); }
+  return Math.abs(h) % n;
+}
+
+/**
+ * The overall shape of the year, from polarity × dominance.
+ * - coronation: constructive surface with one clearly dominant domain
+ * - ordeal: a cautionary surface (or both essences cautionary)
+ * - threshold: a transition essence leads
+ * - quiet: no strongly dominant domain; the year spreads its weight
+ * Dominance = how far the top domain's emphasis stands above the fourth's.
+ * Cut-offs come from the observed spread (median dominance ≈ 0.24 across
+ * 480 sampled charts): below 0.20 the year reads as "quiet" (0.12 for
+ * all-cautionary years, whose spread is naturally narrower).
+ * Mixed years go by the SURFACE essence: cautionary surface = ordeal
+ * (pressure first), constructive surface = coronation (rise first, tested later).
+ */
+export type YearShape = 'coronation' | 'ordeal' | 'threshold' | 'quiet';
+export function determineShape(
+  polarity: PersonalYearDualEssenceSynthesis['polarity'],
+  ranked: Array<{ domain: Domain; score: number }>,
+  directPolarity: Polarity,
+): YearShape {
+  const dominance = (ranked[0]?.score ?? 0) - (ranked[3]?.score ?? 0);
+  if (polarity === 'predominantly cautionary') return dominance < 0.12 ? 'quiet' : 'ordeal';
+  if (dominance < 0.2) return 'quiet';
+  if (polarity === 'threshold / transition') return 'threshold';
+  if (polarity === 'predominantly constructive') return 'coronation';
+  return directPolarity === 'constructive' ? 'coronation' : 'ordeal';
+}
+
+const SHAPE_HEADINGS: Record<YearShape, string> = {
+  coronation: 'A CORONATION YEAR',
+  ordeal: 'AN ORDEAL YEAR',
+  threshold: 'A THRESHOLD YEAR',
+  quiet: 'A QUIET-WEIGHT YEAR',
+};
+
+/** Direct × Classic read as ONE story. The skeleton changes with the year's
+ * shape, so different charts don't all get the same seven paragraphs. */
 function buildWovenSynthesis(
   args: BuildArgs,
   directIntel: CompoundIntelligence,
@@ -665,94 +736,119 @@ function buildWovenSynthesis(
   cluster: ReturnType<typeof nearestCluster>,
   protection: string,
   polarity: PersonalYearDualEssenceSynthesis['polarity'],
+  shape: YearShape,
 ): string {
   const directLabel = label(args.directRaw, args.directYear, args.directCompound);
   const classicLabel = label(args.classicRaw, args.classicYear, args.classicCompound);
   const directThesis = directIntel.thesis.replace(/\.+$/, '');
   const classicThesis = classicIntel.thesis.replace(/\.+$/, '');
   const samePair = args.directRaw === args.classicRaw;
+  const year = args.targetYear;
+  const topDomain = DOMAIN_LABELS[ranked[0].domain].toLowerCase();
+  const secondDomain = DOMAIN_LABELS[ranked[1].domain].toLowerCase();
 
-  // ── 0. THE MARRIAGE IN ONE SENTENCE ────────────────────────────────────────
-  // The fused thesis: not "two readings side by side" but one statement in
-  // which the visible happening and the hidden meaning are the same year.
-  const fused = samePair
-    ? `ONE SENTENCE, TWO ALTITUDES: In ${args.targetYear}, ${directLabel} governs BOTH levels — what happens on the surface IS the meaning, and the meaning IS the surface event. This doubling is historically the most direct reading the system can give: one vibration, two altitudes, no translation required.`
-    : `ONE SENTENCE, TWO ALTITUDES: In ${args.targetYear}, ${directThesis.toLowerCase()} — and that is not a separate story from ${classicThesis.toLowerCase()}. It is the same year: the visible happening and its hidden meaning, two altitudes of one climb.`;
+  // ── Opener: several per shape, picked deterministically per chart ────────
+  const openers: Record<YearShape, string[]> = {
+    coronation: [
+      `${year} has one clear centre of gravity: ${topDomain}. ${samePair ? `${directLabel} rules both levels of the year, so what happens and what it means are the same thing.` : `On the surface ${directThesis.toLowerCase()}; underneath, ${classicThesis.toLowerCase()}. Both point at the same crown.`}`,
+      `Read as one story, ${year} is a year of arrival in ${topDomain}. ${samePair ? `The same essence, ${directLabel}, speaks at both altitudes.` : `${directLabel} supplies the events and ${classicLabel} supplies the reason they matter.`}`,
+      `This is a year that wants to be seen. ${capitalise(topDomain)} carries the most weight, with ${secondDomain} close behind, and ${samePair ? `a doubled ${directLabel} gives the reading unusual directness.` : `${directLabel} and ${classicLabel} reinforce rather than argue.`}`,
+    ],
+    ordeal: [
+      `${year} asks for something before it gives anything. ${samePair ? `${directLabel} governs both the surface and the meaning, so the pressure and the lesson arrive together.` : `${directLabel} brings the pressure (${directThesis.toLowerCase()}); ${classicLabel} explains what the pressure is for (${classicThesis.toLowerCase()}).`}`,
+      `Start with the cost. In ${year} the main stage is ${topDomain}, and the essences agree it will be tested before it is rewarded.`,
+      `This year is shaped like an ordeal: strain in ${topDomain}, consequence in ${secondDomain}. ${samePair ? `One essence, ${directLabel}, sets both.` : `${directLabel} is the strain; ${classicLabel} is the verdict on how it was carried.`}`,
+    ],
+    threshold: [
+      `${year} is a doorway rather than a destination. Something in ${topDomain} changes form, and ${samePair ? `${directLabel} marks both the crossing and its meaning.` : `${classicLabel} decides whether the new form is stronger than the old.`}`,
+      `Think of ${year} as a handover. ${capitalise(topDomain)} is where the old arrangement ends; ${secondDomain} is where the new one has to prove itself.`,
+      `The year turns on a threshold. ${samePair ? `${directLabel} governs it from both sides.` : `On the surface ${directThesis.toLowerCase()}; underneath, ${classicThesis.toLowerCase()}.`}`,
+    ],
+    quiet: [
+      `${year} doesn't shout. Its weight is spread across ${topDomain}, ${secondDomain} and more, so the year rewards steady attention rather than one big move.`,
+      `No single domain dominates ${year}. ${samePair ? `${directLabel} governs both levels without one area taking over.` : `${directLabel} and ${classicLabel} each pull in their own direction, and neither wins outright.`}`,
+      `This is a lower-volume year: ${topDomain} leads, but only just. Small, consistent choices matter more than a dramatic turn.`,
+    ],
+  };
+  const opener = openers[shape][variantIndex(args, openers[shape].length)];
 
-  // ── 1. THE TWO PARTNERS, IN THEIR OWN WORDS ───────────────────────────────
+  // ── The two essences in their own words ───────────────────────────────────
   const partners = samePair
-    ? `${directLabel} and ${classicLabel} are one and the same essence this year — married to itself, redoubled. Its single voice speaks twice: as the event (what happens TO you: ${directThesis}) and as the meaning (what it MEANS: ${classicThesis}).`
-    : `In ${args.targetYear}, two essences are married in your chart. ${directLabel} is the Surface Journey — what happens TO you: ${directThesis}. ${classicLabel} is the Destiny Blueprint — what it MEANS: ${classicThesis}.`;
+    ? `${directLabel} is married to itself, redoubled: it is both the event (what happens to you: ${directThesis}) and the meaning (what it means: ${classicThesis}).`
+    : `${directLabel} is the Surface Journey, what happens to you: ${directThesis}. ${classicLabel} is the Destiny Blueprint, what it means: ${classicThesis}.`;
 
-  // ── 2. WHERE THEY AGREE: THE UNION ────────────────────────────────────────
-  const unionDomains = reinforcements.length
-    ? reinforcements.slice(0, 3).join(', ')
-    : ranked.slice(0, 2).map(r => DOMAIN_LABELS[r.domain]).join(' and ');
+  // ── Texture from the compound texts themselves ───────────────────────────
+  const symbol = firstSentence(args.directCompound?.symbolism);
+  const manifest = firstSentence(args.directCompound?.manifestationPatterns);
+  const karmicSource = args.classicCompound?.karmicDynamics || args.directCompound?.karmicDynamics;
+  const karmic = firstSentence(karmicSource);
+  const textureBits: string[] = [];
+  if (symbol) textureBits.push(`Its traditional symbol: ${symbol}`);
+  if (shape === 'ordeal' || shape === 'threshold') {
+    if (karmic) textureBits.push(`Underneath: ${karmic}`);
+  } else if (manifest) {
+    textureBits.push(`How it tends to show up: ${manifest}`);
+  }
+  const texture = textureBits.join(' ');
+
+  // ── Agreement and tension ─────────────────────────────────────────────────
   const union = reinforcements.length
-    ? `Where the two agree — ${unionDomains} — the marriage is consummated: these are not possible themes but the year's likely stage, the ground where the surface event and the hidden meaning become the same thing.`
-    : `They do not loudly agree on any single stage; their union is adaptive — the surface journey decides what triggers the year, and the blueprint decides how it is judged.`;
-
-  // ── 3. WHERE THEY DIFFER: THE TENSION (honored, not averaged) ─────────────
+    ? `Where the two agree, ${reinforcements.slice(0, 3).join(', ')}, is the year's likely stage: the place where the event and its meaning coincide.`
+    : `The two essences don't agree on a single stage. The surface journey decides what sets the year off; the blueprint decides how it is judged.`;
   const tension = conflicts.length
-    ? `Where they differ — ${conflicts[0]} — do not average them. The tension is the year's honesty: what others name from the outside may not be what you experience from the inside. Both are true at their own altitude.`
-    : `They carry no major tension this year — the two essences point the same direction, which historically makes the reading unusually direct.`;
+    ? `Where they differ (${conflicts[0]}), don't average them. What others see from outside may not be what you live from inside, and both can be true.`
+    : '';
 
-  // ── 4. THE PROOF: real lives, with BOTH essences visible in each ──────────
-  // Each precedent shows its own compound pair and marks the surface journey
-  // (the direct essence at work) and the destiny blueprint (the classic
-  // essence at work) inside the SAME real year — the intermarriage
-  // demonstrated, not merely asserted.
+  // ── Precedents: illustrations, not proof ──────────────────────────────────
   const precedents: string[] = [];
-  const strong = cluster.filter(c => c.similarity >= 0.8).slice(0, 3);
-  const ordinal = ['Its clearest precedent is', 'A second precedent:', 'A third:'];
-  strong.forEach((c, i) => {
+  const strong = cluster.filter(c => c.similarity >= 0.8).slice(0, shape === 'quiet' ? 1 : 3);
+  strong.forEach((c) => {
     const what = shortEvent(c);
-    const outcomeWord = c.outcome === 'triumph' ? 'a triumph' : c.outcome === 'loss' ? 'a reversal' : c.outcome === 'legacy' ? 'a legacy' : 'a turning point';
+    const outcomeWord = c.outcome === 'triumph' ? 'a triumph' : c.outcome === 'loss' ? 'a reversal' : c.outcome === 'legacy' ? 'a legacy' : c.outcome === 'mixed' ? 'a mixed result' : 'a turning point';
     const lesson = c.protectiveLesson.replace(/\.+$/, '');
     const casePair = `${c.direct}/${c.directReduced} × ${c.classic}/${c.classicReduced}`;
-    const pairTag = (c.direct === args.directRaw && c.classic === args.classicRaw) ? ' — your exact pair' : '';
-    const essenceBridge = buildEssenceBridge(directIntel, classicIntel);
-    precedents.push(`${ordinal[i]} ${c.person}'s ${c.year} (${casePair}${pairTag}): on the surface, ${what}; underneath, the blueprint paid it out as ${outcomeWord} — ${lesson}${essenceBridge}`);
+    const pairTag = (c.direct === args.directRaw && c.classic === args.classicRaw) ? ', your exact pair' : '';
+    precedents.push(`${c.person} in ${c.year} (${casePair}${pairTag}): ${what}. It ended as ${outcomeWord}; the lesson was that ${lesson.charAt(0).toLowerCase()}${lesson.slice(1)}`);
   });
   const strongOutcomes = new Set(strong.map(c => c.outcome));
-  const hasPositive = (['triumph', 'legacy'] as const).some(o => strongOutcomes.has(o));
-  const hasNegative = (['loss', 'mixed'] as const).some(o => strongOutcomes.has(o));
-  const bothSides = hasPositive && hasNegative
-    ? ` Note the honesty of the record: the same pair has produced both a triumph and a reversal in real lives — the essences set the stage, but conduct decides which ending you get.`
-    : '';
+  const mixedRecord = (['triumph', 'legacy'] as const).some(o => strongOutcomes.has(o)) && (['loss', 'mixed'] as const).some(o => strongOutcomes.has(o));
   const mirrors = famousMirrorRows(args);
-  let proof = '';
+  let proof: string;
   if (precedents.length) {
-    proof = `The proof is in real lives. ${precedents.join('. ')}.${bothSides}`;
-    if (mirrors.length) {
-      proof += ` In the famous-birthday bank, ${mirrors.map(m => `${m.name} (${m.score}% mirror)`).join(', ')} carry the same pair in ${args.targetYear} — the same two essences, walking with you.`;
-    }
+    proof = `Precedents (illustrations, not predictions): ${precedents.join('. ')}.${mixedRecord ? ' The same kind of year has ended both well and badly in real lives: the essences set the stage, but conduct decides.' : ''}`;
+    if (mirrors.length) proof += ` Famous people carrying the same pair in ${year}: ${mirrors.map(m => `${m.name} (${m.score}% match)`).join(', ')}.`;
   } else if (mirrors.length) {
-    proof = `No curated historical case crossed the 80% threshold for this pair, but the famous-birthday bank shows ${mirrors.map(m => `${m.name} (${m.score}% mirror)`).join(', ')} carrying the same two essences in ${args.targetYear}.`;
+    proof = `No curated case is close enough to cite, but ${mirrors.map(m => `${m.name} (${m.score}% match)`).join(', ')} carry the same pair in ${year}.`;
   } else {
-    proof = `No historical case or famous birthday in the current bank crosses the display threshold for this exact pair — the engine keeps using the nearest cases internally for weighting, but refuses to present weak examples as evidence.`;
+    proof = `No historical case or famous birthday is close enough to this pair to cite. The engine still uses the nearest cases for weighting, but won't present weak matches as evidence.`;
   }
 
-  // ── 5. HOW TO LIVE THE MARRIAGE ───────────────────────────────────────────
-  // The two essences each carry a strategic move; woven together they become
-  // one instruction — the surface move executed with the blueprint's motive.
+  // ── What to do ────────────────────────────────────────────────────────────
   const directMove = directIntel.strategicMove.replace(/\.+$/, '');
   const classicMove = classicIntel.strategicMove.replace(/\.+$/, '');
   const howToLive = samePair
-    ? `How to live it: the one instruction of the year is ${directMove}.`
-    : `How to live it: on the surface, ${directMove}; underneath, ${classicMove}. Do the first with the second as your motive — that is the marriage, practiced.`;
+    ? `What to do: ${directMove}.`
+    : `What to do: on the surface, ${directMove}; underneath, ${classicMove}.`;
 
-  // ── 6. THE VERDICT ────────────────────────────────────────────────────────
-  const verdictByPolarity: Record<string, string> = {
-    'predominantly constructive': 'Read as one story, the year is constructive: the danger is not absence of luck but scattered attention diluting the main opportunity.',
-    'predominantly cautionary': 'Read as one story, the year is cautionary: smaller, safer wins beat dramatic moves with hidden downside. Preservation and correction are the year\'s real work.',
-    'mixed ordeal-and-reward': 'Read as one story, the year pays through contrast: pressure first, reward later; exposure first, clarity later. The difficult part is the price of accuracy, not proof the year is failing.',
-    'threshold / transition': 'Read as one story, the year is a threshold: something changes form, status, duty, or definition — and the year succeeds only if the new structure is stronger than the one it replaces.',
+  const verdictByShape: Record<YearShape, string> = {
+    coronation: `The risk in a year like this isn't bad luck; it's scattering a good opening. Guard it: ${protection}`,
+    ordeal: `Smaller, safer wins beat dramatic moves with hidden downside. Protect the weak seam first: ${protection}`,
+    threshold: `The year succeeds if what you build is stronger than what it replaces. Before you cross: ${protection}`,
+    quiet: `Keep the basics tidy and the year will hold. One concrete safeguard: ${protection}`,
   };
-  const verdict = `${verdictByPolarity[polarity] || verdictByPolarity['threshold / transition']} Guard the marriage at its weakest seam: ${protection}`;
+  const verdict = verdictByShape[shape];
 
-  return `THE SYNTHESIS — HOW YOUR TWO ESSENCES MARRY INTO ONE YEAR\n\n${fused}\n\n${partners}\n\n${union}\n\n${tension}\n\n${proof}\n\n${howToLive}\n\n${verdict}`;
+  const order: Record<YearShape, string[]> = {
+    coronation: [opener, partners, union, texture, proof, tension, howToLive, verdict],
+    ordeal: [opener, tension, partners, texture, proof, union, howToLive, verdict],
+    threshold: [opener, partners, texture, tension, union, proof, howToLive, verdict],
+    quiet: [opener, partners, union, howToLive, texture, proof, tension, verdict],
+  };
+  void polarity;
+  return [`THE SHAPE OF ${year}: ${SHAPE_HEADINGS[shape]}`, ...order[shape]].filter(Boolean).join('\n\n');
 }
+
+function capitalise(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
 
 function famousBirthdayPersonalYearMirrors(args: BuildArgs): string {
   const direct = args.directRaw;
@@ -837,7 +933,7 @@ function buildOutcomePrediction(archetype: PairArchetype | null, ranked: Array<{
   if (archetype?.outcomePrediction) return archetype.outcomePrediction;
   const top = ranked[0];
   const second = ranked[1];
-  const base = `The strongest outcome probability sits in ${DOMAIN_LABELS[top.domain].toLowerCase()} at ${pct(top.score)}%, followed by ${DOMAIN_LABELS[second.domain].toLowerCase()} at ${pct(second.score)}%.`;
+  const base = `The strongest domain emphasis falls on ${DOMAIN_LABELS[top.domain].toLowerCase()} (${pct(top.score)}%), followed by ${DOMAIN_LABELS[second.domain].toLowerCase()} (${pct(second.score)}%).`;
   if (polarity === 'mixed ordeal-and-reward') return `${base} The year is likely to pay through contrast: pressure first, reward later; exposure first, clarity later; conflict first, authority later. The outcome improves when you treat the difficult part as the price of accuracy rather than as proof that the year is failing.`;
   if (polarity === 'predominantly cautionary') return `${base} The outcome is less about expansion than preservation, correction, and avoiding the mistake that historical analogues show can become expensive. A smaller, safer win is preferable to a dramatic move with hidden downside.`;
   if (polarity === 'predominantly constructive') return `${base} The outcome is likely to be constructive if you do not dilute the main opportunity. The risk is not absence of luck; it is wasting favourable timing through scattered attention or weak structure.`;
@@ -892,7 +988,7 @@ function buildComplementaryBridgeText(args: BuildArgs, directIntel: CompoundInte
     ? `The complementary tension between the two lenses runs through ${conflicts.join('; ')}. This is not a contradiction to resolve; it is the shape of the year's honesty — the Surface Journey and the Destiny Blueprint are describing two different altitudes of the same climb.`
     : 'The two lenses are not in tension this year; they describe the same climb from the same altitude, which usually means the reading is unusually direct.';
   const reinforceLine = reinforcements.length
-    ? `Where they agree — ${reinforcements.join(', ')} — probability shifts from “possible theme” to “likely stage.” Concentrate your attention and strategy here; this is where both maps point to the same terrain.`
+    ? `Where they agree — ${reinforcements.join(', ')} — emphasis shifts from “possible theme” to “likely stage.” Concentrate your attention and strategy here; this is where both maps point to the same terrain.`
     : 'The two lenses do not converge on one dominant domain, so read the Surface Journey for what triggers the year and the Destiny Blueprint for how it will ultimately be judged.';
  
   return `THE COMPLEMENTARY BRIDGE: HOW YOUR SURFACE JOURNEY AND DESTINY BLUEPRINT WORK TOGETHER
@@ -917,7 +1013,7 @@ function fullSynthesisText(args: BuildArgs, title: string, subtitle: string, dia
     ? `The complementary tension is not a problem to average out; it is the mechanism of the year. ${conflicts.map(c => `The pattern shows ${c}`).join('; ')}. In practice, this means the Surface Journey and the Destiny Blueprint may not match on the surface. Others may call it expansion while you experience subtraction, or they may see victory while you are busy managing risk — both readings are true at their own altitude.`
     : 'There is no major complementary tension requiring a forced compromise. The two essences mostly point in the same direction, so the correct reading is amplification rather than balance.';
   const reinforcementParagraph = reinforcements.length
-    ? `The reinforced domains are ${reinforcements.join(', ')}. Reinforcement matters because it changes probability: these areas move from “possible theme” to “likely stage.” Do not scatter attention evenly across the whole life; concentrate strategy where the Surface Journey and the Destiny Blueprint repeat each other.`
+    ? `The reinforced domains are ${reinforcements.join(', ')}. Reinforcement matters because it concentrates emphasis: these areas move from “possible theme” to “likely stage.” Do not scatter attention evenly across the whole life; concentrate strategy where the Surface Journey and the Destiny Blueprint repeat each other.`
     : 'The pair does not heavily reinforce one single domain, so the year is more adaptive. The practical task is to notice which domain activates first on the Surface Journey and then interpret the Destiny Blueprint through that opening.';
  
   const bridgeText = buildComplementaryBridgeText(args, directIntel, classicIntel, diagnosis, reinforcements, conflicts);
@@ -927,7 +1023,7 @@ function fullSynthesisText(args: BuildArgs, title: string, subtitle: string, dia
     `\n1. THE COMPLEMENTARY BRIDGE\n${bridgeText}`,
     `\n2. HISTORICAL PATTERN DETECTION\n${clusterText}`,
     `\n3. DOMINANT ESSENCE AND COMPLEMENTARY TENSION\n${conflictParagraph}\n\n${reinforcementParagraph}`,
-    `\n4. MANIFESTATION PROBABILITY MAP\n${formatDomainRanking(ranked)}\n\nThese percentages are not random decoration. They come from the closest historical cluster, corrected by the Surface Journey / Destiny Blueprint pair and boosted where both essences reinforce the same domain. A low percentage does not mean “nothing can happen” there; it means the year is less likely to choose that domain as its main stage.`,
+    `\n4. DOMAIN EMPHASIS MAP\n${formatDomainRanking(ranked)}\n\nThese are emphasis scores, not probabilities. They rank where this pair's symbolism and its closest historical cases concentrate, boosted where both essences reinforce the same domain. A low score doesn't mean “nothing can happen” there; it means the reading gives that domain less weight. See the Precedent Ledger for how common this pair is and how its precedents actually turned out.`,
     `\n5. BEHAVIOUR AND DECISION FORECAST\nPersonality shift: ${personality}\n\nLikely decisions:\n${decisions.map(x => `• ${x}`).join('\n')}`,
     `\n6. OUTCOME FORECAST\n${outcome}`,
     `\n7. PROTECTIVE STRATEGY\n${protection}\n\nThis is intentionally specific. Generic advice such as “work hard” is too weak for this engine. The protective move must match the highest-probability manifestation field, because historical analogues show that the same essence pair can become triumph or loss depending on where the person failed to protect the obvious weak point.`,
@@ -936,6 +1032,66 @@ function fullSynthesisText(args: BuildArgs, title: string, subtitle: string, dia
   ].join('\n');
 }
  
+function daysInMonthLocal(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+/** Structured precedents plus the base rate that keeps them in proportion. */
+function buildPrecedentLedger(
+  args: BuildArgs,
+  cluster: ReturnType<typeof nearestCluster>,
+  directIntel: CompoundIntelligence,
+  classicIntel: CompoundIntelligence,
+): PrecedentLedgerData {
+  // The ledger lists exactly the cases it counts: every library case with
+  // this exact pair when there are any, otherwise the six closest matches.
+  const exact = HISTORICAL_CASE_LIBRARY
+    .filter(c => c.direct === args.directRaw && c.classic === args.classicRaw)
+    .map(c => ({ ...c, similarity: pairSimilarity(args, c, directIntel, classicIntel) }))
+    .sort((a, b) => b.similarity - a.similarity);
+  const counted = exact.length ? exact : cluster.slice(0, 6);
+  const outcomeCounts: Record<PrecedentOutcome, number> = { triumph: 0, legacy: 0, transition: 0, mixed: 0, loss: 0 };
+  for (const c of counted) outcomeCounts[c.outcome] += 1;
+
+  let birthdays = 0;
+  let sharers = 0;
+  for (let m = 1; m <= 12; m++) {
+    for (let d = 1; d <= daysInMonthLocal(args.targetYear, m); d++) {
+      birthdays += 1;
+      if (rawDirectLocal(d, m, args.targetYear) === args.directRaw && rawClassicLocal(d, m, args.targetYear) === args.classicRaw) sharers += 1;
+    }
+  }
+  sharers = Math.max(1, sharers);
+
+  const caseFrom = (c: HistoricalCase, similarity: number): PrecedentLedgerCase => ({
+    id: c.id,
+    person: c.person,
+    year: c.year,
+    age: c.age,
+    pair: `${c.direct}/${c.directReduced} × ${c.classic}/${c.classicReduced}`,
+    exactPair: c.direct === args.directRaw && c.classic === args.classicRaw,
+    similarity: pct(similarity),
+    outcome: c.outcome,
+    event: shortEvent(c),
+    lesson: c.protectiveLesson,
+    caveat: c.falsePositives?.[0] ?? null,
+    sources: c.sources ?? [],
+  });
+  const cases = counted.map(c => caseFrom(c, c.similarity));
+
+  return {
+    targetYear: args.targetYear,
+    pairLabel: `${args.directRaw}/${args.directYear} × ${args.classicRaw}/${args.classicYear}`,
+    libraryTotal: HISTORICAL_CASE_LIBRARY.length,
+    libraryPeople: new Set(HISTORICAL_CASE_LIBRARY.map(c => c.person)).size,
+    exactPairCount: exact.length,
+    outcomeCounts,
+    outcomeBasis: exact.length ? 'exact pair' : 'closest matches',
+    baseRate: { sharers, birthdays, oneIn: Math.max(1, Math.round(birthdays / sharers)) },
+    cases,
+  };
+}
+
 export function buildPersonalYearDualEssenceSynthesis(args: BuildArgs): PersonalYearDualEssenceSynthesis {
   const directIntel = intelligenceFor(args.directCompound, args.directYear, args.directRaw);
   const classicIntel = intelligenceFor(args.classicCompound, args.classicYear, args.classicRaw);
@@ -961,7 +1117,8 @@ export function buildPersonalYearDualEssenceSynthesis(args: BuildArgs): Personal
   const protection = buildProtectiveStrategy(archetype, ranked);
   const ageText = [ageInfo.text, ...resonance].join('\n\n');
   const intensity = intensityScore(args, ageInfo.multiplier, domainScores, cluster, directIntel, classicIntel);
-  const woven = buildWovenSynthesis(args, directIntel, classicIntel, ranked, conflicts, reinforcements, cluster, protection, polarity);
+  const shape = determineShape(polarity, ranked, directIntel.polarity);
+  const woven = buildWovenSynthesis(args, directIntel, classicIntel, ranked, conflicts, reinforcements, cluster, protection, polarity, shape);
   const synthesisText = fullSynthesisText(args, title, subtitle, diagnosis, ranked, clusterText, conflicts, reinforcements, decisions, personality, outcome, protection, ageText, master, karmic, intensity, directIntel, classicIntel, woven);
   const directTopDomains = Object.entries(directIntel.domains).sort((a,b)=>(b[1]??0)-(a[1]??0)).slice(0,4).map(([k]) => DOMAIN_LABELS[k as Domain]);
   const classicTopDomains = Object.entries(classicIntel.domains).sort((a,b)=>(b[1]??0)-(a[1]??0)).slice(0,4).map(([k]) => DOMAIN_LABELS[k as Domain]);
@@ -984,5 +1141,7 @@ export function buildPersonalYearDualEssenceSynthesis(args: BuildArgs): Personal
     domains: ranked.slice(0, 8).map(r => DOMAIN_LABELS[r.domain]),
     polarity,
     intensityScore: intensity,
+    shape,
+    precedentLedger: buildPrecedentLedger(args, cluster, directIntel, classicIntel),
   };
 }

@@ -28,11 +28,46 @@ export interface BiographyResult {
   title?: string;
   description?: string;
   birthYear?: number;
-  birthMonth?: number;
-  birthDay?: number;
+  /** null when Wikipedia gives only the year. Never defaulted to January. */
+  birthMonth?: number | null;
+  /** null when Wikipedia gives only the year or month. Never defaulted to the 1st. */
+  birthDay?: number | null;
   gender?: 'male' | 'female';
   wikipediaUrl?: string;
   error?: string;
+}
+
+/** Days in a Gregorian month (month 1–12). */
+function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+/**
+ * Keeps only plausible values: year 1..current year, month 1..12, day within
+ * that month. Anything out of range becomes null rather than being guessed.
+ */
+export function sanitizeBirthDate(
+  year: number | null | undefined,
+  month: number | null | undefined,
+  day: number | null | undefined,
+): { year: number | null; month: number | null; day: number | null } {
+  const thisYear = new Date().getUTCFullYear();
+  const y = Number.isInteger(year) && (year as number) >= 1 && (year as number) <= thisYear ? (year as number) : null;
+  const m = y !== null && Number.isInteger(month) && (month as number) >= 1 && (month as number) <= 12 ? (month as number) : null;
+  const d =
+    y !== null && m !== null && Number.isInteger(day) && (day as number) >= 1 && (day as number) <= daysInMonth(y, m)
+      ? (day as number)
+      : null;
+  return { year: y, month: m, day: d };
+}
+
+/** True only when the result has a real, in-range year, month AND day. */
+export function hasCompleteBirthDate(
+  r: BiographyResult,
+): r is BiographyResult & { found: true; birthYear: number; birthMonth: number; birthDay: number } {
+  if (!r.found) return false;
+  const { year, month, day } = sanitizeBirthDate(r.birthYear, r.birthMonth, r.birthDay);
+  return year !== null && month !== null && day !== null;
 }
 
 const WIKI_API = 'https://en.wikipedia.org/w/api.php';
@@ -145,7 +180,8 @@ export async function fetchWikipediaBiographyDirect(
     const title = page.title as string;
     const content = (page?.revisions?.[0]?.slots?.main?.['*'] as string) ?? '';
 
-    const { year: birthYear, month: birthMonth, day: birthDay } = parseBirthDate(content);
+    const parsed = parseBirthDate(content);
+    const { year: birthYear, month: birthMonth, day: birthDay } = sanitizeBirthDate(parsed.year, parsed.month, parsed.day);
 
     const genderFemale = /\b(she|her|hers|actress|queen|empress|princess|duchess|lady|mrs\.)\b/i.test(content);
     const gender: 'male' | 'female' = genderFemale ? 'female' : 'male';
@@ -162,8 +198,10 @@ export async function fetchWikipediaBiographyDirect(
       title,
       description,
       birthYear,
-      birthMonth: birthMonth ?? 1,
-      birthDay: birthDay ?? 1,
+      // Year-only pages return null month/day; the form asks the user to
+      // fill them in instead of silently using 1 January.
+      birthMonth,
+      birthDay,
       gender,
       wikipediaUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`,
     };

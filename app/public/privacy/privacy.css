@@ -1,0 +1,31 @@
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: radial-gradient(ellipse at top, #160840 0%, #04001a 65%);
+  color: rgba(231, 221, 255, 0.92);
+  line-height: 1.6;
+  min-height: 100vh;
+  padding: 1.5rem 1rem 4rem;
+}
+main { max-width: 680px; margin: 0 auto; }
+h1, h2 { color: #d4af37; font-family: Georgia, "Times New Roman", serif; letter-spacing: 0.03em; }
+h1 { font-size: 1.9rem; margin: 0.5rem 0 0; }
+h2 { font-size: 1.15rem; margin-top: 2rem; }
+.updated { color: rgba(231, 221, 255, 0.55); font-size: 0.85rem; margin-top: 0.25rem; }
+a { color: #c4b5fd; }
+code { background: rgba(255, 255, 255, 0.07); padding: 0.05rem 0.3rem; border-radius: 4px; font-size: 0.9em; word-break: break-all; }
+li { margin-bottom: 0.75rem; }
+.back { margin: 0; font-size: 0.9rem; }
+button {
+  font: inherit;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  background: rgba(212, 175, 55, 0.12);
+  color: #f1d98a;
+  cursor: pointer;
+}
+button:hover { background: rgba(212, 175, 55, 0.22); }
+.status { margin-bottom: 0.5rem; }

@@ -192,6 +192,10 @@ export interface PYReading {
   isKarmicDebt: boolean;
   isMasterNumber: boolean;
   thesis: string;
+  /** Traditional image for the compound (null for plain single digits). */
+  symbolism: string | null;
+  /** One-line karmic note, only for karmic-debt compounds. */
+  karmicNote: string | null;
 }
 
 export interface SoulWeatherReport {
@@ -253,23 +257,37 @@ const JOHARI: Record<
 };
  
 // Full 12x12 relation matrix: same-animal, secret friend (六合), trine (三合),
-// six clash (六冲) and six harm (相害), plus a neutral fallback.
-const ZODIAC_RELATIONS: Record<
-  string,
-  Record<string, { relation: string; score: number; note: string }>
-> = {
-  Rat: { Rat: { relation: "same", score: 72, note: "Understand each other's rhythm, but may double weaknesses" }, Ox: { relation: "secret-friend", score: 92, note: "Secret friends (六合) — natural allies, complementary strengths" }, Tiger: { relation: "neutral", score: 65, note: "Different paces; Tiger acts, Rat plans" }, Rabbit: { relation: "neutral", score: 60, note: "Rabbit's caution meets Rat's opportunism" }, Dragon: { relation: "trine", score: 88, note: "Trine allies (三合) — Rat's cunning + Dragon's vision" }, Snake: { relation: "neutral", score: 58, note: "Snake's secrecy unsettles Rat's networking" }, Horse: { relation: "six-clash", score: 35, note: "Six Clash (六冲) — direct opposition. Rat builds, Horse gallops away" }, Goat: { relation: "neutral", score: 55, note: "Goat's dreaminess frustrates Rat's pragmatism" }, Monkey: { relation: "trine", score: 88, note: "Trine allies (三合) — two tricksters, strong team" }, Rooster: { relation: "neutral", score: 62, note: "Rooster's precision irritates Rat's flexibility" }, Dog: { relation: "neutral", score: 60, note: "Dog's loyalty grounds Rat, but Rat feels judged" }, Pig: { relation: "secret-friend", score: 92, note: "Secret friends (六合) — Pig's generosity feeds Rat's schemes" } },
-  Ox: { Rat: { relation: "secret-friend", score: 92, note: "Secret friends (六合) — Rat's agility + Ox's stamina" }, Ox: { relation: "same", score: 72, note: "Double stubbornness; shared values but slow progress" }, Tiger: { relation: "neutral", score: 55, note: "Tiger challenges Ox's routine" }, Rabbit: { relation: "neutral", score: 58, note: "Rabbit's diplomacy softens Ox, but Ox seems dull" }, Dragon: { relation: "neutral", score: 50, note: "Dragon's flash unsettles Ox's earthiness" }, Snake: { relation: "trine", score: 88, note: "Trine allies (三合) — Snake's wisdom + Ox's labor" }, Horse: { relation: "neutral", score: 52, note: "Horse's freedom threatens Ox's security needs" }, Goat: { relation: "six-clash", score: 35, note: "Six Clash (六冲) — Ox builds walls, Goat wanders" }, Monkey: { relation: "neutral", score: 60, note: "Monkey's tricks exhaust Ox's patience" }, Rooster: { relation: "trine", score: 88, note: "Trine allies (三合) — Rooster's show + Ox's substance" }, Dog: { relation: "neutral", score: 65, note: "Dog's vigilance + Ox's steadiness" }, Pig: { relation: "neutral", score: 70, note: "Pig's ease softens Ox; comfortable but unexciting" } },
-  Tiger: { Rat: { relation: "neutral", score: 65, note: "Rat strategizes, Tiger executes" }, Ox: { relation: "neutral", score: 55, note: "Ox's slowness frustrates Tiger's urgency" }, Tiger: { relation: "same", score: 72, note: "Two tigers share courage but compete for dominance" }, Rabbit: { relation: "neutral", score: 62, note: "Tiger protects Rabbit, but Rabbit fears Tiger's temper" }, Dragon: { relation: "neutral", score: 68, note: "Dragon's ambition matches Tiger's, but both want to lead" }, Snake: { relation: "six-harm", score: 40, note: "Six Harms (相害) — mutual suspicion" }, Horse: { relation: "trine", score: 88, note: "Trine allies (三合) — speed + courage" }, Goat: { relation: "neutral", score: 58, note: "Goat's gentleness confuses Tiger's directness" }, Monkey: { relation: "six-clash", score: 35, note: "Six Clash (六冲) — Monkey outsmarts Tiger; Tiger feels mocked" }, Rooster: { relation: "neutral", score: 55, note: "Rooster's criticism wounds Tiger's pride" }, Dog: { relation: "trine", score: 88, note: "Trine allies (三合) — Dog's loyalty + Tiger's bravery" }, Pig: { relation: "secret-friend", score: 92, note: "Secret friends (六合) — Pig's warmth tames Tiger's fierceness" } },
-  Rabbit: { Rat: { relation: "neutral", score: 60, note: "Rat's hustle overwhelms Rabbit's need for peace" }, Ox: { relation: "neutral", score: 58, note: "Ox's heaviness crushes Rabbit's delicacy" }, Tiger: { relation: "neutral", score: 62, note: "Tiger's protectiveness comforts Rabbit, but power imbalance" }, Rabbit: { relation: "same", score: 72, note: "Gentle harmony, but both avoid necessary conflict" }, Dragon: { relation: "six-harm", score: 40, note: "Six Harms (相害) — Dragon's dominance silences Rabbit" }, Snake: { relation: "neutral", score: 55, note: "Snake's intensity frightens Rabbit's softness" }, Horse: { relation: "neutral", score: 58, note: "Horse's restlessness unsettles Rabbit's nest" }, Goat: { relation: "trine", score: 88, note: "Trine allies (三合) — artistic, gentle harmony" }, Monkey: { relation: "neutral", score: 52, note: "Monkey's chaos disrupts Rabbit's order" }, Rooster: { relation: "six-clash", score: 35, note: "Six Clash (六冲) — Rooster's sharpness pierces Rabbit's vulnerability" }, Dog: { relation: "secret-friend", score: 92, note: "Secret friends (六合) — Dog's devotion shelters Rabbit" }, Pig: { relation: "trine", score: 88, note: "Trine allies (三合) — domestic bliss, shared comfort" } },
-  Dragon: { Rat: { relation: "trine", score: 88, note: "Trine allies (三合) — visionary + tactical" }, Ox: { relation: "neutral", score: 50, note: "Ox's skepticism dampens Dragon's dreams" }, Tiger: { relation: "neutral", score: 68, note: "Two alphas; respect if territory is divided" }, Rabbit: { relation: "six-harm", score: 40, note: "Six Harms (相害) — Dragon's fire scorches Rabbit's garden" }, Dragon: { relation: "same", score: 72, note: "Double majesty; magnificent but combustible" }, Snake: { relation: "neutral", score: 65, note: "Snake's subtlety complements Dragon's grandeur" }, Horse: { relation: "neutral", score: 62, note: "Horse's independence challenges Dragon's command" }, Goat: { relation: "neutral", score: 55, note: "Goat's passivity disappoints Dragon's ambition" }, Monkey: { relation: "trine", score: 88, note: "Trine allies (三合) — Monkey executes Dragon's visions" }, Rooster: { relation: "secret-friend", score: 92, note: "Secret friends (六合) — Rooster's precision polishes Dragon's gold" }, Dog: { relation: "six-clash", score: 35, note: "Six Clash (六冲) — Dog's honesty exposes Dragon's illusions" }, Pig: { relation: "neutral", score: 60, note: "Pig's contentment baffles Dragon's striving" } },
-  Snake: { Rat: { relation: "neutral", score: 58, note: "Rat's chatter disturbs Snake's meditation" }, Ox: { relation: "trine", score: 88, note: "Trine allies (三合) — Ox's patience + Snake's cunning" }, Tiger: { relation: "six-harm", score: 40, note: "Six Harms (相害) — Tiger's openness exposes Snake's plots" }, Rabbit: { relation: "neutral", score: 55, note: "Rabbit's innocence bores Snake's sophistication" }, Dragon: { relation: "neutral", score: 65, note: "Dragon's showmanship embarrasses Snake's subtlety" }, Snake: { relation: "same", score: 72, note: "Deep mutual understanding, but trust is slow" }, Horse: { relation: "neutral", score: 58, note: "Horse's gallop leaves Snake's coils behind" }, Goat: { relation: "neutral", score: 62, note: "Goat's art + Snake's depth = cultural power" }, Monkey: { relation: "six-harm", score: 40, note: "Six Harms (相害) — Monkey's tricks enrage Snake's dignity" }, Rooster: { relation: "trine", score: 88, note: "Trine allies (三合) — Rooster's display + Snake's strategy" }, Dog: { relation: "neutral", score: 55, note: "Dog's loyalty baffles Snake's self-interest" }, Pig: { relation: "six-clash", score: 35, note: "Six Clash (六冲) — Pig's naivety vs Snake's calculation" } },
-  Horse: { Rat: { relation: "six-clash", score: 35, note: "Six Clash (六冲) — Horse's flight vs Rat's burrow" }, Ox: { relation: "neutral", score: 52, note: "Ox's barn confines Horse's prairie" }, Tiger: { relation: "trine", score: 88, note: "Trine allies (三合) — speed + courage" }, Rabbit: { relation: "neutral", score: 58, note: "Rabbit's caution reins Horse's wildness" }, Dragon: { relation: "neutral", score: 62, note: "Dragon's throne bores Horse's wanderlust" }, Snake: { relation: "neutral", score: 58, note: "Snake's stillness vs Horse's motion" }, Horse: { relation: "same", score: 72, note: "Two free spirits; magnificent but directionless together" }, Goat: { relation: "secret-friend", score: 92, note: "Secret friends (六合) — Goat's art + Horse's passion" }, Monkey: { relation: "neutral", score: 60, note: "Monkey's mischief spooks Horse's sincerity" }, Rooster: { relation: "neutral", score: 55, note: "Rooster's order cramps Horse's style" }, Dog: { relation: "trine", score: 88, note: "Trine allies (三合) — Dog's faithfulness + Horse's loyalty" }, Pig: { relation: "neutral", score: 65, note: "Pig's comfort attracts Horse's exhaustion" } },
-  Goat: { Rat: { relation: "neutral", score: 55, note: "Rat's ambition exploits Goat's generosity" }, Ox: { relation: "six-clash", score: 35, note: "Six Clash (六冲) — Ox's discipline vs Goat's dreaminess" }, Tiger: { relation: "neutral", score: 58, note: "Tiger's force overwhelms Goat's gentleness" }, Rabbit: { relation: "trine", score: 88, note: "Trine allies (三合) — aesthetic soulmates" }, Dragon: { relation: "neutral", score: 55, note: "Dragon's demands exhaust Goat's reserves" }, Snake: { relation: "neutral", score: 62, note: "Snake's intensity intrigues Goat's mystery" }, Horse: { relation: "secret-friend", score: 92, note: "Secret friends (六合) — Horse carries Goat to dreams" }, Goat: { relation: "same", score: 72, note: "Double sensitivity; beautiful but fragile" }, Monkey: { relation: "neutral", score: 58, note: "Monkey's chaos disrupts Goat's peace" }, Rooster: { relation: "neutral", score: 55, note: "Rooster's criticism wounds Goat's softness" }, Dog: { relation: "neutral", score: 60, note: "Dog's protectiveness comforts Goat" }, Pig: { relation: "trine", score: 88, note: "Trine allies (三合) — domestic paradise" } },
-  Monkey: { Rat: { relation: "trine", score: 88, note: "Trine allies (三合) — two strategists" }, Ox: { relation: "neutral", score: 60, note: "Ox's slowness bores Monkey's quickness" }, Tiger: { relation: "six-clash", score: 35, note: "Six Clash (六冲) — Monkey mocks Tiger's dignity" }, Rabbit: { relation: "neutral", score: 52, note: "Rabbit's fear triggers Monkey's cruelty" }, Dragon: { relation: "trine", score: 88, note: "Trine allies (三合) — Dragon's vision + Monkey's execution" }, Snake: { relation: "six-harm", score: 40, note: "Six Harms (相害) — Snake's dignity vs Monkey's mockery" }, Horse: { relation: "neutral", score: 60, note: "Horse's sincerity baffles Monkey's irony" }, Goat: { relation: "neutral", score: 58, note: "Goat's vulnerability makes Monkey uncomfortable" }, Monkey: { relation: "same", score: 72, note: "Double mischief; fun but untrustworthy" }, Rooster: { relation: "neutral", score: 62, note: "Rooster's vanity amuses Monkey" }, Dog: { relation: "neutral", score: 55, note: "Dog's honesty exposes Monkey's tricks" }, Pig: { relation: "neutral", score: 58, note: "Pig's simplicity baffles Monkey's complexity" } },
-  Rooster: { Rat: { relation: "neutral", score: 62, note: "Rat's flexibility undermines Rooster's rules" }, Ox: { relation: "trine", score: 88, note: "Trine allies (三合) — Rooster's show + Ox's work" }, Tiger: { relation: "neutral", score: 55, note: "Tiger's sloppiness offends Rooster's precision" }, Rabbit: { relation: "six-clash", score: 35, note: "Six Clash (六冲) — Rooster's sharp tongue wounds Rabbit" }, Dragon: { relation: "secret-friend", score: 92, note: "Secret friends (六合) — Rooster's detail completes Dragon" }, Snake: { relation: "trine", score: 88, note: "Trine allies (三合) — Snake's depth + Rooster's display" }, Horse: { relation: "neutral", score: 55, note: "Horse's rebellion vs Rooster's order" }, Goat: { relation: "neutral", score: 55, note: "Goat's dreaminess frustrates Rooster's efficiency" }, Monkey: { relation: "neutral", score: 62, note: "Monkey's chaos disrupts Rooster's schedule" }, Rooster: { relation: "same", score: 72, note: "Double perfectionism; excellent or explosive" }, Dog: { relation: "neutral", score: 58, note: "Dog's bluntness + Rooster's bluntness" }, Pig: { relation: "neutral", score: 60, note: "Pig's messiness offends Rooster" } },
-  Dog: { Rat: { relation: "neutral", score: 60, note: "Rat's self-interest troubles Dog's loyalty" }, Ox: { relation: "neutral", score: 65, note: "Ox's steadiness + Dog's vigilance" }, Tiger: { relation: "trine", score: 88, note: "Trine allies (三合) — Tiger's courage + Dog's faith" }, Rabbit: { relation: "secret-friend", score: 92, note: "Secret friends (六合) — Dog protects, Rabbit nourishes" }, Dragon: { relation: "six-clash", score: 35, note: "Six Clash (六冲) — Dog's truth vs Dragon's myth" }, Snake: { relation: "neutral", score: 55, note: "Snake's secrecy alarms Dog's transparency" }, Horse: { relation: "trine", score: 88, note: "Trine allies (三合) — Horse's freedom + Dog's devotion" }, Goat: { relation: "neutral", score: 60, note: "Goat's neediness exhausts Dog's reserves" }, Monkey: { relation: "neutral", score: 55, note: "Monkey's dishonesty triggers Dog's judgment" }, Rooster: { relation: "neutral", score: 58, note: "Rooster's criticism wounds Dog's sensitivity" }, Dog: { relation: "same", score: 72, note: "Double loyalty; faithful but both brood" }, Pig: { relation: "neutral", score: 70, note: "Pig's optimism lifts Dog's pessimism" } },
-  Pig: { Rat: { relation: "secret-friend", score: 92, note: "Secret friends (六合) — Rat's cleverness + Pig's generosity" }, Ox: { relation: "neutral", score: 70, note: "Ox's labor + Pig's enjoyment" }, Tiger: { relation: "secret-friend", score: 92, note: "Secret friends (六合) — Pig's warmth tames Tiger" }, Rabbit: { relation: "trine", score: 88, note: "Trine allies (三合) — domestic bliss" }, Dragon: { relation: "neutral", score: 60, note: "Dragon's ambition overwhelms Pig's contentment" }, Snake: { relation: "six-clash", score: 35, note: "Six Clash (六冲) — Snake's calculation vs Pig's trust" }, Horse: { relation: "neutral", score: 65, note: "Horse's travel tempts Pig from home" }, Goat: { relation: "trine", score: 88, note: "Trine allies (三合) — artistic, sensual, peaceful" }, Monkey: { relation: "neutral", score: 58, note: "Monkey's tricks exploit Pig's trust" }, Rooster: { relation: "neutral", score: 60, note: "Rooster's criticism hurts Pig's softness" }, Dog: { relation: "neutral", score: 70, note: "Dog's protection + Pig's nourishment" }, Pig: { relation: "same", score: 72, note: "Double indulgence; blissful but potentially lazy" } },
+// six clash (六冲) and six harm (相害), plus a neutral fallback. Relations are
+// checked against the canonical sets in __tests__/glm-recommendations.test.ts.
+//
+// Scores come from ZODIAC_SCALE only, so the Soul Resonance report and the
+// Relationship Oracle (engagement-tools.tsx) can never grade the same pair
+// differently. The per-pair note is descriptive colour.
+export type ZodiacRelation = "same" | "secret-friend" | "trine" | "six-harm" | "six-clash" | "neutral" | "unknown";
+
+export const ZODIAC_SCALE: Record<ZodiacRelation, number> = {
+  "secret-friend": 92,
+  trine: 88,
+  same: 72,
+  neutral: 55,
+  unknown: 55,
+  "six-harm": 40,
+  "six-clash": 35,
+};
+
+const ZODIAC_RELATIONS: Record<string, Record<string, { relation: ZodiacRelation; note: string }>> = {
+  Rat: { Rat: { relation: "same", note: "Understand each other's rhythm, but may double weaknesses" }, Ox: { relation: "secret-friend", note: "Secret friends (六合) — natural allies, complementary strengths" }, Tiger: { relation: "neutral", note: "Different paces; Tiger acts, Rat plans" }, Rabbit: { relation: "neutral", note: "Rabbit's caution meets Rat's opportunism" }, Dragon: { relation: "trine", note: "Trine allies (三合) — Rat's cunning + Dragon's vision" }, Snake: { relation: "neutral", note: "Snake's secrecy unsettles Rat's networking" }, Horse: { relation: "six-clash", note: "Six Clash (六冲) — direct opposition. Rat builds, Horse gallops away" }, Goat: { relation: "six-harm", note: "Six Harms (相害) — Goat's dreaminess frustrates Rat's pragmatism" }, Monkey: { relation: "trine", note: "Trine allies (三合) — two tricksters, strong team" }, Rooster: { relation: "neutral", note: "Rooster's precision irritates Rat's flexibility" }, Dog: { relation: "neutral", note: "Dog's loyalty grounds Rat, but Rat feels judged" }, Pig: { relation: "neutral", note: "Same water season, not a 六合 pair — Pig's generosity feeds Rat's schemes" } },
+  Ox: { Rat: { relation: "secret-friend", note: "Secret friends (六合) — Rat's agility + Ox's stamina" }, Ox: { relation: "same", note: "Double stubbornness; shared values but slow progress" }, Tiger: { relation: "neutral", note: "Tiger challenges Ox's routine" }, Rabbit: { relation: "neutral", note: "Rabbit's diplomacy softens Ox, but Ox seems dull" }, Dragon: { relation: "neutral", note: "Dragon's flash unsettles Ox's earthiness" }, Snake: { relation: "trine", note: "Trine allies (三合) — Snake's wisdom + Ox's labor" }, Horse: { relation: "six-harm", note: "Six Harms (相害) — Horse's freedom threatens Ox's security needs" }, Goat: { relation: "six-clash", note: "Six Clash (六冲) — Ox builds walls, Goat wanders" }, Monkey: { relation: "neutral", note: "Monkey's tricks exhaust Ox's patience" }, Rooster: { relation: "trine", note: "Trine allies (三合) — Rooster's show + Ox's substance" }, Dog: { relation: "neutral", note: "Dog's vigilance + Ox's steadiness" }, Pig: { relation: "neutral", note: "Pig's ease softens Ox; comfortable but unexciting" } },
+  Tiger: { Rat: { relation: "neutral", note: "Rat strategizes, Tiger executes" }, Ox: { relation: "neutral", note: "Ox's slowness frustrates Tiger's urgency" }, Tiger: { relation: "same", note: "Two tigers share courage but compete for dominance" }, Rabbit: { relation: "neutral", note: "Tiger protects Rabbit, but Rabbit fears Tiger's temper" }, Dragon: { relation: "neutral", note: "Dragon's ambition matches Tiger's, but both want to lead" }, Snake: { relation: "six-harm", note: "Six Harms (相害) — mutual suspicion" }, Horse: { relation: "trine", note: "Trine allies (三合) — speed + courage" }, Goat: { relation: "neutral", note: "Goat's gentleness confuses Tiger's directness" }, Monkey: { relation: "six-clash", note: "Six Clash (六冲) — Monkey outsmarts Tiger; Tiger feels mocked" }, Rooster: { relation: "neutral", note: "Rooster's criticism wounds Tiger's pride" }, Dog: { relation: "trine", note: "Trine allies (三合) — Dog's loyalty + Tiger's bravery" }, Pig: { relation: "secret-friend", note: "Secret friends (六合) — Pig's warmth tames Tiger's fierceness" } },
+  Rabbit: { Rat: { relation: "neutral", note: "Rat's hustle overwhelms Rabbit's need for peace" }, Ox: { relation: "neutral", note: "Ox's heaviness crushes Rabbit's delicacy" }, Tiger: { relation: "neutral", note: "Tiger's protectiveness comforts Rabbit, but power imbalance" }, Rabbit: { relation: "same", note: "Gentle harmony, but both avoid necessary conflict" }, Dragon: { relation: "six-harm", note: "Six Harms (相害) — Dragon's dominance silences Rabbit" }, Snake: { relation: "neutral", note: "Snake's intensity frightens Rabbit's softness" }, Horse: { relation: "neutral", note: "Horse's restlessness unsettles Rabbit's nest" }, Goat: { relation: "trine", note: "Trine allies (三合) — artistic, gentle harmony" }, Monkey: { relation: "neutral", note: "Monkey's chaos disrupts Rabbit's order" }, Rooster: { relation: "six-clash", note: "Six Clash (六冲) — Rooster's sharpness pierces Rabbit's vulnerability" }, Dog: { relation: "secret-friend", note: "Secret friends (六合) — Dog's devotion shelters Rabbit" }, Pig: { relation: "trine", note: "Trine allies (三合) — domestic bliss, shared comfort" } },
+  Dragon: { Rat: { relation: "trine", note: "Trine allies (三合) — visionary + tactical" }, Ox: { relation: "neutral", note: "Ox's skepticism dampens Dragon's dreams" }, Tiger: { relation: "neutral", note: "Two alphas; respect if territory is divided" }, Rabbit: { relation: "six-harm", note: "Six Harms (相害) — Dragon's fire scorches Rabbit's garden" }, Dragon: { relation: "same", note: "Double majesty; magnificent but combustible" }, Snake: { relation: "neutral", note: "Snake's subtlety complements Dragon's grandeur" }, Horse: { relation: "neutral", note: "Horse's independence challenges Dragon's command" }, Goat: { relation: "neutral", note: "Goat's passivity disappoints Dragon's ambition" }, Monkey: { relation: "trine", note: "Trine allies (三合) — Monkey executes Dragon's visions" }, Rooster: { relation: "secret-friend", note: "Secret friends (六合) — Rooster's precision polishes Dragon's gold" }, Dog: { relation: "six-clash", note: "Six Clash (六冲) — Dog's honesty exposes Dragon's illusions" }, Pig: { relation: "neutral", note: "Pig's contentment baffles Dragon's striving" } },
+  Snake: { Rat: { relation: "neutral", note: "Rat's chatter disturbs Snake's meditation" }, Ox: { relation: "trine", note: "Trine allies (三合) — Ox's patience + Snake's cunning" }, Tiger: { relation: "six-harm", note: "Six Harms (相害) — Tiger's openness exposes Snake's plots" }, Rabbit: { relation: "neutral", note: "Rabbit's innocence bores Snake's sophistication" }, Dragon: { relation: "neutral", note: "Dragon's showmanship embarrasses Snake's subtlety" }, Snake: { relation: "same", note: "Deep mutual understanding, but trust is slow" }, Horse: { relation: "neutral", note: "Horse's gallop leaves Snake's coils behind" }, Goat: { relation: "neutral", note: "Goat's art + Snake's depth = cultural power" }, Monkey: { relation: "secret-friend", note: "Secret friends (六合) — Snake's strategy + Monkey's ingenuity, wary but allied" }, Rooster: { relation: "trine", note: "Trine allies (三合) — Rooster's display + Snake's strategy" }, Dog: { relation: "neutral", note: "Dog's loyalty baffles Snake's self-interest" }, Pig: { relation: "six-clash", note: "Six Clash (六冲) — Pig's naivety vs Snake's calculation" } },
+  Horse: { Rat: { relation: "six-clash", note: "Six Clash (六冲) — Horse's flight vs Rat's burrow" }, Ox: { relation: "six-harm", note: "Six Harms (相害) — Ox's barn confines Horse's prairie" }, Tiger: { relation: "trine", note: "Trine allies (三合) — speed + courage" }, Rabbit: { relation: "neutral", note: "Rabbit's caution reins Horse's wildness" }, Dragon: { relation: "neutral", note: "Dragon's throne bores Horse's wanderlust" }, Snake: { relation: "neutral", note: "Snake's stillness vs Horse's motion" }, Horse: { relation: "same", note: "Two free spirits; magnificent but directionless together" }, Goat: { relation: "secret-friend", note: "Secret friends (六合) — Goat's art + Horse's passion" }, Monkey: { relation: "neutral", note: "Monkey's mischief spooks Horse's sincerity" }, Rooster: { relation: "neutral", note: "Rooster's order cramps Horse's style" }, Dog: { relation: "trine", note: "Trine allies (三合) — Dog's faithfulness + Horse's loyalty" }, Pig: { relation: "neutral", note: "Pig's comfort attracts Horse's exhaustion" } },
+  Goat: { Rat: { relation: "six-harm", note: "Six Harms (相害) — Rat's ambition exploits Goat's generosity" }, Ox: { relation: "six-clash", note: "Six Clash (六冲) — Ox's discipline vs Goat's dreaminess" }, Tiger: { relation: "neutral", note: "Tiger's force overwhelms Goat's gentleness" }, Rabbit: { relation: "trine", note: "Trine allies (三合) — aesthetic soulmates" }, Dragon: { relation: "neutral", note: "Dragon's demands exhaust Goat's reserves" }, Snake: { relation: "neutral", note: "Snake's intensity intrigues Goat's mystery" }, Horse: { relation: "secret-friend", note: "Secret friends (六合) — Horse carries Goat to dreams" }, Goat: { relation: "same", note: "Double sensitivity; beautiful but fragile" }, Monkey: { relation: "neutral", note: "Monkey's chaos disrupts Goat's peace" }, Rooster: { relation: "neutral", note: "Rooster's criticism wounds Goat's softness" }, Dog: { relation: "neutral", note: "Dog's protectiveness comforts Goat" }, Pig: { relation: "trine", note: "Trine allies (三合) — domestic paradise" } },
+  Monkey: { Rat: { relation: "trine", note: "Trine allies (三合) — two strategists" }, Ox: { relation: "neutral", note: "Ox's slowness bores Monkey's quickness" }, Tiger: { relation: "six-clash", note: "Six Clash (六冲) — Monkey mocks Tiger's dignity" }, Rabbit: { relation: "neutral", note: "Rabbit's fear triggers Monkey's cruelty" }, Dragon: { relation: "trine", note: "Trine allies (三合) — Dragon's vision + Monkey's execution" }, Snake: { relation: "secret-friend", note: "Secret friends (六合) — Monkey's wit + Snake's depth, wary but allied" }, Horse: { relation: "neutral", note: "Horse's sincerity baffles Monkey's irony" }, Goat: { relation: "neutral", note: "Goat's vulnerability makes Monkey uncomfortable" }, Monkey: { relation: "same", note: "Double mischief; fun but untrustworthy" }, Rooster: { relation: "neutral", note: "Rooster's vanity amuses Monkey" }, Dog: { relation: "neutral", note: "Dog's honesty exposes Monkey's tricks" }, Pig: { relation: "six-harm", note: "Six Harms (相害) — Pig's simplicity baffles Monkey's complexity" } },
+  Rooster: { Rat: { relation: "neutral", note: "Rat's flexibility undermines Rooster's rules" }, Ox: { relation: "trine", note: "Trine allies (三合) — Rooster's show + Ox's work" }, Tiger: { relation: "neutral", note: "Tiger's sloppiness offends Rooster's precision" }, Rabbit: { relation: "six-clash", note: "Six Clash (六冲) — Rooster's sharp tongue wounds Rabbit" }, Dragon: { relation: "secret-friend", note: "Secret friends (六合) — Rooster's detail completes Dragon" }, Snake: { relation: "trine", note: "Trine allies (三合) — Snake's depth + Rooster's display" }, Horse: { relation: "neutral", note: "Horse's rebellion vs Rooster's order" }, Goat: { relation: "neutral", note: "Goat's dreaminess frustrates Rooster's efficiency" }, Monkey: { relation: "neutral", note: "Monkey's chaos disrupts Rooster's schedule" }, Rooster: { relation: "same", note: "Double perfectionism; excellent or explosive" }, Dog: { relation: "six-harm", note: "Six Harms (相害) — Dog's bluntness + Rooster's bluntness" }, Pig: { relation: "neutral", note: "Pig's messiness offends Rooster" } },
+  Dog: { Rat: { relation: "neutral", note: "Rat's self-interest troubles Dog's loyalty" }, Ox: { relation: "neutral", note: "Ox's steadiness + Dog's vigilance" }, Tiger: { relation: "trine", note: "Trine allies (三合) — Tiger's courage + Dog's faith" }, Rabbit: { relation: "secret-friend", note: "Secret friends (六合) — Dog protects, Rabbit nourishes" }, Dragon: { relation: "six-clash", note: "Six Clash (六冲) — Dog's truth vs Dragon's myth" }, Snake: { relation: "neutral", note: "Snake's secrecy alarms Dog's transparency" }, Horse: { relation: "trine", note: "Trine allies (三合) — Horse's freedom + Dog's devotion" }, Goat: { relation: "neutral", note: "Goat's neediness exhausts Dog's reserves" }, Monkey: { relation: "neutral", note: "Monkey's dishonesty triggers Dog's judgment" }, Rooster: { relation: "six-harm", note: "Six Harms (相害) — Rooster's criticism wounds Dog's sensitivity" }, Dog: { relation: "same", note: "Double loyalty; faithful but both brood" }, Pig: { relation: "neutral", note: "Pig's optimism lifts Dog's pessimism" } },
+  Pig: { Rat: { relation: "neutral", note: "Same water season, not a 六合 pair — Rat's cleverness + Pig's generosity" }, Ox: { relation: "neutral", note: "Ox's labor + Pig's enjoyment" }, Tiger: { relation: "secret-friend", note: "Secret friends (六合) — Pig's warmth tames Tiger" }, Rabbit: { relation: "trine", note: "Trine allies (三合) — domestic bliss" }, Dragon: { relation: "neutral", note: "Dragon's ambition overwhelms Pig's contentment" }, Snake: { relation: "six-clash", note: "Six Clash (六冲) — Snake's calculation vs Pig's trust" }, Horse: { relation: "neutral", note: "Horse's travel tempts Pig from home" }, Goat: { relation: "trine", note: "Trine allies (三合) — artistic, sensual, peaceful" }, Monkey: { relation: "six-harm", note: "Six Harms (相害) — Monkey's tricks exploit Pig's trust" }, Rooster: { relation: "neutral", note: "Rooster's criticism hurts Pig's softness" }, Dog: { relation: "neutral", note: "Dog's protection + Pig's nourishment" }, Pig: { relation: "same", note: "Double indulgence; blissful but potentially lazy" } },
 };
  
 // ---------------------------------------------------------------------
@@ -324,13 +342,22 @@ function ageBandFor(age: number | null): string {
   return "legacy window";
 }
 
+function firstSentenceOf(text: string | undefined | null): string {
+  if (!text) return "";
+  const flat = text.replace(/\s+/g, " ").trim();
+  const m = flat.match(/^.*?[.!?](?=\s|$)/);
+  return (m ? m[0] : flat).trim();
+}
+
 function buildPYReading(raw: number): PYReading {
   const reduced = reduceNum(raw);
   const compound = lookupCompound(raw);
   const isKarmicDebt = KARMIC_DEBT_NUMBERS.has(raw) || !!compound?.isKarmicDebt;
   const isMasterNumber = MASTER_NUMBERS.has(reduced) || !!compound?.isMasterNumber;
+  // Thesis = the essence's opening paragraph plus how it tends to show up
+  // (first sentence of manifestationPatterns), not the essence alone.
   const thesis = compound
-    ? compound.vibrationalEssence.split(/\n\n/)[0]
+    ? [compound.vibrationalEssence.split(/\n\n/)[0], firstSentenceOf(compound.manifestationPatterns)].filter(Boolean).join(" ")
     : `A ${reduced}-vibration personal year: ${PY_CORE_THEMES[reduced] ?? "a rhythm shaped by that number's own pattern."}`;
   return {
     raw,
@@ -339,12 +366,14 @@ function buildPYReading(raw: number): PYReading {
     isKarmicDebt,
     isMasterNumber,
     thesis,
+    symbolism: compound?.symbolism ?? null,
+    karmicNote: isKarmicDebt ? firstSentenceOf(compound?.karmicDynamics) || null : null,
   };
 }
 
 function karmicAlertText(reading: PYReading, who: string): string | null {
   if (!reading.isKarmicDebt) return null;
-  return `${who} personal year carries karmic-debt voltage (${reading.raw}/${reading.reduced}${reading.compoundName ? ` — ${reading.compoundName}` : ""}). This is not a punishment; it is unfinished business surfacing for resolution, and it rewards structure over improvisation.`;
+  return `${who} personal year carries karmic-debt voltage (${reading.raw}/${reading.reduced}${reading.compoundName ? ` — ${reading.compoundName}` : ""}). This is not a punishment; it is unfinished business surfacing for resolution, and it rewards structure over improvisation.${reading.karmicNote ? ` ${reading.karmicNote}` : ""}`;
 }
 
 function masterAlertText(reading: PYReading, who: string): string | null {
@@ -373,24 +402,33 @@ function cheiroHarmony(a: number, b: number): { score: number; label: string } {
   return { score: 55, label: "neutral field" };
 }
  
-function johariRelation(a: number, b: number): { score: number; label: string; note: string } {
+/**
+ * Harish Johari planetary friendship between two numbers. Single source for
+ * the Soul Resonance report and the Relationship Oracle in
+ * engagement-tools.tsx. Every number 1–9 lists all others as friend, neutral
+ * or growth, so the final fallback only triggers for invalid input.
+ */
+export function johariRelation(a: number, b: number): { score: number; label: string; note: string } {
   const x = reduceSingle(a);
   const y = reduceSingle(b);
   const ax = JOHARI[x];
   const by = JOHARI[y];
-  if (!ax || !by) return { score: 50, label: "unknown", note: "Insufficient data" };
-  if (x === y) return { score: 86, label: "same-number mirror", note: `Both carry ${ax.planet}. Similarity creates recognition, but can become passive without shared aims.` };
+  if (!ax || !by) return { score: 55, label: "unclassified mixed field", note: "Johari lens: this pair is mixed; judge by conduct, maturity and the rest of the chart." };
+  if (x === y) return { score: 86, label: "same-number mirror", note: `Johari lens: both carry ${ax.planet}. Similarity creates recognition and ease, but can become passive unless the pair keeps a shared aim.` };
   const friend = ax.friends.includes(y) || by.friends.includes(x);
   const growth = ax.growth.includes(y) || by.growth.includes(x);
   const neutral = ax.neutrals.includes(y) || by.neutrals.includes(x);
-  if (friend) return { score: 82, label: "friendly planets", note: `${ax.planet} and ${by.planet} are friendly. Ease and affection; caution: relaxation without progress.` };
-  if (growth) return { score: 74, label: "growth tension", note: `${ax.planet} and ${by.planet} create alertness — useful for growth, keeps both improving.` };
-  if (neutral) return { score: 58, label: "neutral planets", note: `${ax.planet} and ${by.planet} neither feed nor provoke. Workable, but needs conscious purpose.` };
-  return { score: 48, label: "challenging field", note: `${ax.planet} and ${by.planet} are in tension. Requires maturity and clear agreements.` };
+  if (friend) return { score: 82, label: "friendly planets", note: `Johari lens: ${ax.planet} and ${by.planet} are friendly. This brings ease, affection and low friction; the caution is relaxation without progress.` };
+  if (growth) return { score: 74, label: "growth-producing tension", note: `Johari lens: ${ax.planet} and ${by.planet} create alertness. Johari treats enemy/tension numbers as useful for growth because they keep each other active, awake and improving.` };
+  if (neutral) return { score: 58, label: "neutral planets", note: `Johari lens: ${ax.planet} and ${by.planet} neither strongly feed nor strongly provoke one another. This is workable, but it needs conscious purpose.` };
+  return { score: 55, label: "unclassified mixed field", note: "Johari lens: this pair is mixed; judge by conduct, maturity and the rest of the chart." };
 }
  
-function chineseZodiacRelation(aAnimal: string, bAnimal: string): { score: number; relation: string; note: string } {
-  return ZODIAC_RELATIONS[aAnimal]?.[bAnimal] || { score: 50, relation: "unknown", note: "No specific relation data for this pairing" };
+/** Chinese zodiac pair relation, scored on the shared ZODIAC_SCALE. */
+export function chineseZodiacRelation(aAnimal: string, bAnimal: string): { score: number; relation: ZodiacRelation; note: string } {
+  const entry = ZODIAC_RELATIONS[aAnimal]?.[bAnimal];
+  if (!entry) return { score: ZODIAC_SCALE.unknown, relation: "unknown", note: "No specific relation data for this pairing" };
+  return { score: ZODIAC_SCALE[entry.relation], relation: entry.relation, note: entry.note };
 }
  
 // ---------------------------------------------------------------------
@@ -457,10 +495,27 @@ function analyzeLoShuOverlay(a: SoulVitals, b: SoulVitals) {
 // calculatePsychomatrix (row_1/2/3, col_1/2/3 in psychomatrixData.ts):
 // willpower=1,4,7 · energy=2,5,8 · stability=3,6,9 · purpose=1,2,3 ·
 // family=4,5,6 · habits=7,8,9.
+const sumPsychomatrixDigits = (c: Record<number, number>, digits: number[]) => digits.reduce((t, d) => t + (c[d] || 0), 0);
+
+/** Numeric A−B difference per psychomatrix line (positive = A has more). */
+export function psychomatrixLineDeltas(a: SoulVitals, b: SoulVitals) {
+  const ac = a.psychomatrixCounts;
+  const bc = b.psychomatrixCounts;
+  const delta = (digits: number[]) => sumPsychomatrixDigits(ac, digits) - sumPsychomatrixDigits(bc, digits);
+  return {
+    willpower: delta([1, 4, 7]),
+    energy: delta([2, 5, 8]),
+    stability: delta([3, 6, 9]),
+    purpose: delta([1, 2, 3]),
+    family: delta([4, 5, 6]),
+    habits: delta([7, 8, 9]),
+  };
+}
+
 function comparePsychomatrixLines(a: SoulVitals, b: SoulVitals) {
   const ac = a.psychomatrixCounts;
   const bc = b.psychomatrixCounts;
-  const sum = (c: Record<number, number>, digits: number[]) => digits.reduce((t, d) => t + (c[d] || 0), 0);
+  const sum = sumPsychomatrixDigits;
   const compare = (aVal: number, bVal: number, label: string): string => {
     const diff = aVal - bVal;
     if (Math.abs(diff) <= 1) return `${label}: Equal — shared ${label.toLowerCase()} intensity.`;
@@ -583,9 +638,11 @@ const POSITIVE_OVERRIDE_PATTERN = /can\u2019t go wrong|can't go wrong|won\u2019t
 // descriptive disdain characterizations, including the corpus structures
 // the old classifier missed ("No X or Y for you.", "Nor do I suggest X",
 // "Erase X from your mind", "give up on", "nix on", "don't hang around
-// with", "less compatible are", "too X for you/to your/to ...", etc.).
+// with", "less compatible are", "too X" for a fixed list of negative
+// adjectives, etc.). The "too X" list is explicit on purpose: a generic
+// "too <any word>" rule would also fire on praise such as "too good to miss".
 // Includes both curly (U+2019) and straight (U+0027) apostrophe variants.
-const CLEAR_AVOID_PATTERN = /stay away|avoid|shun|steer clear|steer around|give wide berth|wide berth|flee|poison|disastrous|don\u2019t pick|don't pick|don\u2019t marry|don't marry|don\u2019t go getting|don't go getting|don\u2019t bother with|don't bother with|don\u2019t go getting yourself involved|don't go getting yourself involved|refrain|leave.*alone|leave.*if you can|too like you.*too.*different|worse than.*bark|bite is worse|won\u2019t last|won't last|won\u2019t work|won't work|won\u2019t work for|won't work for|don\u2019t work for|don't work for|never work|dissonance|ugly duo|no marriage|not for you|not really suited|ill-suited|don\u2019t see eye to eye|don't see eye to eye|polarized outlooks|too cool to keep.*fascinated|exasperate you|unnerve you|unnerve.*the most|annoy you|frustrate you|irritat|you.*hate|they.*hate|hate inertia|disappointments aplenty|disappointment.*await|too.*different.*other|not much love|boredom|stodgy|gloomy|killjoy|beware|watch out for|^no\b|^nor\b|^not so\b|nix\b|except,? perhaps|erase .* from your mind|forget about|give up on|get on your nerves|never get on with|never ideal|don\u2019t make it for you|don't make it for you|don\u2019t get along with|don't get along with|do not get along|don\u2019t get on with|don't get on with|don\u2019t get much out of|don't get much out of|don\u2019t have much affinity|don't have much affinity|don\u2019t hang around with|don't hang around with|don\u2019t be led down the aisle by|don't be led down the aisle by|don\u2019t be flattered by|don't be flattered by|don\u2019t trifle with|don't trifle with|don\u2019t set your heart on|don't set your heart on|don\u2019t try coupling with|don't try coupling with|don\u2019t take up with|don't take up with|don\u2019t be in a hurry to marry|don't be in a hurry to marry|don\u2019t promote any long-standing relationships with|don't promote any long-standing relationships with|don\u2019t even think about marrying|don't even think about marrying|don\u2019t even entertain the thought|don't even entertain the thought|don\u2019t get caught up in|don't get caught up in|don\u2019t get involved with|don't get involved with|don\u2019t get mixed up with|don't get mixed up with|don\u2019t chase after|don't chase after|don\u2019t go getting involved with|don't go getting involved with|don\u2019t get tangled up in|don't get tangled up in|don\u2019t bank on|don't bank on|i don\u2019t advise|i don't advise|i don\u2019t vote for|i don't vote for|i don\u2019t see you taking up with|i don't see you taking up with|i don\u2019t believe you can be happy forever with|i don't believe you can be happy forever with|i\u2019d leave|i'd leave|i would leave|you are advised to forget|incompatible signs|don\u2019t always have .* best interests|don't always have .* best interests|stay clear|stay out of the way of|you clash with|clash with your own|you don\u2019t seem to think alike|you don't seem to think alike|less compatible|i warn you|make yourself scarce|give you trouble|overpower you|drive you mad|drive you crazy|demand too much|demand far too much|far too much stability|too much of a challenge|too tightly|for the pig\u2019s own good|not funky enough|too harsh|too\s+[a-z-]+(?:\s+(?:and|or)\s+[a-z-]+)?\s*(?:for you|for your|for the|to\b|[,.!]|$)/gi;
+const CLEAR_AVOID_PATTERN = /stay away|avoid|shun|steer clear|steer around|give wide berth|wide berth|flee|poison|disastrous|don\u2019t pick|don't pick|don\u2019t marry|don't marry|don\u2019t go getting|don't go getting|don\u2019t bother with|don't bother with|don\u2019t go getting yourself involved|don't go getting yourself involved|refrain|leave.*alone|leave.*if you can|too like you.*too.*different|worse than.*bark|bite is worse|won\u2019t last|won't last|won\u2019t work|won't work|won\u2019t work for|won't work for|don\u2019t work for|don't work for|never work|dissonance|ugly duo|no marriage|not for you|not really suited|ill-suited|don\u2019t see eye to eye|don't see eye to eye|polarized outlooks|too cool to keep.*fascinated|exasperate you|unnerve you|unnerve.*the most|annoy you|frustrate you|irritat|you.*hate|they.*hate|hate inertia|disappointments aplenty|disappointment.*await|too.*different.*other|not much love|boredom|stodgy|gloomy|killjoy|beware|watch out for|^no\b|^nor\b|^not so\b|nix\b|except,? perhaps|erase .* from your mind|forget about|give up on|get on your nerves|never get on with|never ideal|don\u2019t make it for you|don't make it for you|don\u2019t get along with|don't get along with|do not get along|don\u2019t get on with|don't get on with|don\u2019t get much out of|don't get much out of|don\u2019t have much affinity|don't have much affinity|don\u2019t hang around with|don't hang around with|don\u2019t be led down the aisle by|don't be led down the aisle by|don\u2019t be flattered by|don't be flattered by|don\u2019t trifle with|don't trifle with|don\u2019t set your heart on|don't set your heart on|don\u2019t try coupling with|don't try coupling with|don\u2019t take up with|don't take up with|don\u2019t be in a hurry to marry|don't be in a hurry to marry|don\u2019t promote any long-standing relationships with|don't promote any long-standing relationships with|don\u2019t even think about marrying|don't even think about marrying|don\u2019t even entertain the thought|don't even entertain the thought|don\u2019t get caught up in|don't get caught up in|don\u2019t get involved with|don't get involved with|don\u2019t get mixed up with|don't get mixed up with|don\u2019t chase after|don't chase after|don\u2019t go getting involved with|don't go getting involved with|don\u2019t get tangled up in|don't get tangled up in|don\u2019t bank on|don't bank on|i don\u2019t advise|i don't advise|i don\u2019t vote for|i don't vote for|i don\u2019t see you taking up with|i don't see you taking up with|i don\u2019t believe you can be happy forever with|i don't believe you can be happy forever with|i\u2019d leave|i'd leave|i would leave|you are advised to forget|incompatible signs|don\u2019t always have .* best interests|don't always have .* best interests|stay clear|stay out of the way of|you clash with|clash with your own|you don\u2019t seem to think alike|you don't seem to think alike|less compatible|i warn you|make yourself scarce|give you trouble|overpower you|drive you mad|drive you crazy|demand too much|demand far too much|far too much stability|too much of a challenge|too tightly|for the pig\u2019s own good|not funky enough|too harsh|too\s+(?:aggressive|bossy|businesslike|chaotic|cocky|competitive|complex|controlling|critical|cunning|cynical|domineering|egocentric|elastic|emotional|fearful|fervent|fiery|flashy|flighty|harsh|hasty|heady|impetuous|indecisive|intense|manipulative|moody|possessive|practical|presumptuous|pushy|restless|rigid|scatty|self-absorbed|sensitive|serious|slippery|speedy|stodgy|stubborn|unadventurous|unpredictable|whimsical|wishy-washy)(?![a-z-])/gi;
 
 export type SuzanneWhiteVerdict = "positive" | "avoid" | "mixed" | "unstated";
 
@@ -611,29 +668,79 @@ function markerIndices(re: RegExp, sentence: string): number[] {
   return out;
 }
 
-/** Verdict for one token mention in one sentence: nearest marker wins; ties prefer positive. */
-function sentenceMentionVerdict(sentence: string, token: string): "positive" | "avoid" | null {
-  const first = sentence.indexOf(token);
-  if (first === -1) return null;
+const SW_WESTERN = "aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces";
+const SW_ANIMALS = "rat|ox|tiger|rabbit|dragon|snake|horse|goat|monkey|rooster|dog|pig";
+
+/**
+ * Lower-cases and writes every combined sign one way, "western/animal", so
+ * "Leo Dogs", "Leo-Dog", "Leo / Dog" and "Leo the Dog" all match "leo/dog".
+ */
+export function normalizeSuzanneWhiteText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(new RegExp(`\\b(${SW_WESTERN})(?:\\s*[/-]\\s*|\\s+)(?:the\\s+)?(${SW_ANIMALS})`, "g"), "$1/$2");
+}
+
+/**
+ * Every position where `token` appears as a word. Plural and demonym forms
+ * count ("oxen", "librans", "piggies"); words that merely contain the token
+ * do not ("frustrate", "admiration", "diaries", "library").
+ */
+function tokenOccurrences(sentence: string, token: string): number[] {
+  const escaped = token.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+  const re = new RegExp(`(?<![a-z])${escaped}(?:s|es|en|n|ns|gy|gies)?(?![a-z])`, "g");
+  const out: number[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(sentence)) !== null) out.push(m.index);
+  return out;
+}
+
+/** Verdict for one mention position: nearest marker wins; ties prefer positive. */
+/**
+ * A verdict marker governs the sign that FOLLOWS it ("avoid Leo/Dogs",
+ * "you'll find happiness with Leo/Dogs"), so each mention takes the closest
+ * marker that starts before it. Only when no marker precedes it does it fall
+ * back to the closest marker after it ("Leo/Dogs are best avoided").
+ * Ties go to "avoid" (a caution outranks a compliment).
+ */
+function nearestMarkerVerdict(at: number, posIdx: number[], avoidIdx: number[]): "positive" | "avoid" | null {
+  const pick = (candidates: Array<[number, "positive" | "avoid"]>): "positive" | "avoid" | null => {
+    let verdict: "positive" | "avoid" | null = null;
+    let bestD = Number.POSITIVE_INFINITY;
+    for (const [d, v] of candidates) {
+      if (d < bestD || (d === bestD && v === "avoid")) {
+        bestD = d;
+        verdict = v;
+      }
+    }
+    return verdict;
+  };
+  const all: Array<[number, "positive" | "avoid"]> = [
+    ...posIdx.map((p) => [p, "positive"] as [number, "positive"]),
+    ...avoidIdx.map((a) => [a, "avoid"] as [number, "avoid"]),
+  ];
+  const before = all.filter(([idx]) => idx <= at).map(([idx, v]) => [at - idx, v] as [number, "positive" | "avoid"]);
+  if (before.length) return pick(before);
+  return pick(all.map(([idx, v]) => [idx - at, v] as [number, "positive" | "avoid"]));
+}
+
+/**
+ * Verdicts for EVERY mention of `token` in one sentence (the old version
+ * only looked at the first mention, so "prefer X … but avoid X" lost the
+ * second verdict).
+ */
+function sentenceMentionVerdicts(sentence: string, token: string): { positive: boolean; avoid: boolean } {
+  const result = { positive: false, avoid: false };
+  const hits = tokenOccurrences(sentence, token);
+  if (hits.length === 0) return result;
   const posIdx = markerIndices(POSITIVE_OVERRIDE_PATTERN, sentence);
   const avoidIdx = markerIndices(CLEAR_AVOID_PATTERN, sentence);
-  let verdict: "positive" | "avoid" | null = null;
-  let bestD = Number.POSITIVE_INFINITY;
-  for (const p of posIdx) {
-    const d = Math.abs(p - first);
-    if (d < bestD) {
-      bestD = d;
-      verdict = "positive";
-    }
+  for (const at of hits) {
+    const v = nearestMarkerVerdict(at, posIdx, avoidIdx);
+    if (v === "positive") result.positive = true;
+    else if (v === "avoid") result.avoid = true;
   }
-  for (const av of avoidIdx) {
-    const d = Math.abs(av - first);
-    if (d < bestD || (d === bestD && verdict === "avoid")) {
-      bestD = d;
-      verdict = "avoid";
-    }
-  }
-  return verdict;
+  return result;
 }
 
 /**
@@ -647,8 +754,8 @@ export function classifySuzanneWhiteMentions(
   partnerWestern: string,
   partnerAnimal: string,
 ): SuzanneWhiteMentionVerdicts {
-  const lower = sourceText.toLowerCase();
-  const lowerCombined = partnerCombinedSign.toLowerCase();
+  const lower = normalizeSuzanneWhiteText(sourceText);
+  const lowerCombined = normalizeSuzanneWhiteText(partnerCombinedSign);
   const lowerWestern = partnerWestern.toLowerCase();
   const lowerAnimal = partnerAnimal.toLowerCase();
   const sentences = (lower.match(/[^.!?]+[.!?]+/g) || [lower]).map((s) => s.trim());
@@ -667,28 +774,31 @@ export function classifySuzanneWhiteMentions(
   const aNegative: string[] = [];
 
   for (const s of sentences) {
-    const jc = sentenceMentionVerdict(s, lowerCombined);
-    const jw = sentenceMentionVerdict(s, lowerWestern);
-    const ja = sentenceMentionVerdict(s, lowerAnimal);
+    const jc = sentenceMentionVerdicts(s, lowerCombined);
+    const jw = sentenceMentionVerdicts(s, lowerWestern);
+    const ja = sentenceMentionVerdicts(s, lowerAnimal);
 
-    if (jc === "positive") {
+    if (jc.positive) {
       cPos = true;
       cPositive.push(`${partnerCombinedSign} is recommended (\"${s.slice(0, 80)}…\")`);
-    } else if (jc === "avoid") {
+    }
+    if (jc.avoid) {
       cAvoid = true;
       cNegative.push(`${partnerCombinedSign} is cautioned against (\"${s.slice(0, 80)}…\")`);
     }
-    if (jw === "positive") {
+    if (jw.positive) {
       wPos = true;
       wPositive.push(`${partnerWestern} appears in a recommendation (\"${s.slice(0, 80)}…\")`);
-    } else if (jw === "avoid") {
+    }
+    if (jw.avoid) {
       wAvoid = true;
       wNegative.push(`${partnerWestern} appears in a caution (\"${s.slice(0, 80)}…\")`);
     }
-    if (ja === "positive") {
+    if (ja.positive) {
       aPos = true;
       aPositive.push(`${partnerAnimal} appears in a recommendation (\"${s.slice(0, 80)}…\")`);
-    } else if (ja === "avoid") {
+    }
+    if (ja.avoid) {
       aAvoid = true;
       aNegative.push(`${partnerAnimal} appears in a caution (\"${s.slice(0, 80)}…\")`);
     }
@@ -823,11 +933,18 @@ export function generateSoulResonance(a: SoulVitals, b: SoulVitals, targetYear =
   const bPY = reduceNum(computeRawPersonalYear(b.day, b.month, targetYear));
   const combinedWeather = generateCombinedWeather(aPY, bPY);
  
+  // Each domain's weights sum to 1.00 and match the domainWeights shown on
+  // the layers below. Romance used to count psychic harmony twice
+  // (0.30 + 0.10); the 0.10 slot is destiny harmony, as the layer table says.
   const romanceScore = Math.round(
-    psychicHarmony.score * 0.30 + loShu.voidFill.score * 0.25 + chinese.score * 0.20 + johari.score * 0.15 + psychicHarmony.score * 0.10,
+    psychicHarmony.score * 0.30 + loShu.voidFill.score * 0.25 + chinese.score * 0.20 + johari.score * 0.15 + destinyHarmony.score * 0.10,
   );
+  // Willpower complementarity: a clear lead (difference of 2+ marks on the
+  // 1-4-7 line) gives defined roles (75); near-equal willpower scores 65.
+  // Uses the numeric delta, not a search for "leads" in the display text.
+  const willpowerScore = Math.abs(psychomatrixLineDeltas(a, b).willpower) > 1 ? 75 : 65;
   const partnershipScore = Math.round(
-    destinyHarmony.score * 0.30 + (psychoCompare.willpower.includes("leads") ? 75 : 65) * 0.20 + chinese.score * 0.15 + lifePathHarmony.score * 0.20 + loShu.amplification.score * 0.15,
+    destinyHarmony.score * 0.30 + willpowerScore * 0.20 + chinese.score * 0.15 + lifePathHarmony.score * 0.20 + loShu.amplification.score * 0.15,
   );
   const friendshipScore = Math.round(
     johari.score * 0.30 + lifePathHarmony.score * 0.20 + (a.combinedSign === b.combinedSign ? 90 : 60) * 0.15 + psychicHarmony.score * 0.15 + loShu.voidFill.score * 0.20,
@@ -835,13 +952,13 @@ export function generateSoulResonance(a: SoulVitals, b: SoulVitals, targetYear =
   const overall = Math.round((romanceScore + partnershipScore + friendshipScore) / 3);
  
   const layers: ResonanceLayer[] = [
-    { label: "Psychic Vibration", score: psychicHarmony.score, verdict: psychicHarmony.label, detail: `Birth-day resonance: ${a.psychic} and ${b.psychic} — ${psychicHarmony.label}.`, domainWeights: { romance: 30, partnership: 15, friendship: 15 } },
-    { label: "Destiny Vibration", score: destinyHarmony.score, verdict: destinyHarmony.label, detail: `Life-purpose resonance: ${a.destiny} and ${b.destiny} — ${destinyHarmony.label}.`, domainWeights: { romance: 10, partnership: 30, friendship: 10 } },
-    { label: "Life Path", score: lifePathHarmony.score, verdict: lifePathHarmony.label, detail: `Journey resonance: ${a.lifePath} and ${b.lifePath}.`, domainWeights: { romance: 10, partnership: 20, friendship: 20 } },
-    { label: "Vedic Johari", score: johari.score, verdict: johari.label, detail: johari.note, domainWeights: { romance: 15, partnership: 10, friendship: 30 } },
-    { label: "Chinese Zodiac", score: chinese.score, verdict: chinese.relation, detail: chinese.note, domainWeights: { romance: 20, partnership: 15, friendship: 15 } },
-    { label: "Lo Shu Void Fill", score: loShu.voidFill.score, verdict: loShu.voidFill.numbers.length > 0 ? "karmic completion" : "self-contained", detail: loShu.voidFill.narrative, domainWeights: { romance: 25, partnership: 5, friendship: 20 } },
-    { label: "Lo Shu Amplification", score: loShu.amplification.score, verdict: loShu.amplification.numbers.length > 0 ? "shared power" : "complementary", detail: loShu.amplification.narrative, domainWeights: { romance: 5, partnership: 15, friendship: 5 } },
+    { label: "Psychic Vibration", score: psychicHarmony.score, verdict: psychicHarmony.label, detail: `Birth-day resonance: ${a.psychic} and ${b.psychic} — ${psychicHarmony.label}.`, domainWeights: { romance: 30, partnership: 0, friendship: 15 } },
+    { label: "Destiny Vibration", score: destinyHarmony.score, verdict: destinyHarmony.label, detail: `Life-purpose resonance: ${a.destiny} and ${b.destiny} — ${destinyHarmony.label}.`, domainWeights: { romance: 10, partnership: 30, friendship: 0 } },
+    { label: "Life Path", score: lifePathHarmony.score, verdict: lifePathHarmony.label, detail: `Journey resonance: ${a.lifePath} and ${b.lifePath}.`, domainWeights: { romance: 0, partnership: 20, friendship: 20 } },
+    { label: "Vedic Johari", score: johari.score, verdict: johari.label, detail: johari.note, domainWeights: { romance: 15, partnership: 0, friendship: 30 } },
+    { label: "Chinese Zodiac", score: chinese.score, verdict: chinese.relation, detail: chinese.note, domainWeights: { romance: 20, partnership: 15, friendship: 0 } },
+    { label: "Lo Shu Void Fill", score: loShu.voidFill.score, verdict: loShu.voidFill.numbers.length > 0 ? "karmic completion" : "self-contained", detail: loShu.voidFill.narrative, domainWeights: { romance: 25, partnership: 0, friendship: 20 } },
+    { label: "Lo Shu Amplification", score: loShu.amplification.score, verdict: loShu.amplification.numbers.length > 0 ? "shared power" : "complementary", detail: loShu.amplification.narrative, domainWeights: { romance: 0, partnership: 15, friendship: 0 } },
   ];
  
   const parts: string[] = [];
@@ -868,7 +985,7 @@ export function generateSoulResonance(a: SoulVitals, b: SoulVitals, targetYear =
     chineseZodiac: chinese,
     loShuOverlay: { voidFill: loShu.voidFill, amplification: loShu.amplification },
     psychomatrixComparison: psychoCompare,
-    famousTwins: [],
+    famousTwins: getFamousTwins(a, b),
     reading: parts.join(" "),
     pyInteraction,
     johariCompatibility: johariCompat,

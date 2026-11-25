@@ -59,16 +59,18 @@ const LIB = path.join(HERE, "..", "src", "lib");
 const ENGINE_SRC = fs.readFileSync(path.join(LIB, "compatibility-engine.ts"), "utf8");
 
 // ── classifier source-block integrity ────────────────────────────────────
-// SHA-256 of the block between these markers, as validated on 12 Sep 2026
-// against the full corpus (62,208/62,208 verdicts consistent).
-const BLESSED_HASH = "8608104547731ab6497dbf1a8094440f97185b1cf3a5b7487da6284dbcd6b78e";
+// SHA-256 of the block between these markers, as validated on 20 Nov 2026
+// against the full corpus (20,736 pairings, 0 contradictions; whole-word
+// all-occurrence matching, combined-sign normalisation, explicit "too X" list,
+// each mention governed by the closest preceding verdict marker).
+const BLESSED_HASH = "5c1d8a3011207a6e9a44c22607cc0f355c3e63b7f21197eea2e1fe75153fbb9b";
 {
   const start = ENGINE_SRC.indexOf("// Codify Suzanne White");
   const end = ENGINE_SRC.indexOf("export function generateSoulResonance");
   if (start === -1 || end === -1) throw new Error("classifier block markers not found");
   const block = ENGINE_SRC.slice(start, end);
   const hash = crypto.createHash("sha256").update(block).digest("hex");
-  if (BLESSED_HASH !== "8608104547731ab6497dbf1a8094440f97185b1cf3a5b7487da6284dbcd6b78e" && hash !== BLESSED_HASH) {
+  if (hash !== BLESSED_HASH) {
     console.warn("WARNING: classifySuzanneWhiteMentions source changed since last validation.");
     console.warn("Re-run the full validation, then update BLESSED_HASH in this script.");
   }
@@ -115,27 +117,49 @@ function markerIndices(re, s) {
   }
   return out;
 }
-function mentionVerdict(s, token) {
-  const first = s.indexOf(token);
-  if (first === -1) return null;
+const SW_WESTERN = "aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces";
+const SW_ANIMALS = "rat|ox|tiger|rabbit|dragon|snake|horse|goat|monkey|rooster|dog|pig";
+// "Leo Dogs" / "Leo-Dog" / "Leo the Dog" -> "leo/dog"
+const normalize = (t) =>
+  t.toLowerCase().replace(new RegExp(`\\b(${SW_WESTERN})(?:\\s*[/-]\\s*|\\s+)(?:the\\s+)?(${SW_ANIMALS})`, "g"), "$1/$2");
+// whole-word mentions (plural/demonym suffixes allowed), every occurrence
+function occurrences(s, token) {
+  const esc = token.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+  const re = new RegExp(`(?<![a-z])${esc}(?:s|es|en|n|ns|gy|gies)?(?![a-z])`, "g");
+  const out = [];
+  let m;
+  while ((m = re.exec(s)) !== null) out.push(m.index);
+  return out;
+}
+function mentionVerdicts(s, token) {
+  const out = { positive: false, avoid: false };
+  const hits = occurrences(s, token);
+  if (!hits.length) return out;
   const posIdx = markerIndices(POS_RE, s);
   const avIdx = markerIndices(AVOID_RE, s);
-  let verdict = null, bestD = Infinity;
-  for (const p of posIdx) { const d = Math.abs(p - first); if (d < bestD) { bestD = d; verdict = "positive"; } }
-  for (const av of avIdx) { const d = Math.abs(av - first); if (d < bestD || (d === bestD && verdict === "avoid")) { bestD = d; verdict = "avoid"; } }
-  return verdict;
+  // a marker governs the mention that follows it; fall back to the next marker
+  const markers = [...posIdx.map((i) => [i, "positive"]), ...avIdx.map((i) => [i, "avoid"])];
+  for (const at of hits) {
+    const before = markers.filter(([i]) => i <= at);
+    const pool = before.length ? before.map(([i, v]) => [at - i, v]) : markers.map(([i, v]) => [i - at, v]);
+    let verdict = null, bestD = Infinity;
+    for (const [d, v] of pool) if (d < bestD || (d === bestD && v === "avoid")) { bestD = d; verdict = v; }
+    if (verdict === "positive") out.positive = true; else if (verdict === "avoid") out.avoid = true;
+  }
+  return out;
 }
 function classify(text, lowerCombined, lowerWestern, lowerAnimal) {
-  const lower = text.toLowerCase();
+  const lower = normalize(text);
+  const combined = normalize(lowerCombined);
   const sentences = (lower.match(/[^.!?]+[.!?]+/g) || [lower]).map((x) => x.trim());
   const dims = { c: [false, false], w: [false, false], a: [false, false] };
   for (const s of sentences) {
-    const jc = mentionVerdict(s, lowerCombined);
-    const jw = mentionVerdict(s, lowerWestern);
-    const ja = mentionVerdict(s, lowerAnimal);
-    if (jc === "positive") dims.c[0] = true; else if (jc === "avoid") dims.c[1] = true;
-    if (jw === "positive") dims.w[0] = true; else if (jw === "avoid") dims.w[1] = true;
-    if (ja === "positive") dims.a[0] = true; else if (ja === "avoid") dims.a[1] = true;
+    const jc = mentionVerdicts(s, combined);
+    const jw = mentionVerdicts(s, lowerWestern);
+    const ja = mentionVerdicts(s, lowerAnimal);
+    if (jc.positive) dims.c[0] = true; if (jc.avoid) dims.c[1] = true;
+    if (jw.positive) dims.w[0] = true; if (jw.avoid) dims.w[1] = true;
+    if (ja.positive) dims.a[0] = true; if (ja.avoid) dims.a[1] = true;
   }
   const reduce = ([p, v]) => (p && v) ? "mixed" : p ? "positive" : v ? "avoid" : "unstated";
   return { combined: reduce(dims.c), western: reduce(dims.w), animal: reduce(dims.a) };
