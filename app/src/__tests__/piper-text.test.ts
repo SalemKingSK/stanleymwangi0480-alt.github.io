@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { splitClauses, phonemesToIds, finishAudio } from "@/lib/read-aloud/piper-text";
 import { voiceFiles } from "@/lib/read-aloud/neural-voice";
-import { NATURAL_VOICES } from "@/lib/read-aloud/voice-settings";
+import { APP_VOICE } from "@/lib/read-aloud/voice-settings";
+import fs from "node:fs";
+import path from "node:path";
 
 describe("Piper text handling", () => {
   it("cuts clauses at punctuation and keeps the mark for the voice's pauses", () => {
@@ -37,12 +39,15 @@ describe("Piper text handling", () => {
     expect(finishAudio(quiet, 1000, "A part,").length).toBe(3 + 100);
   });
 
-  it("every voice in the menu maps to a Piper voice file", () => {
-    for (const v of NATURAL_VOICES) {
-      const { model, config } = voiceFiles(v.id);
-      expect(model).toMatch(new RegExp(`^https://huggingface\\.co/rhasspy/piper-voices/resolve/main/en/en_(US|GB)/[a-z_]+/medium/${v.id}\\.onnx$`));
-      expect(config).toBe(`${model}.json`);
-    }
-    expect(new Set(NATURAL_VOICES.map((v) => v.id)).size).toBe(NATURAL_VOICES.length);
+  it("the voice ships with the app: its pieces are on the app's own site, each under the 25 MiB hosting limit", () => {
+    const { parts, config } = voiceFiles();
+    expect(parts).toHaveLength(APP_VOICE.parts.length);
+    for (const u of [...parts, config]) expect(u).toMatch(new RegExp(`^http://localhost/voice/${APP_VOICE.id}/`));
+    const dir = path.resolve(__dirname, "../../public/voice", APP_VOICE.id);
+    const sizes = APP_VOICE.parts.map((p) => fs.statSync(path.join(dir, p)).size);
+    for (const n of sizes) expect(n).toBeLessThan(25 * 1024 * 1024);
+    expect(sizes.reduce((a, b) => a + b, 0)).toBe(APP_VOICE.bytes);
+    const cfg = JSON.parse(fs.readFileSync(path.join(dir, APP_VOICE.config), "utf8"));
+    expect(cfg).toMatchObject({ audio: { sample_rate: 22050 }, espeak: { voice: "en-gb-x-rp" } });
   });
 });

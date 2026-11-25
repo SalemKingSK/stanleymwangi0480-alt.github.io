@@ -1,6 +1,6 @@
 /**
  * Test stand-ins for the Piper worker and Web Audio, so the reader can be
- * exercised without the 63 MB voice files. Generated "audio" encodes its text
+ * exercised without the voice files. Generated "audio" encodes its text
  * (one sample per character), so tests can tell which sentence played.
  * Also installs a speechSynthesis spy: the app must never use it.
  */

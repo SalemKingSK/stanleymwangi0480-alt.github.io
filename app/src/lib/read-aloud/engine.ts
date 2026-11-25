@@ -11,7 +11,7 @@
  * Browsers without that API fall back to outlining the paragraph.
  *
  * - Only one reading runs at a time; starting another stops the first.
- * - The voice downloads once on first use; reading starts when it's ready.
+ * - The voice is fetched with the app the first time it opens; reading starts when it's ready.
  * - While idle, the first sentence each Listen button would read is made in
  *   advance (prefetch), so pressing Listen plays at once.
  * - Upcoming sentences are generated while the current one plays. When the
@@ -552,7 +552,7 @@ class ReadAloudController {
     neuralVoice.stopPlayback();
 
     if (neuralVoice.getState().status !== "ready") {
-      // First use: wait for the one-time download, then start.
+      // Very first use: wait for the voice to finish arriving, then start.
       this.set({ waiting: true });
       neuralVoice.load().then(
         () => {

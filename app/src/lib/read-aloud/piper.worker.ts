@@ -2,13 +2,15 @@
 /**
  * Runs a Piper neural voice (VITS, ONNX) off the main thread.
  *
- * Messages in:  { type: "load", voice, model, config, size }
+ * Messages in:  { type: "load", voice, parts, config, size }
  *               { type: "generate", id, text, voice, speed }
  * Messages out: { type: "progress", voice, loaded, total }  |  { type: "ready", voice, rtf }
  *               { type: "audio", id, audio, sampleRate }  |  { type: "error", id?, voice?, message }
  *
- * Each voice is one ~63 MB file, downloaded once and kept in Cache Storage
- * ("mc-piper-voices"), so after the first use it works offline. Piper makes
+ * The voice ships with the app (public/voice/): its model is served from the
+ * app's own site in pieces (each under hosting file-size limits), fetched
+ * once — in the background when the app first opens — and kept in Cache
+ * Storage ("mc-piper-voices"), so it then works offline. Piper makes
  * a whole sentence in one pass, several times faster than it is spoken even
  * on a phone processor, which is why the reading flows without waits.
  * Messages are handled one at a time, in order.
@@ -22,7 +24,7 @@ import ortMjsUrl from "../../../node_modules/onnxruntime-web/dist/ort-wasm-simd-
 import { splitClauses, phonemesToIds, finishAudio, type PiperConfig } from "./piper-text";
 
 type InMsg =
-  | { type: "load"; voice: string; model: string; config: string; size?: number }
+  | { type: "load"; voice: string; parts: string[]; config: string; size?: number }
   | { type: "generate"; id: number; text: string; voice: string; speed: number };
 
 interface Loaded {
@@ -41,6 +43,31 @@ ort.env.wasm.wasmPaths = {
 ort.env.wasm.numThreads = 1; // one worker = one core; the page runs a second worker for more
 
 let current: Loaded | null = null;
+
+/** The model's pieces, joined, with progress over all of them. */
+async function downloadParts(urls: string[], size: number, onProgress: (loaded: number, total: number) => void): Promise<Uint8Array> {
+  const done: number[] = urls.map(() => 0);
+  const report = () => onProgress(done.reduce((a, b) => a + b, 0), size);
+  const bufs = await Promise.all(
+    urls.map((url, i) =>
+      download(url, Math.round(size / urls.length), (loaded) => {
+        done[i] = loaded;
+        report();
+      }).then((b) => {
+        done[i] = b.byteLength;
+        report();
+        return new Uint8Array(b);
+      }),
+    ),
+  );
+  const out = new Uint8Array(bufs.reduce((a, b) => a + b.length, 0));
+  let at = 0;
+  for (const b of bufs) {
+    out.set(b, at);
+    at += b.length;
+  }
+  return out;
+}
 
 async function download(url: string, size: number, onProgress?: (loaded: number, total: number) => void): Promise<ArrayBuffer> {
   let cache: Cache | null = null;
@@ -112,8 +139,17 @@ async function load(msg: Extract<InMsg, { type: "load" }>) {
     return;
   }
   const config = JSON.parse(new TextDecoder().decode(await download(msg.config, 6000))) as PiperConfig;
-  const model = await download(msg.model, msg.size ?? 63_201_294, (loaded, total) => ctx.postMessage({ type: "progress", voice: msg.voice, loaded, total }));
-  const session = await ort.InferenceSession.create(new Uint8Array(model), { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
+  const total = msg.size ?? 0;
+  const model = await downloadParts(msg.parts, total, (loaded, all) => ctx.postMessage({ type: "progress", voice: msg.voice, loaded, total: Math.max(all, loaded) }));
+  if (total && model.length !== total) {
+    // A damaged copy: forget it so the next try fetches it afresh.
+    await caches
+      .open(CACHE)
+      .then((c) => Promise.all(msg.parts.map((u) => c.delete(u))))
+      .catch(() => {});
+    throw new Error("the voice file was incomplete");
+  }
+  const session = await ort.InferenceSession.create(model, { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
   const old = current;
   current = { voice: msg.voice, session, cfg: config };
   if (old) void old.session.release().catch(() => {});

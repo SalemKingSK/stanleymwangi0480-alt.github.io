@@ -40,8 +40,8 @@ const idle = (fn: () => void) => {
 
 /**
  * Gets the voice ready before Listen is tapped: prepares the audio output on
- * the first touch, starts an already downloaded voice once the app has
- * settled (not on low battery), then — whenever nothing is
+ * the first touch, starts the app's voice (fetching it the first time) once
+ * the app has settled (not on low battery), then — whenever nothing is
  * being read and the screen has settled (after scrolling, a tap, a voice or
  * speed change) — prepares the first sentence each Listen button would read.
  */
@@ -150,7 +150,7 @@ export function ReadAloudDock() {
     : voice.status === "loading"
       ? voice.progress >= 0.999
         ? "Starting the voice…"
-        : `Downloading the voice… ${Math.round(voice.progress * 100)}% (one-time ${voice.sizeLabel})`
+        : `Getting the voice ready… ${Math.round(voice.progress * 100)}% (first time only)`
       : state.waiting && state.status === "playing"
         ? "Preparing speech…"
         : null;
@@ -162,8 +162,8 @@ export function ReadAloudDock() {
       onClick={() => setMenuOpen((o) => !o)}
       aria-expanded={menuOpen}
       aria-haspopup="dialog"
-      aria-label="Choose voice and speed"
-      title="Choose voice and speed"
+      aria-label="Voice and speed"
+      title="Voice and speed"
     >
       <AudioLines size={16} />
     </button>

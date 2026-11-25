@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { Check, X } from "lucide-react";
+import { X } from "lucide-react";
 import { readAloud } from "@/lib/read-aloud/engine";
-import { voiceSettings, NATURAL_VOICES } from "@/lib/read-aloud/voice-settings";
+import { voiceSettings, APP_VOICE } from "@/lib/read-aloud/voice-settings";
 import { useNeuralVoiceState } from "@/hooks/use-neural-voice";
 import { useVoiceSettings } from "@/hooks/use-voice-settings";
 
@@ -17,43 +17,10 @@ const sectionTitle: React.CSSProperties = {
   color: dim,
 };
 
-function Row({ selected, title, detail, onPick }: { selected: boolean; title: string; detail?: string; onPick: () => void }) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={onPick}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        width: "100%",
-        textAlign: "left",
-        padding: "0.45rem 0.55rem",
-        marginBottom: 2,
-        borderRadius: 10,
-        border: selected ? "1px solid rgba(212,175,55,0.7)" : "1px solid transparent",
-        background: selected ? "rgba(212,175,55,0.16)" : "rgba(255,255,255,0.03)",
-        color: gold,
-        cursor: "pointer",
-        fontSize: "0.78rem",
-      }}
-    >
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: "block" }}>{title}</span>
-        {detail && <span style={{ display: "block", fontSize: "0.66rem", color: dim }}>{detail}</span>}
-      </span>
-      {selected && <Check size={15} aria-hidden="true" />}
-    </button>
-  );
-}
-
 /**
- * Voice menu for the read-aloud player: the Piper voices and speed, plus the
- * voice's download status. Picking a voice plays it straight away (restarting
- * the current sentence, or a short sample); a voice not used before is
- * downloaded first (once).
+ * Voice menu for the read-aloud player: the app's voice (Jenny, credited as
+ * its licence asks), its status, and the reading speed. Changing the speed
+ * plays it straight away (restarting the current sentence, or a short sample).
  */
 export function VoicePicker({ onClose }: { onClose: () => void }) {
   const voice = useNeuralVoiceState();
@@ -78,10 +45,6 @@ export function VoicePicker({ onClose }: { onClose: () => void }) {
     };
   }, [onClose]);
 
-  const pick = (id: string) => {
-    voiceSettings.set({ naturalVoice: id });
-    readAloud.voiceChanged();
-  };
   // Speed: apply after the thumb settles, not on every step.
   const setRate = (rate: number) => {
     voiceSettings.set({ rate });
@@ -91,20 +54,20 @@ export function VoicePicker({ onClose }: { onClose: () => void }) {
 
   const status =
     voice.status === "ready"
-      ? "Ready · works offline · made on this device"
+      ? "Ready · works offline"
       : voice.status === "loading"
         ? voice.progress >= 0.999
           ? "Starting the voice…"
-          : `Downloading the voice… ${Math.round(voice.progress * 100)}% (one-time ${voice.sizeLabel})`
+          : `Getting the voice ready… ${Math.round(voice.progress * 100)}% (first time only)`
         : voice.status === "error"
-          ? `The voice couldn't load${voice.error ? ` (${voice.error})` : ""}. Check your connection, then pick a voice to try again.`
-          : `One-time ${voice.sizeLabel} download per voice the first time you listen, then it works offline.`;
+          ? `The voice couldn't load${voice.error ? ` (${voice.error})` : ""}. Check your connection; tap Listen to try again.`
+          : "Gets ready by itself when the app opens.";
 
   return (
     <div
       ref={panel}
       role="dialog"
-      aria-label="Choose a voice"
+      aria-label="Voice and speed"
       style={{
         position: "absolute",
         bottom: "calc(100% + 10px)",
@@ -132,17 +95,9 @@ export function VoicePicker({ onClose }: { onClose: () => void }) {
         {status}
       </div>
 
-      <div role="radiogroup" aria-label="Voices">
-        <div style={sectionTitle}>Voices</div>
-        {NATURAL_VOICES.map((v) => (
-          <Row
-            key={v.id}
-            selected={settings.naturalVoice === v.id}
-            title={`${v.name}${v.note ? ` · ${v.note}` : ""}`}
-            detail={`${v.accent} ${v.gender.toLowerCase()}`}
-            onPick={() => pick(v.id)}
-          />
-        ))}
+      <div style={{ margin: "0.5rem 0 0.2rem", padding: "0.55rem 0.65rem", borderRadius: 10, border: "1px solid rgba(212,175,55,0.45)", background: "rgba(212,175,55,0.12)" }}>
+        <div style={{ fontSize: "0.82rem", color: gold }}>{APP_VOICE.credit}</div>
+        <div style={{ fontSize: "0.66rem", color: dim }}>{APP_VOICE.description}</div>
       </div>
 
       <div style={sectionTitle}>Speed</div>

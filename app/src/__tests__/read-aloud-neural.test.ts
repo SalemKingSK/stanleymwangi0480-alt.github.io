@@ -23,19 +23,19 @@ describe("the voice (Piper, on the device) is the only voice", () => {
     expect(localStorage.getItem("mc-voice")).toBeNull();
   });
 
-  it("first Listen downloads the default voice, shows it's waiting, then reads with it", async () => {
+  it("first Listen (if the voice is still arriving) waits for it, shows it's waiting, then reads with it", async () => {
     fake.autoReady = false;
     expect(neuralVoice.getState().status).toBe("idle");
     const root = mount(`<p>One. Two. Three. Four. Five. Six. Seven.</p>`);
     readAloud.start("t", root);
     await tick();
     expect(neuralVoice.getState().status).toBe("loading");
-    expect(NEURAL_VOICE).toBe("en_US-lessac-medium");
+    expect(NEURAL_VOICE).toBe("jenny-dioco-v1");
     expect(fake.worker!.sent[0]).toMatchObject({
       type: "load",
       voice: NEURAL_VOICE,
-      model: "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx",
-      config: "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json",
+      parts: [expect.stringMatching(/\/voice\/jenny-dioco-v1\/model\.onnx\.part0$/), expect.stringMatching(/\/voice\/jenny-dioco-v1\/model\.onnx\.part1$/)],
+      config: expect.stringMatching(/\/voice\/jenny-dioco-v1\/config\.json$/),
     });
     expect(readAloud.getState()).toMatchObject({ status: "playing", index: 0, waiting: true });
     expect(fake.played).toHaveLength(0); // nothing else speaks meanwhile
@@ -71,41 +71,24 @@ describe("the voice (Piper, on the device) is the only voice", () => {
     expect(generated().length).toBe(before);
   });
 
-  it("speaks with the voice picked in the menu, and switching loads and reads in the new voice", async () => {
-    voiceSettings.set({ naturalVoice: "en_US-ryan-medium" });
-    try {
-      readAloud.start("t", mount(`<p>Picked voice.</p>`));
-      await tick();
-      expect(generated().at(-1)).toMatchObject({ text: "Picked voice.", voice: "en_US-ryan-medium" });
-      fake.autoReady = false;
-      voiceSettings.set({ naturalVoice: "en_GB-jenny_dioco-medium" });
-      readAloud.voiceChanged();
-      await tick();
-      // the new voice is fetched (once) and the reader waits for it
-      expect(fake.worker!.sent.at(-1)).toMatchObject({ type: "load", voice: "en_GB-jenny_dioco-medium", model: expect.stringContaining("/en/en_GB/jenny_dioco/medium/") });
-      expect(neuralVoice.getState()).toMatchObject({ status: "loading", voice: "en_GB-jenny_dioco-medium" });
-      expect(readAloud.getState()).toMatchObject({ status: "playing", waiting: true });
-      fake.worker!.emit({ type: "ready", voice: "en_GB-jenny_dioco-medium", rtf: 0.1 });
-      await tick();
-      expect(generated().at(-1)).toMatchObject({ text: "Picked voice.", voice: "en_GB-jenny_dioco-medium" });
-      expect(fake.played).toHaveLength(2);
-      expect(fake.played[0].stopped).toBe(true);
-    } finally {
-      fake.autoReady = true;
-      voiceSettings.set({ naturalVoice: NEURAL_VOICE });
-      await tick();
-    }
+  it("speaks in the app's one voice, fetched from the app's own site", async () => {
+    readAloud.start("t", mount(`<p>App voice.</p>`));
+    await tick();
+    expect(generated().at(-1)).toMatchObject({ text: "App voice.", voice: NEURAL_VOICE });
+    const load = fake.workers[0].sent.find((m) => m.type === "load")!;
+    expect(load).toMatchObject({ voice: NEURAL_VOICE, parts: [expect.stringContaining("/voice/jenny-dioco-v1/model.onnx.part0"), expect.stringContaining("part1")], config: expect.stringContaining("/voice/jenny-dioco-v1/config.json") });
+    expect(JSON.stringify(load)).not.toMatch(/huggingface/);
   });
 
-  it("when idle, picking a voice or speed plays a short sample", async () => {
-    voiceSettings.set({ naturalVoice: "en_GB-alba-medium", rate: 1.2 });
+  it("when idle, changing the speed plays a short sample", async () => {
+    voiceSettings.set({ rate: 1.2 });
     try {
       readAloud.voiceChanged();
       await tick();
-      expect(generated().at(-1)).toMatchObject({ voice: "en_GB-alba-medium", speed: 1.2 });
+      expect(generated().at(-1)).toMatchObject({ voice: NEURAL_VOICE, speed: 1.2 });
       expect(lastPlayed()).toMatch(/^Hello\./);
     } finally {
-      voiceSettings.set({ naturalVoice: NEURAL_VOICE, rate: 1 });
+      voiceSettings.set({ rate: 1 });
       await tick();
     }
   });
@@ -218,13 +201,15 @@ describe("speed: no waiting between sentences", () => {
   it("where a second worker helps (4+ cores), the next sentences are made in parallel", async () => {
     Object.defineProperty(navigator, "hardwareConcurrency", { value: 8, configurable: true });
     fake.rtf = 0.5;
-    voiceSettings.set({ naturalVoice: "en_US-amy-medium" });
+    // start afresh, as when the app opens on this phone
+    fake.worker!.onerror?.({ message: "restart", preventDefault() {} } as ErrorEvent);
+    expect(neuralVoice.getState().status).toBe("error");
     await neuralVoice.load();
     await tick();
     expect(neuralVoice.getState()).toMatchObject({ status: "ready", workers: 2 });
     const live = fake.workers.filter((w) => !w.terminated);
     expect(live).toHaveLength(2);
-    expect(live[1].sent[0]).toMatchObject({ type: "load", voice: "en_US-amy-medium" });
+    expect(live[1].sent[0]).toMatchObject({ type: "load", voice: NEURAL_VOICE });
 
     readAloud.start("t", mount(`<p>One. Two. Three. Four.</p>`));
     await tick();
@@ -233,8 +218,6 @@ describe("speed: no waiting between sentences", () => {
     for (const w of live) expect(w.sent.some((m) => m.type === "generate")).toBe(true);
     await endClip();
     expect(lastPlayed()).toBe("Two.");
-    voiceSettings.set({ naturalVoice: NEURAL_VOICE });
-    await tick();
   });
 
   it("advance work uses one worker at a time, so a tap on Listen starts at once", async () => {

@@ -1,7 +1,7 @@
 /**
- * The read-aloud voice: Piper neural voices (rhasspy/piper-voices), generated
- * on the device. It is the app's only voice — the browser's built-in speech
- * is not used.
+ * The read-aloud voice: "Jenny (Dioco)", a Piper neural voice that ships with
+ * the app (public/voice/) and speaks on the device. It is the app's only
+ * voice — the browser's built-in speech is not used.
  *
  * Piper (VITS) makes a whole sentence in a single pass, several times faster
  * than it's spoken on a phone processor, so reading flows from sentence to
@@ -10,12 +10,13 @@
  *
  * The voice runs in Web Workers (piper.worker.ts). On devices with 4+ cores a
  * second worker starts once the first is ready and makes the next sentences
- * in parallel, so the reader stays well ahead of the speech. Each voice is a
- * one-time ~63 MB download, kept for offline use (the last few voices used).
+ * in parallel, so the reader stays well ahead of the speech. Its ~32 MB model
+ * comes from the app's own site the first time the app opens (in the
+ * background, like the rest of the app) and is then kept for offline use.
  *
  * To start reading the moment Listen is tapped:
- * - warmUp(): once the app has settled, a voice that is already downloaded
- *   is started in the background (no download is ever started unasked);
+ * - warmUp(): once the app has settled, the voice starts in the background
+ *   (fetching it with the app the very first time);
  * - prefetch(): while nothing is being read, the opening of what each
  *   Listen button would read is made in advance and kept ready (on one
  *   worker at a time; dropped when it scrolls out of view);
@@ -24,15 +25,11 @@
  *   early, so even something not prepared starts sooner.
  */
 import { chunkForSpeech } from "./split-sentences";
-import { voiceSettings, NATURAL_VOICES } from "./voice-settings";
+import { APP_VOICE } from "./voice-settings";
 
-/** Default voice. */
-export const NEURAL_VOICE = NATURAL_VOICES[0].id;
-const VOICE_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/main/";
-const VOICE_BYTES = 63_201_294;
+/** The app's voice. */
+export const NEURAL_VOICE = APP_VOICE.id;
 const VOICE_CACHE = "mc-piper-voices";
-const RECENT_KEY = "mc-voice-recent";
-const KEEP_VOICES = 3;
 const MAX_PART = 180; // characters per model call; parts play as they're ready
 /** A reading's first part ends at the first clause break within this many characters. */
 const OPENING_MAX = 80;
@@ -49,7 +46,7 @@ export interface NeuralState {
   progress: number;
   /** Voice id in use (or being loaded). */
   voice: string;
-  /** One-time download size of a voice, for labels. */
+  /** Size of the voice's model, for labels. */
   sizeLabel: string;
   /** Seconds of work per second of speech, from the warm-up (0 = unknown). */
   rtf: number;
@@ -97,11 +94,11 @@ function nav(): (Navigator & { deviceMemory?: number; audioSession?: { type: str
   return typeof navigator === "undefined" ? null : (navigator as never);
 }
 
-/** Download addresses of a voice, e.g. en_US-lessac-medium → en/en_US/lessac/medium/… */
-export function voiceFiles(id: string): { model: string; config: string } {
-  const [locale, speaker, quality] = id.split("-");
-  const dir = `${VOICE_BASE}${locale.split("_")[0]}/${locale}/${speaker}/${quality}/${id}.onnx`;
-  return { model: dir, config: `${dir}.json` };
+/** Addresses of the voice's files on the app's own site (absolute, for the worker). */
+export function voiceFiles(): { parts: string[]; config: string } {
+  const base = typeof location === "undefined" ? "http://localhost/" : location.href;
+  const dir = new URL(`${import.meta.env.BASE_URL ?? "/"}voice/${APP_VOICE.id}/`, base).href;
+  return { parts: APP_VOICE.parts.map((p) => dir + p), config: dir + APP_VOICE.config };
 }
 
 /** 2 workers where there are cores and memory to spare, else 1. */
@@ -112,18 +109,14 @@ function poolLimit(): number {
   return cores >= 4 && memory >= 3 ? 2 : 1;
 }
 
-function currentVoice(): string {
-  const id = voiceSettings.get().naturalVoice;
-  return NATURAL_VOICES.some((v) => v.id === id) ? id : NEURAL_VOICE;
-}
-
-// Leftovers from earlier versions: the device-voice settings and the Kokoro
-// model (92–325 MB) — free that storage.
+// Leftovers from earlier versions: the device-voice settings, the voice
+// list, and the Kokoro model (92–325 MB) — free that storage.
 function dropOldVersions() {
   try {
     localStorage.removeItem("mc-voice");
     localStorage.removeItem("mc-voice-speed");
     localStorage.removeItem("mc-voice-device");
+    localStorage.removeItem("mc-voice-recent");
   } catch {
     /* private mode */
   }
@@ -149,19 +142,12 @@ async function lowBattery(): Promise<boolean> {
   }
 }
 
-/** Keep the last few voices used offline; delete older downloads. */
-async function pruneVoices(voice: string) {
+/** Delete voices downloaded by earlier versions (63 MB each); keep the app's. */
+async function dropOtherVoices() {
   try {
-    let recent: string[] = [];
-    try {
-      recent = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
-    } catch {
-      recent = [];
-    }
-    recent = [voice, ...recent.filter((v) => v !== voice)].slice(0, KEEP_VOICES);
-    localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
     if (typeof caches === "undefined") return;
-    const keep = new Set(recent.flatMap((v) => Object.values(voiceFiles(v))));
+    const files = voiceFiles();
+    const keep = new Set([...files.parts, files.config]);
     const cache = await caches.open(VOICE_CACHE);
     const keys = await cache.keys();
     await Promise.all(keys.filter((k) => !keep.has(k.url)).map((k) => cache.delete(k)));
@@ -194,17 +180,12 @@ class NeuralVoice {
           if (document.visibilityState === "visible") void this.warmUp();
         });
       }
-      // A different voice picked while one is loaded: switch to it.
-      voiceSettings.subscribe(() => {
-        const voice = currentVoice();
-        if ((this.state.status === "ready" || this.state.status === "loading") && voice !== this.state.voice) void this.start(voice);
-      });
     }
     this.state = {
       status: capable ? "idle" : "unsupported",
       progress: 0,
-      voice: currentVoice(),
-      sizeLabel: "63 MB",
+      voice: NEURAL_VOICE,
+      sizeLabel: "32 MB",
       rtf: 0,
       workers: 0,
       error: null,
@@ -231,10 +212,10 @@ class NeuralVoice {
     this.listeners.forEach((fn) => fn(this.state));
   }
 
-  /** Download (once) and start the chosen voice. Resolves when it can speak. */
+  /** Fetch (first time only) and start the voice. Resolves when it can speak. */
   load(): Promise<void> {
     if (this.state.status === "unsupported") return Promise.reject(new Error("This browser can't run the voice"));
-    const voice = currentVoice();
+    const voice = NEURAL_VOICE;
     if (this.ready && voice === this.state.voice && (this.state.status === "ready" || this.state.status === "loading")) return this.ready;
     return this.start(voice);
   }
@@ -274,7 +255,7 @@ class NeuralVoice {
 
   private loadInto(slot: Slot, voice: string) {
     slot.voice = null;
-    slot.worker.postMessage({ type: "load", voice, ...voiceFiles(voice), size: VOICE_BYTES });
+    slot.worker.postMessage({ type: "load", voice, ...voiceFiles(), size: APP_VOICE.bytes });
   }
 
   private onMessage(slot: Slot, msg: WorkerMsg) {
@@ -289,7 +270,7 @@ class NeuralVoice {
         this.readyHooks?.resolve();
         this.readyHooks = null;
         void nav()?.storage?.persist?.().catch(() => {}); // ask the browser to keep the download
-        void pruneVoices(msg.voice);
+        void dropOtherVoices();
       }
       // Now the file is cached, a second worker can start from it quickly.
       if (slot.primary && this.slots.length < poolLimit() && rtf > PARALLEL_RTF) {
@@ -414,26 +395,19 @@ class NeuralVoice {
   }
 
   /**
-   * Start a voice that is already downloaded, in the background, so the
-   * first Listen doesn't wait for it. Never downloads.
+   * Start the voice in the background, so the first Listen doesn't wait for
+   * it. The very first time, this also fetches it from the app's site, the
+   * way the rest of the app is fetched.
    */
   async warmUp(): Promise<void> {
     if (this.state.status !== "idle") return;
     if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
     if (await lowBattery()) return; // it starts on the first Listen instead
-    const voice = currentVoice();
-    try {
-      if (typeof caches === "undefined") return;
-      const cache = await caches.open(VOICE_CACHE);
-      if (!(await cache.match(voiceFiles(voice).model))) return;
-    } catch {
-      return;
-    }
     // Audio output too, so the Listen tap only has to resume it (parked
     // suspended, so it doesn't interrupt other apps' sound).
     this.primeAudio();
     if (this.state.status !== "idle") return;
-    void this.start(voice).catch(() => {});
+    void this.start(NEURAL_VOICE).catch(() => {});
   }
 
   /**
