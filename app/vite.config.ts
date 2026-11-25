@@ -29,7 +29,8 @@ export default defineConfig({
         // false = the new worker waits; src/lib/sw-update.ts shows an
         // "update available" toast and sends SKIP_WAITING when accepted.
         skipWaiting: false,
-        importScripts: ['/sw-cleanup.js'],
+        // bump ?v= when sw-cleanup.js changes so every browser re-checks it
+        importScripts: ['/sw-cleanup.js?v=2'],
         runtimeCaching: [
           {
             urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/assets/'),
