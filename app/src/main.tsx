@@ -10,7 +10,7 @@ import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "./index.css";
 import { initUsageTracking } from "./lib/usage-tracker";
-import { registerServiceWorker } from "./lib/sw-update";
+import { registerServiceWorker, recoverFromMissingCode } from "./lib/sw-update";
 import { installRevealTop } from "./lib/reveal-top";
 
 // ─── Anonymous install/usage tracking (no login) ─────────────────────────────
@@ -38,6 +38,13 @@ window.addEventListener("beforeinstallprompt", (e) => {
   window.dispatchEvent(new CustomEvent("pwa-prompt-ready"));
 });
 // ────────────────────────────────────────────────────────────────────────────
+
+// Code that can't be loaded (this page is an older version whose files were
+// replaced): switch to the newest version instead of failing.
+window.addEventListener("vite:preloadError", (event) => {
+  event.preventDefault();
+  void recoverFromMissingCode();
+});
 
 // Anything opened (collapsibles, compartments, layers) is shown from its top.
 installRevealTop();

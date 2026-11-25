@@ -1,3 +1,4 @@
+import { onAppIdle } from "@/lib/app-loading";
 import { useCallback, useEffect, useState } from "react";
 import { AudioLines, Headphones, Pause, Play, Square, SkipBack, SkipForward } from "lucide-react";
 import { readAloud, type ReadTarget } from "@/lib/read-aloud/engine";
@@ -52,6 +53,7 @@ function usePrepareVoice() {
       timer = null;
       if (document.visibilityState === "hidden") return;
       idle(() => {
+        void neuralVoice.warmUp(); // if it held off earlier (the reading was loading)
         try {
           readAloud.prefetch(likelyTargets());
         } catch {
@@ -83,6 +85,7 @@ function usePrepareVoice() {
       if (s.status === "idle") schedule(1000);
     });
     const offSettings = voiceSettings.subscribe(() => schedule(1500));
+    const offIdle = onAppIdle(() => schedule(1500)); // the reading arrived: carry on preparing
     window.addEventListener("scroll", onScroll, { passive: true, capture: true });
     window.addEventListener("resize", onScroll, { passive: true });
     document.addEventListener("click", onTap, true);
@@ -94,6 +97,7 @@ function usePrepareVoice() {
       offVoice();
       offReader();
       offSettings();
+      offIdle();
       window.removeEventListener("scroll", onScroll, { capture: true });
       window.removeEventListener("resize", onScroll);
       document.removeEventListener("click", onTap, true);

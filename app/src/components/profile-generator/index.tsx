@@ -17,14 +17,65 @@ import type {
 } from "./types";
 import { ProfileForm } from "./profile-form";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { whileLoading, noteReadingCodeReady } from "@/lib/app-loading";
+import { recoverFromMissingCode } from "@/lib/sw-update";
 import { DeleteSoulDialog, RenameSoulDialog } from "./archivum-dialogs";
 import { TodayCard } from "./today-card";
 // The results screen and the calculation engines are big (megabytes of
 // interpretation text). Load them only when someone actually asks for a
 // reading, so the first screen opens fast on mobile data.
-const ResultsDisplay = React.lazy(() =>
-  import("./results-display").then((m) => ({ default: m.ResultsDisplay })),
-);
+//
+// Loading it is user-awaited (whileLoading: the voice's first download holds
+// off meanwhile), retried on a flaky connection, and — if the file is gone
+// because this page is an older version — the app switches to the newest
+// version and reloads instead of hanging on "Unfolding your reading…".
+let resultsModule: Promise<typeof import("./results-display")> | null = null;
+// The background warm-up never reloads (the user may be typing); only the
+// load they are waiting on does.
+let awaited = false;
+function loadResults(userWaiting = true) {
+  if (userWaiting) awaited = true;
+  resultsModule ??= whileLoading(async () => {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const m = await import("./results-display");
+        noteReadingCodeReady();
+        return m;
+      } catch (err) {
+        if (attempt >= 3) {
+          if (awaited) void recoverFromMissingCode();
+          throw err;
+        }
+        await new Promise((r) => setTimeout(r, 800 * attempt));
+      }
+    }
+  });
+  resultsModule.catch(() => (resultsModule = null)); // a later try starts afresh
+  return resultsModule;
+}
+const ResultsDisplay = React.lazy(() => loadResults().then((m) => ({ default: m.ResultsDisplay })));
+
+/** Shown while the reading's code arrives; says so if a slow connection holds it up. */
+function UnfoldingReading() {
+  const [slow, setSlow] = React.useState(false);
+  React.useEffect(() => {
+    const t = setTimeout(() => setSlow(true), 15_000);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div className="py-24 text-center font-cinzel text-xs uppercase tracking-widest text-slate-400">
+      Unfolding your reading…
+      {slow && (
+        <div className="mt-4 normal-case tracking-normal font-sans text-sm text-slate-300">
+          <p>This is taking longer than usual — the connection may be slow.</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-3 underline underline-offset-4 text-amber-200">
+            Try again
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 const loadActions = () => import("@/lib/actions");
 import type { FamousPerson } from "@/lib/famous-birthdays";
 import {
@@ -57,7 +108,11 @@ export function ProfileGenerator() {
   React.useEffect(() => {
     // Warm the engine chunk in the background once the form is idle.
     const w = window as any;
-    const warm = () => { void loadActions(); void import("./results-display"); };
+    // (Counted as user-awaited loading, so the voice's first download waits.)
+    const warm = () => {
+      void whileLoading(loadActions).catch(() => {});
+      void loadResults(false).catch(() => {});
+    };
     const id = w.requestIdleCallback ? w.requestIdleCallback(warm, { timeout: 4000 }) : setTimeout(warm, 2500);
     return () => (w.cancelIdleCallback ? w.cancelIdleCallback(id) : clearTimeout(id));
   }, []);
@@ -344,7 +399,7 @@ export function ProfileGenerator() {
       void (async () => {
         let result: Awaited<ReturnType<typeof import("@/lib/actions").getAstroInsightAction>>;
         try {
-          const { getAstroInsightAction } = await loadActions();
+          const { getAstroInsightAction } = await whileLoading(loadActions);
           result = await getAstroInsightAction(data);
         } catch {
           result = { success: false, error: "Couldn't load the reading engine. Check your connection and try again." } as any;
@@ -400,11 +455,7 @@ export function ProfileGenerator() {
         {insight && numerology ? (
           <motion.div key="results">
             <React.Suspense
-              fallback={
-                <div className="py-24 text-center font-cinzel text-xs uppercase tracking-widest text-slate-400">
-                  Unfolding your reading…
-                </div>
-              }
+              fallback={<UnfoldingReading />}
             >
               <ErrorBoundary label="Your reading" onReset={handleReset}>
                 <ResultsDisplay

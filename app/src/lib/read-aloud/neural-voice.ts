@@ -25,6 +25,7 @@
 import { chunkForSpeech } from "./split-sentences";
 import { APP_VOICE } from "./voice-settings";
 import { clipStore } from "./clip-store";
+import { appBusy, readingCodeReady } from "../app-loading";
 
 /** The app's voice. */
 export const NEURAL_VOICE = APP_VOICE.id;
@@ -131,6 +132,29 @@ function dropOldVersions() {
   } catch {
     /* storage unavailable */
   }
+}
+
+/** The voice's files are on the device already (fetched on an earlier visit). */
+async function voiceCached(): Promise<boolean> {
+  try {
+    if (typeof caches === "undefined") return false;
+    const cache = await caches.open(VOICE_CACHE);
+    const { parts, config } = voiceFiles();
+    for (const url of [...parts, config]) if (!(await cache.match(url))) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Fast enough for a background download of tens of megabytes (unknown = yes). */
+function goodConnection(): boolean {
+  const c = (nav() as unknown as { connection?: { saveData?: boolean; effectiveType?: string; downlink?: number } } | null)?.connection;
+  if (!c) return true;
+  if (c.saveData) return false;
+  if (c.effectiveType && c.effectiveType !== "4g") return false;
+  if (typeof c.downlink === "number" && c.downlink > 0 && c.downlink < 1.5) return false;
+  return true;
 }
 
 /** Battery under 20% and not charging (where the browser tells). */
@@ -426,8 +450,15 @@ class NeuralVoice {
   async warmUp(): Promise<void> {
     if (this.state.status !== "idle") return;
     if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+    // Never compete with what the user is waiting for (the reading's code).
+    if (appBusy()) return;
     this.batteryLow = await lowBattery();
     if (this.batteryLow) return; // it starts on the first Listen instead
+    // The voice's first download (~45 MB with its engine) only once the
+    // reading has arrived, and only on a good connection without Data Saver;
+    // otherwise the first Listen fetches it.
+    if (!(await voiceCached()) && (!readingCodeReady() || !goodConnection())) return;
+    if (appBusy()) return;
     // Audio output too, so the Listen tap only has to resume it (parked
     // suspended, so it doesn't interrupt other apps' sound).
     this.primeAudio();

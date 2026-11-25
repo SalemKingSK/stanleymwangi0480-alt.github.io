@@ -39,6 +39,10 @@ jobs:
       - name: Tests and validators
         run: npm run validate
       - run: npm run build
+      # Installed copies of earlier versions still ask for their own files; keep
+      # them available (never overwriting this build's).
+      - name: Keep earlier versions' files
+        run: cp -rn ../assets/. dist/assets/
       - name: Deploy to Cloudflare Pages
         if: env.HAS_CF == 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: cloudflare/wrangler-action@v3

@@ -16,9 +16,23 @@ Object.assign(globalThis, {
 const { neuralVoice, NEURAL_VOICE } = await import("@/lib/read-aloud/neural-voice");
 const { ReadAloudDock } = await import("@/components/read-aloud/read-aloud-dock");
 const { readAloud } = await import("@/lib/read-aloud/engine");
+const appLoading = await import("@/lib/app-loading");
 
 describe("getting the voice ready before Listen is tapped", () => {
-  beforeEach(() => resetFakes());
+  beforeEach(() => {
+    resetFakes();
+    appLoading.resetAppLoading();
+    appLoading.noteReadingCodeReady(); // the app has finished loading the reading's code
+  });
+
+  it("on a slow connection or Data Saver, the voice's first download waits for the first Listen", async () => {
+    for (const connection of [{ effectiveType: "3g" }, { effectiveType: "4g", saveData: true }]) {
+      Object.defineProperty(navigator, "connection", { value: connection, configurable: true });
+      await neuralVoice.warmUp();
+      expect(neuralVoice.getState().status).toBe("idle");
+    }
+    Object.defineProperty(navigator, "connection", { value: undefined, configurable: true });
+  });
 
   it("on low battery (not charging) it waits for the first Listen instead", async () => {
     Object.assign(navigator, { getBattery: async () => ({ level: 0.12, charging: false }) });

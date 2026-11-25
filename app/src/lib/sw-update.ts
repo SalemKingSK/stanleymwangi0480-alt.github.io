@@ -26,6 +26,43 @@ export function applyUpdate(): void {
   waitingWorker.postMessage({ type: "SKIP_WAITING" });
 }
 
+let registered: ServiceWorkerRegistration | null = null;
+const RECOVER_KEY = "mc-recovered-at";
+
+/**
+ * Part of the app's code couldn't be loaded — almost always because this
+ * page is an older version whose files have since been replaced. Switch to
+ * the newest version (activating the waiting worker, or fetching it first)
+ * and reload; at most once a minute, so a real outage can't loop.
+ */
+export async function recoverFromMissingCode(): Promise<boolean> {
+  // Offline, nothing is "missing" — reloading would only lose the user's place.
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
+  try {
+    const last = Number(sessionStorage.getItem(RECOVER_KEY) || 0);
+    if (Date.now() - last < 60_000) return false;
+    sessionStorage.setItem(RECOVER_KEY, String(Date.now()));
+  } catch {
+    /* private mode: still try once */
+  }
+  try {
+    if (!waitingWorker && registered) {
+      await registered.update().catch(() => {});
+      await new Promise((r) => setTimeout(r, 1500)); // let a new version install
+      if (registered.waiting) waitingWorker = registered.waiting;
+    }
+  } catch {
+    /* fall through to a plain reload */
+  }
+  if (waitingWorker) {
+    waitingWorker.postMessage({ type: "SKIP_WAITING" }); // controllerchange reloads
+    setTimeout(() => window.location.reload(), 3000); // in case it doesn't
+  } else {
+    window.location.reload();
+  }
+  return true;
+}
+
 function announce(worker: ServiceWorker) {
   waitingWorker = worker;
   listeners.forEach((fn) => fn(applyUpdate));
@@ -58,7 +95,14 @@ function watch(registration: ServiceWorkerRegistration) {
 export function registerServiceWorker(): void {
   if (!("serviceWorker" in navigator)) return;
 
+  // The very first install taking control isn't a version change — the page
+  // already is that version — so don't reload (it would wipe what's typed).
+  let hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController) {
+      hadController = true;
+      return;
+    }
     if (reloading) return;
     reloading = true;
     window.location.reload();
@@ -68,6 +112,7 @@ export function registerServiceWorker(): void {
     navigator.serviceWorker
       .register("/sw.js")
       .then((registration) => {
+        registered = registration;
         watch(registration);
         // Check for a new version when the user comes back to the app.
         document.addEventListener("visibilitychange", () => {
