@@ -153,6 +153,18 @@ describe("the voice (Piper, on the device) is the only voice", () => {
     expect(generated().filter((m) => m.text === "Prepared before the tap.")).toHaveLength(1); // not made again
   });
 
+  it("drops advance work for what scrolled out of view", async () => {
+    fake.slowText = "Being made.";
+    neuralVoice.prefetch(["Being made.", "Scrolled past one.", "Scrolled past two."], 1);
+    await tick();
+    neuralVoice.prefetch(["Now on screen."], 1);
+    await tick(400);
+    const made = generated().map((m) => m.text);
+    expect(made).toContain("Now on screen.");
+    expect(made).not.toContain("Scrolled past one.");
+    expect(made).not.toContain("Scrolled past two.");
+  });
+
   it("doesn't prepare anything while a reading is going on", async () => {
     readAloud.start("t", mount(`<p>Reading now.</p>`));
     await tick();
@@ -211,6 +223,22 @@ describe("speed: no waiting between sentences", () => {
     expect(lastPlayed()).toBe("Two.");
     voiceSettings.set({ naturalVoice: NEURAL_VOICE });
     await tick();
+  });
+
+  it("advance work uses one worker at a time, so a tap on Listen starts at once", async () => {
+    const live = fake.workers.filter((w) => !w.terminated);
+    expect(live).toHaveLength(2);
+    fake.slowText = "Early one.";
+    fake.slowMs = 400;
+    const before = generated().length;
+    neuralVoice.prefetch(["Early one.", "Early two."], voiceSettings.get().rate);
+    await tick();
+    expect(generated().length - before).toBe(1); // the other worker stays free
+    readAloud.start("t", mount(`<p>Tapped right away.</p>`));
+    await tick();
+    expect(lastPlayed()).toBe("Tapped right away."); // didn't wait for the slow advance work
+    fake.slowMs = 300;
+    await tick(400);
   });
 
   it("if the helper worker fails, reading carries on with the main one", async () => {

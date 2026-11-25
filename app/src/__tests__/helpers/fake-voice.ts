@@ -69,7 +69,14 @@ export class FakeAudioContext {
   state = "running";
   destination = {};
   private t0 = performance.now();
-  resume = vi.fn(() => Promise.resolve());
+  resume = vi.fn(() => {
+    this.state = "running";
+    return Promise.resolve();
+  });
+  suspend = vi.fn(() => {
+    this.state = "suspended";
+    return Promise.resolve();
+  });
   get currentTime() {
     return fake.audioFrozen ? 0 : (performance.now() - this.t0) / 1000;
   }
