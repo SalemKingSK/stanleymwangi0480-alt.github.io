@@ -1,12 +1,12 @@
 /**
- * Test stand-ins for the Kokoro worker and Web Audio, so the reader can be
- * exercised without the 92 MB model. Generated "audio" encodes its text
+ * Test stand-ins for the Piper worker and Web Audio, so the reader can be
+ * exercised without the 63 MB voice files. Generated "audio" encodes its text
  * (one sample per character), so tests can tell which sentence played.
  * Also installs a speechSynthesis spy: the app must never use it.
  */
 import { vi } from "vitest";
 
-type Msg = { type: string; id?: number; text?: string; voice?: string; speed?: number; device?: string };
+type Msg = { type: string; id?: number; text?: string; voice?: string; speed?: number; model?: string; config?: string };
 
 export interface FakeSource {
   buffer: { length: number; data: Float32Array } | null;
@@ -15,13 +15,13 @@ export interface FakeSource {
 }
 
 export const fake = {
+  /** The main worker (the first one alive). */
   worker: null as FakeWorker | null,
   workers: [] as FakeWorker[],
   /** Answer "load" automatically with this speed-test result. */
   autoReady: true as boolean,
-  rtf: 0.3,
-  /** Device the fake reports after loading (null = what was asked for). */
-  readyDevice: null as string | null,
+  /** Fast enough that one worker suffices (a second starts above 0.2). */
+  rtf: 0.1,
   failText: null as string | null,
   slowText: null as string | null,
   slowMs: 300,
@@ -34,20 +34,21 @@ export class FakeWorker {
   onmessage: ((ev: { data: unknown }) => void) | null = null;
   onerror: ((ev: unknown) => void) | null = null;
   sent: Msg[] = [];
+  terminated = false;
   constructor() {
-    fake.worker = this;
+    if (!fake.worker || fake.worker.terminated) fake.worker = this;
     fake.workers.push(this);
   }
   postMessage(msg: Msg) {
     this.sent.push(msg);
     if (msg.type === "load" && fake.autoReady) {
-      setTimeout(() => this.emit({ type: "ready", device: fake.readyDevice ?? msg.device, rtf: fake.rtf }), 1);
+      setTimeout(() => this.emit({ type: "ready", voice: msg.voice, rtf: fake.rtf }), 1);
     }
     if (msg.type === "generate") {
       setTimeout(
         () => {
           if (msg.text === fake.failText) this.emit({ type: "error", id: msg.id, message: "boom" });
-          else this.emit({ type: "audio", id: msg.id, audio: encode(msg.text!), sampleRate: 24000 });
+          else this.emit({ type: "audio", id: msg.id, audio: encode(msg.text!), sampleRate: 22050 });
         },
         msg.text === fake.slowText ? fake.slowMs : 1,
       );
@@ -56,7 +57,9 @@ export class FakeWorker {
   emit(data: unknown) {
     this.onmessage?.({ data });
   }
-  terminate() {}
+  terminate() {
+    this.terminated = true;
+  }
 }
 
 const encode = (t: string) => Float32Array.from([...t].map((c) => c.charCodeAt(0) / 1000));
@@ -117,6 +120,5 @@ export function resetFakes() {
   fake.slowText = null;
   fake.audioFrozen = false;
   fake.autoReady = true;
-  fake.rtf = 0.3;
-  fake.readyDevice = null;
+  fake.rtf = 0.1;
 }

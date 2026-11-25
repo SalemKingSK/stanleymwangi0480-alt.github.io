@@ -1,12 +1,12 @@
 /**
- * The listener's voice choices, remembered on the device: which Kokoro
- * voice reads, and how fast.
+ * The listener's voice choices, remembered on the device: which voice
+ * reads, and how fast.
  */
 
 const KEY = "mc-voice-settings";
 
 export interface VoiceSettings {
-  /** Kokoro voice id, e.g. "af_heart". */
+  /** Piper voice id, e.g. "en_US-lessac-medium". */
   naturalVoice: string;
   /** 1 = normal speed. */
   rate: number;
@@ -15,33 +15,34 @@ export interface VoiceSettings {
 export interface NaturalVoiceInfo {
   id: string;
   name: string;
-  accent: "American" | "British";
+  accent: string;
   gender: "Female" | "Male";
-  grade: string;
   note?: string;
 }
 
 /**
- * Kokoro's voices graded C or better by its makers (VOICES.md), best first.
- * The rest (D/F) are left out.
+ * Piper voices (rhasspy/piper-voices), all "medium" quality: natural-sounding
+ * and fast enough to read without waits on phones. Each is a one-time
+ * download of about 63 MB, fetched only when it's first used.
  */
 export const NATURAL_VOICES: NaturalVoiceInfo[] = [
-  { id: "af_heart", name: "Heart", accent: "American", gender: "Female", grade: "A", note: "Best" },
-  { id: "af_bella", name: "Bella", accent: "American", gender: "Female", grade: "A-" },
-  { id: "af_nicole", name: "Nicole", accent: "American", gender: "Female", grade: "B-", note: "Soft" },
-  { id: "bf_emma", name: "Emma", accent: "British", gender: "Female", grade: "B-" },
-  { id: "am_michael", name: "Michael", accent: "American", gender: "Male", grade: "C+" },
-  { id: "am_fenrir", name: "Fenrir", accent: "American", gender: "Male", grade: "C+" },
-  { id: "am_puck", name: "Puck", accent: "American", gender: "Male", grade: "C+" },
-  { id: "af_aoede", name: "Aoede", accent: "American", gender: "Female", grade: "C+" },
-  { id: "af_kore", name: "Kore", accent: "American", gender: "Female", grade: "C+" },
-  { id: "af_sarah", name: "Sarah", accent: "American", gender: "Female", grade: "C+" },
-  { id: "bm_george", name: "George", accent: "British", gender: "Male", grade: "C" },
-  { id: "bm_fable", name: "Fable", accent: "British", gender: "Male", grade: "C" },
-  { id: "bf_isabella", name: "Isabella", accent: "British", gender: "Female", grade: "C" },
+  { id: "en_US-lessac-medium", name: "Lessac", accent: "American", gender: "Female", note: "Default" },
+  { id: "en_US-hfc_female-medium", name: "Hi-Fi Female", accent: "American", gender: "Female" },
+  { id: "en_US-amy-medium", name: "Amy", accent: "American", gender: "Female" },
+  { id: "en_US-kristin-medium", name: "Kristin", accent: "American", gender: "Female" },
+  { id: "en_GB-jenny_dioco-medium", name: "Jenny", accent: "British", gender: "Female" },
+  { id: "en_GB-cori-medium", name: "Cori", accent: "British", gender: "Female" },
+  { id: "en_GB-alba-medium", name: "Alba", accent: "Scottish", gender: "Female" },
+  { id: "en_US-ryan-medium", name: "Ryan", accent: "American", gender: "Male" },
+  { id: "en_US-hfc_male-medium", name: "Hi-Fi Male", accent: "American", gender: "Male" },
+  { id: "en_US-joe-medium", name: "Joe", accent: "American", gender: "Male" },
+  { id: "en_US-john-medium", name: "John", accent: "American", gender: "Male" },
+  { id: "en_US-norman-medium", name: "Norman", accent: "American", gender: "Male" },
+  { id: "en_GB-alan-medium", name: "Alan", accent: "British", gender: "Male" },
+  { id: "en_GB-northern_english_male-medium", name: "Northern English", accent: "British", gender: "Male" },
 ];
 
-const DEFAULTS: VoiceSettings = { naturalVoice: "af_heart", rate: 1 };
+const DEFAULTS: VoiceSettings = { naturalVoice: NATURAL_VOICES[0].id, rate: 1 };
 
 const clamp = (n: unknown, lo: number, hi: number, d: number) => (typeof n === "number" && Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d);
 
@@ -50,6 +51,7 @@ function read(): VoiceSettings {
     const raw = JSON.parse(localStorage.getItem(KEY) || "null") as Partial<VoiceSettings> | null;
     if (!raw) return { ...DEFAULTS };
     return {
+      // A voice from an earlier version (or unknown) falls back to the default.
       naturalVoice: NATURAL_VOICES.some((v) => v.id === raw.naturalVoice) ? (raw.naturalVoice as string) : DEFAULTS.naturalVoice,
       rate: clamp(raw.rate, 0.5, 2, 1),
     };

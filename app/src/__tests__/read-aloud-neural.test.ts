@@ -13,7 +13,7 @@ function mount(html: string): HTMLElement {
   return document.querySelector("main")!;
 }
 
-describe("the voice (Kokoro, on the device) is the only voice", () => {
+describe("the voice (Piper, on the device) is the only voice", () => {
   beforeEach(() => {
     readAloud.stop();
     resetFakes();
@@ -23,21 +23,27 @@ describe("the voice (Kokoro, on the device) is the only voice", () => {
     expect(localStorage.getItem("mc-voice")).toBeNull();
   });
 
-  it("first Listen downloads the voice, shows it's waiting, then reads with af_heart", async () => {
+  it("first Listen downloads the default voice, shows it's waiting, then reads with it", async () => {
     fake.autoReady = false;
     expect(neuralVoice.getState().status).toBe("idle");
     const root = mount(`<p>One. Two. Three. Four. Five. Six. Seven.</p>`);
     readAloud.start("t", root);
     await tick();
     expect(neuralVoice.getState().status).toBe("loading");
-    expect(fake.worker!.sent[0]).toMatchObject({ type: "load", device: "wasm" });
+    expect(NEURAL_VOICE).toBe("en_US-lessac-medium");
+    expect(fake.worker!.sent[0]).toMatchObject({
+      type: "load",
+      voice: NEURAL_VOICE,
+      model: "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx",
+      config: "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json",
+    });
     expect(readAloud.getState()).toMatchObject({ status: "playing", index: 0, waiting: true });
     expect(fake.played).toHaveLength(0); // nothing else speaks meanwhile
     expect(fake.speechSpy.speak).not.toHaveBeenCalled();
 
-    fake.worker!.emit({ type: "progress", loaded: 46, total: 92 });
+    fake.worker!.emit({ type: "progress", voice: NEURAL_VOICE, loaded: 31, total: 62 });
     expect(neuralVoice.getState().progress).toBeCloseTo(0.5);
-    fake.worker!.emit({ type: "ready", device: "wasm", rtf: 0.4 });
+    fake.worker!.emit({ type: "ready", voice: NEURAL_VOICE, rtf: 0.1 });
     await tick();
     expect(neuralVoice.getState().status).toBe("ready");
     expect(readAloud.getState().waiting).toBe(false);
@@ -65,32 +71,42 @@ describe("the voice (Kokoro, on the device) is the only voice", () => {
     expect(generated().length).toBe(before);
   });
 
-  it("speaks with the voice picked in the menu, and switching regenerates in the new voice", async () => {
-    voiceSettings.set({ naturalVoice: "am_michael" });
+  it("speaks with the voice picked in the menu, and switching loads and reads in the new voice", async () => {
+    voiceSettings.set({ naturalVoice: "en_US-ryan-medium" });
     try {
       readAloud.start("t", mount(`<p>Picked voice.</p>`));
       await tick();
-      expect(generated().at(-1)).toMatchObject({ text: "Picked voice.", voice: "am_michael" });
-      voiceSettings.set({ naturalVoice: "af_bella" });
+      expect(generated().at(-1)).toMatchObject({ text: "Picked voice.", voice: "en_US-ryan-medium" });
+      fake.autoReady = false;
+      voiceSettings.set({ naturalVoice: "en_GB-jenny_dioco-medium" });
       readAloud.voiceChanged();
       await tick();
-      expect(generated().at(-1)).toMatchObject({ text: "Picked voice.", voice: "af_bella" });
+      // the new voice is fetched (once) and the reader waits for it
+      expect(fake.worker!.sent.at(-1)).toMatchObject({ type: "load", voice: "en_GB-jenny_dioco-medium", model: expect.stringContaining("/en/en_GB/jenny_dioco/medium/") });
+      expect(neuralVoice.getState()).toMatchObject({ status: "loading", voice: "en_GB-jenny_dioco-medium" });
+      expect(readAloud.getState()).toMatchObject({ status: "playing", waiting: true });
+      fake.worker!.emit({ type: "ready", voice: "en_GB-jenny_dioco-medium", rtf: 0.1 });
+      await tick();
+      expect(generated().at(-1)).toMatchObject({ text: "Picked voice.", voice: "en_GB-jenny_dioco-medium" });
       expect(fake.played).toHaveLength(2);
       expect(fake.played[0].stopped).toBe(true);
     } finally {
-      voiceSettings.set({ naturalVoice: "af_heart" });
+      fake.autoReady = true;
+      voiceSettings.set({ naturalVoice: NEURAL_VOICE });
+      await tick();
     }
   });
 
   it("when idle, picking a voice or speed plays a short sample", async () => {
-    voiceSettings.set({ naturalVoice: "bf_emma", rate: 1.2 });
+    voiceSettings.set({ naturalVoice: "en_GB-alba-medium", rate: 1.2 });
     try {
       readAloud.voiceChanged();
       await tick();
-      expect(generated().at(-1)).toMatchObject({ voice: "bf_emma", speed: 1.2 });
+      expect(generated().at(-1)).toMatchObject({ voice: "en_GB-alba-medium", speed: 1.2 });
       expect(lastPlayed()).toMatch(/^Hello\./);
     } finally {
-      voiceSettings.set({ naturalVoice: "af_heart", rate: 1 });
+      voiceSettings.set({ naturalVoice: NEURAL_VOICE, rate: 1 });
+      await tick();
     }
   });
 
@@ -134,44 +150,52 @@ describe("the voice (Kokoro, on the device) is the only voice", () => {
   });
 });
 
-describe("slow devices", () => {
+describe("speed: no waiting between sentences", () => {
   beforeEach(() => {
     readAloud.stop();
     resetFakes();
   });
 
-  it("still read with the natural voice, and can switch to the faster graphics-chip mode", async () => {
-    fake.rtf = 3.1; // 3 s of work per second of speech, like a phone processor
-    await (neuralVoice as unknown as { start(d: string): Promise<void> }).start("wasm");
-    expect(neuralVoice.slow).toBe(true);
-    readAloud.start("t", mount(`<p>Slow but natural.</p>`));
+  it("where a second worker helps (4+ cores), the next sentences are made in parallel", async () => {
+    Object.defineProperty(navigator, "hardwareConcurrency", { value: 8, configurable: true });
+    fake.rtf = 0.5;
+    voiceSettings.set({ naturalVoice: "en_US-amy-medium" });
+    await neuralVoice.load();
     await tick();
-    expect(lastPlayed()).toBe("Slow but natural.");
-    expect(fake.speechSpy.speak).not.toHaveBeenCalled();
+    expect(neuralVoice.getState()).toMatchObject({ status: "ready", workers: 2 });
+    const live = fake.workers.filter((w) => !w.terminated);
+    expect(live).toHaveLength(2);
+    expect(live[1].sent[0]).toMatchObject({ type: "load", voice: "en_US-amy-medium" });
 
-    fake.rtf = 0.2;
-    await neuralVoice.useGpu();
-    expect(fake.worker!.sent[0]).toMatchObject({ type: "load", device: "webgpu" });
-    expect(neuralVoice.getState()).toMatchObject({ status: "ready", device: "webgpu", gpuFailed: false });
-    expect(neuralVoice.slow).toBe(false);
-    expect(localStorage.getItem("mc-voice-device")).toBe("webgpu");
+    readAloud.start("t", mount(`<p>One. Two. Three. Four.</p>`));
+    await tick();
+    expect(lastPlayed()).toBe("One.");
+    // both workers took a share of the upcoming sentences
+    for (const w of live) expect(w.sent.some((m) => m.type === "generate")).toBe(true);
+    await endClip();
+    expect(lastPlayed()).toBe("Two.");
+    voiceSettings.set({ naturalVoice: NEURAL_VOICE });
+    await tick();
   });
 
-  it("if the graphics-chip mode doesn't work, it stays on the processor and remembers", async () => {
-    fake.readyDevice = "wasm"; // the worker fell back
-    await neuralVoice.useGpu();
-    expect(neuralVoice.getState()).toMatchObject({ status: "ready", device: "wasm", gpuFailed: true });
-    expect(localStorage.getItem("mc-voice-device")).toBe("wasm");
+  it("if the helper worker fails, reading carries on with the main one", async () => {
+    const live = fake.workers.filter((w) => !w.terminated);
+    expect(live).toHaveLength(2); // set up by the test above
+    live[1].onerror?.({ message: "out of memory", preventDefault() {} });
+    expect(neuralVoice.getState()).toMatchObject({ status: "ready", workers: 1 });
+    readAloud.start("t", mount(`<p>Still here.</p>`));
+    await tick();
+    expect(lastPlayed()).toBe("Still here.");
   });
 
   it("a failed download is reported and Listen tries again", async () => {
     fake.autoReady = false;
     const errors: string[] = [];
     readAloud.setErrorHandler((m) => errors.push(m));
-    const p = (neuralVoice as unknown as { start(d: string): Promise<void> }).start("wasm");
+    const p = (neuralVoice as unknown as { start(v: string): Promise<void> }).start(NEURAL_VOICE);
     p.catch(() => {});
     readAloud.start("t", mount(`<p>Offline first time.</p>`));
-    fake.worker!.emit({ type: "error", message: "Failed to fetch" });
+    fake.worker!.emit({ type: "error", voice: NEURAL_VOICE, message: "Failed to fetch" });
     await tick();
     expect(readAloud.getState().status).toBe("idle");
     expect(errors[0]).toMatch(/couldn't load: Failed to fetch/);

@@ -6,9 +6,7 @@ import { fake, installFakeVoice, tick } from "./helpers/fake-voice";
 
 installFakeVoice();
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-Object.assign(navigator, { gpu: {} }); // the browser offers WebGPU
 const { ReadAloudDock } = await import("@/components/read-aloud/read-aloud-dock");
-const { neuralVoice } = await import("@/lib/read-aloud/neural-voice");
 
 async function openMenu() {
   document.body.innerHTML = `<div id="app"></div><main><p>Some text.</p></main>`;
@@ -22,33 +20,27 @@ describe("voice menu in the player", () => {
   it("offers only the natural voices and speed — no device voices or pitch", async () => {
     const { root, menu } = await openMenu();
     const text = menu.textContent!;
-    for (const name of ["Heart", "Bella", "Michael", "Emma", "George"]) expect(text).toContain(name);
+    for (const name of ["Lessac", "Amy", "Jenny", "Ryan", "Alan"]) expect(text).toContain(name);
     expect(text).toContain("Speed");
     expect(text).not.toMatch(/Automatic|device's voices|Pitch/);
-    expect(text).toMatch(/One-time (92|325) MB download/);
+    expect(text).toContain("One-time 63 MB download per voice");
+    expect(text).not.toMatch(/graphics|faster mode|slower than/);
 
-    const bella = Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="radio"]')).find((b) => b.textContent!.startsWith("Bella"))!;
-    await act(async () => bella.click());
-    expect(bella.getAttribute("aria-checked")).toBe("true");
-    expect(JSON.parse(localStorage.getItem("mc-voice-settings")!).naturalVoice).toBe("af_bella");
+    const jenny = Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="radio"]')).find((b) => b.textContent!.startsWith("Jenny"))!;
+    expect(jenny.textContent).toContain("British female");
+    await act(async () => jenny.click());
+    expect(jenny.getAttribute("aria-checked")).toBe("true");
+    expect(JSON.parse(localStorage.getItem("mc-voice-settings")!).naturalVoice).toBe("en_GB-jenny_dioco-medium");
     await act(async () => tick());
-    expect(fake.worker!.sent.some((m) => m.type === "generate" && m.voice === "af_bella")).toBe(true); // a sample in Bella's voice
+    expect(fake.worker!.sent.some((m) => m.type === "generate" && m.voice === "en_GB-jenny_dioco-medium")).toBe(true); // a sample in Jenny's voice
     expect(fake.speechSpy.speak).not.toHaveBeenCalled();
     await act(async () => root.unmount());
   });
 
-  it("on a slow device it explains the pauses and offers the faster mode", async () => {
-    fake.rtf = 3.4;
-    await act(async () => (neuralVoice as unknown as { start(d: string): Promise<void> }).start("wasm"));
-    const { root, menu } = await openMenu();
-    expect(menu.textContent).toContain("about 3.4× slower");
-    const gpu = Array.from(menu.querySelectorAll("button")).find((b) => b.textContent!.includes("faster mode"))!;
-    expect(gpu).toBeTruthy();
-    fake.rtf = 0.3;
-    await act(async () => gpu.click());
-    await act(async () => tick());
-    expect(fake.worker!.sent[0]).toMatchObject({ type: "load", device: "webgpu" });
-    expect(menu.textContent).toContain("graphics chip");
-    await act(async () => root.unmount());
+  it("an old Kokoro voice setting falls back to the default Piper voice", async () => {
+    localStorage.setItem("mc-voice-settings", JSON.stringify({ naturalVoice: "af_heart", rate: 1.1 }));
+    const { voiceSettings } = await import("@/lib/read-aloud/voice-settings");
+    voiceSettings.reset();
+    expect(voiceSettings.get()).toEqual({ naturalVoice: "en_US-lessac-medium", rate: 1.1 });
   });
 });

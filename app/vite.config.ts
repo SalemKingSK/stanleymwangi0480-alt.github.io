@@ -33,11 +33,11 @@ export default defineConfig({
         importScripts: ['/sw-cleanup.js?v=2'],
         runtimeCaching: [
           {
-            // Natural-voice engine (Kokoro worker + ONNX runtime, ~24 MB): its
+            // Natural-voice engine (Piper worker + ONNX runtime, ~13 MB): its
             // own cache so it is never evicted by app-update churn and read
-            // aloud keeps working offline. (The model itself is cached by
-            // transformers.js in "transformers-cache", not here.)
-            urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/assets\/(kokoro|ort-wasm)/.test(url.pathname),
+            // aloud keeps working offline. (The voice files themselves are
+            // cached by the worker in "mc-piper-voices", not here.)
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/assets\/(piper|ort-wasm)/.test(url.pathname),
             handler: 'CacheFirst',
             options: { cacheName: 'mc-voice-engine', expiration: { maxEntries: 8 } },
           },
@@ -54,8 +54,8 @@ export default defineConfig({
     alias: { '@': path.resolve(import.meta.dirname, 'src') },
     dedupe: ['react', 'react-dom'],
   },
-  // The natural-voice worker (src/lib/read-aloud/kokoro.worker.ts) loads its
-  // model code on demand, which needs ES-module workers.
+  // The natural-voice worker (src/lib/read-aloud/piper.worker.ts) is an
+  // ES-module worker.
   worker: { format: 'es' },
   build: {
     outDir: 'dist',

@@ -1,47 +1,47 @@
 /**
- * The read-aloud voice: Kokoro-82M (Apache-2.0), generated on the device.
+ * The read-aloud voice: Piper neural voices (rhasspy/piper-voices), generated
+ * on the device. It is the app's only voice — the browser's built-in speech
+ * is not used.
  *
- * Kokoro is the highest-rated open-weight text-to-speech model that runs
- * entirely in the browser; "af_heart" (its only grade-A voice) is the
- * default, and the listener can pick any of the voices in voice-settings.ts.
- * It is the app's only voice — the browser's built-in speech is not used.
+ * Piper (VITS) makes a whole sentence in a single pass, several times faster
+ * than it's spoken on a phone processor, so reading flows from sentence to
+ * sentence without "Preparing speech" waits. (The earlier Kokoro model took
+ * about three seconds of work per second of speech on a processor.)
  *
- * The model runs in a Web Worker (kokoro.worker.ts), in one of two modes:
- * - "wasm":   8-bit model on the processor, a one-time ~92 MB download.
- * - "webgpu": full-precision model on the graphics chip, ~325 MB, much
- *             faster where the browser supports WebGPU.
- * Desktops with WebGPU use it by default. Phones start on the processor;
- * if that turns out slower than speech (the load-time speed test), the
- * player offers the graphics-chip mode. Both are cached and work offline.
+ * The voice runs in Web Workers (piper.worker.ts). On devices with 4+ cores a
+ * second worker starts once the first is ready and makes the next sentences
+ * in parallel, so the reader stays well ahead of the speech. Each voice is a
+ * one-time ~63 MB download, kept for offline use (the last few voices used).
  */
 import { chunkForSpeech } from "./split-sentences";
-import { voiceSettings } from "./voice-settings";
+import { voiceSettings, NATURAL_VOICES } from "./voice-settings";
 
-/** Default (and best) voice. */
-export const NEURAL_VOICE = "af_heart";
-const DEVICE_KEY = "mc-voice-device"; // "webgpu" | "wasm", once the listener chose
-const MAX_PART = 180; // characters per model call (≤510 tokens); parts play as they're ready
+/** Default voice. */
+export const NEURAL_VOICE = NATURAL_VOICES[0].id;
+const VOICE_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/main/";
+const VOICE_BYTES = 63_201_294;
+const VOICE_CACHE = "mc-piper-voices";
+const RECENT_KEY = "mc-voice-recent";
+const KEEP_VOICES = 3;
+const MAX_PART = 180; // characters per model call; parts play as they're ready
 const CACHE_LIMIT = 40;
-/** Seconds of work per second of speech above which reading has pauses. */
-export const MAX_RTF = 0.8;
+/** Above this speed-test result a second worker is worth its memory. */
+const PARALLEL_RTF = 0.2;
 
 export type NeuralStatus = "unsupported" | "idle" | "loading" | "ready" | "error";
-export type Device = "webgpu" | "wasm";
 
 export interface NeuralState {
   status: NeuralStatus;
   /** Download progress 0..1 while loading. */
   progress: number;
-  /** Mode in use (or about to load). */
-  device: Device;
-  /** One-time download size for that mode, for labels. */
+  /** Voice id in use (or being loaded). */
+  voice: string;
+  /** One-time download size of a voice, for labels. */
   sizeLabel: string;
-  /** Seconds of work per second of speech, from the speed test (0 = unknown). */
+  /** Seconds of work per second of speech, from the warm-up (0 = unknown). */
   rtf: number;
-  /** The browser offers WebGPU (the faster mode may work). */
-  gpuAvailable: boolean;
-  /** The faster mode was tried and failed on this device. */
-  gpuFailed: boolean;
+  /** Workers generating speech (1 or 2). */
+  workers: number;
   /** Last load error, for messages. */
   error: string | null;
 }
@@ -60,6 +60,16 @@ interface Job {
   reject: (e: Error) => void;
 }
 
+interface Slot {
+  worker: Worker;
+  primary: boolean;
+  /** Voice this worker has ready (null while loading). */
+  voice: string | null;
+  busy: boolean;
+}
+
+type WorkerMsg = { type: string; id?: number; voice?: string; loaded?: number; total?: number; rtf?: number; audio?: Float32Array; sampleRate?: number; message?: string };
+
 type AudioCtor = typeof AudioContext;
 
 function audioCtor(): AudioCtor | null {
@@ -68,48 +78,79 @@ function audioCtor(): AudioCtor | null {
   return w.AudioContext ?? w.webkitAudioContext ?? null;
 }
 
-function nav(): (Navigator & { gpu?: unknown; audioSession?: { type: string } }) | null {
+function nav(): (Navigator & { deviceMemory?: number; audioSession?: { type: string } }) | null {
   return typeof navigator === "undefined" ? null : (navigator as never);
 }
 
-const sizeOf = (d: Device) => (d === "webgpu" ? "325 MB" : "92 MB");
-
-function storedDevice(): Device | null {
-  try {
-    const v = localStorage.getItem(DEVICE_KEY);
-    return v === "webgpu" || v === "wasm" ? v : null;
-  } catch {
-    return null;
-  }
+/** Download addresses of a voice, e.g. en_US-lessac-medium → en/en_US/lessac/medium/… */
+export function voiceFiles(id: string): { model: string; config: string } {
+  const [locale, speaker, quality] = id.split("-");
+  const dir = `${VOICE_BASE}${locale.split("_")[0]}/${locale}/${speaker}/${quality}/${id}.onnx`;
+  return { model: dir, config: `${dir}.json` };
 }
 
-function defaultDevice(): Device {
-  const stored = storedDevice();
-  if (stored) return stored;
-  const coarse = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
-  // The graphics-chip mode is a 325 MB download: automatic on desktops only.
-  return nav()?.gpu && !coarse ? "webgpu" : "wasm";
+/** 2 workers where there are cores and memory to spare, else 1. */
+function poolLimit(): number {
+  const n = nav();
+  const cores = n?.hardwareConcurrency ?? 2;
+  const memory = n?.deviceMemory ?? 4;
+  return cores >= 4 && memory >= 3 ? 2 : 1;
 }
 
-// Settings from the earlier version that mixed in the device's voice.
-function dropOldSettings() {
+function currentVoice(): string {
+  const id = voiceSettings.get().naturalVoice;
+  return NATURAL_VOICES.some((v) => v.id === id) ? id : NEURAL_VOICE;
+}
+
+// Leftovers from earlier versions: the device-voice settings and the Kokoro
+// model (92–325 MB) — free that storage.
+function dropOldVersions() {
   try {
     localStorage.removeItem("mc-voice");
     localStorage.removeItem("mc-voice-speed");
+    localStorage.removeItem("mc-voice-device");
   } catch {
     /* private mode */
+  }
+  try {
+    if (typeof caches !== "undefined") {
+      void caches.delete("transformers-cache").catch(() => {});
+      void caches.delete("kokoro-voices").catch(() => {});
+    }
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/** Keep the last few voices used offline; delete older downloads. */
+async function pruneVoices(voice: string) {
+  try {
+    let recent: string[] = [];
+    try {
+      recent = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+    } catch {
+      recent = [];
+    }
+    recent = [voice, ...recent.filter((v) => v !== voice)].slice(0, KEEP_VOICES);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+    if (typeof caches === "undefined") return;
+    const keep = new Set(recent.flatMap((v) => Object.values(voiceFiles(v))));
+    const cache = await caches.open(VOICE_CACHE);
+    const keys = await cache.keys();
+    await Promise.all(keys.filter((k) => !keep.has(k.url)).map((k) => cache.delete(k)));
+  } catch {
+    /* storage unavailable */
   }
 }
 
 class NeuralVoice {
   private state: NeuralState;
   private listeners = new Set<(s: NeuralState) => void>();
-  private worker: Worker | null = null;
+  private slots: Slot[] = [];
   private nextId = 1;
-  private calls = new Map<number, { resolve: (c: Clip) => void; reject: (e: Error) => void }>();
+  private calls = new Map<number, { resolve: (c: Clip) => void; reject: (e: Error) => void; slot: Slot }>();
   private cache = new Map<string, Promise<Clip>>();
   private queue: Job[] = [];
-  private busy = false;
   private ready: Promise<void> | null = null;
   private readyHooks: { resolve: () => void; reject: (e: Error) => void } | null = null;
   private ctx: AudioContext | null = null;
@@ -117,16 +158,21 @@ class NeuralVoice {
 
   constructor() {
     const capable = NeuralVoice.capable();
-    const device = capable ? defaultDevice() : "wasm";
-    if (capable) dropOldSettings();
+    if (capable) {
+      dropOldVersions();
+      // A different voice picked while one is loaded: switch to it.
+      voiceSettings.subscribe(() => {
+        const voice = currentVoice();
+        if ((this.state.status === "ready" || this.state.status === "loading") && voice !== this.state.voice) void this.start(voice);
+      });
+    }
     this.state = {
       status: capable ? "idle" : "unsupported",
       progress: 0,
-      device,
-      sizeLabel: sizeOf(device),
+      voice: currentVoice(),
+      sizeLabel: "63 MB",
       rtf: 0,
-      gpuAvailable: !!nav()?.gpu,
-      gpuFailed: false,
+      workers: 0,
       error: null,
     };
   }
@@ -151,89 +197,105 @@ class NeuralVoice {
     this.listeners.forEach((fn) => fn(this.state));
   }
 
-  /** Slower than speech here, so reading pauses between sentences. */
-  get slow(): boolean {
-    return this.state.rtf > MAX_RTF;
-  }
-
-  /** Download + start the model (once). Resolves when it can speak. */
+  /** Download (once) and start the chosen voice. Resolves when it can speak. */
   load(): Promise<void> {
     if (this.state.status === "unsupported") return Promise.reject(new Error("This browser can't run the voice"));
-    if (this.ready && this.state.status !== "error") return this.ready;
-    return this.start(this.state.device);
+    const voice = currentVoice();
+    if (this.ready && voice === this.state.voice && (this.state.status === "ready" || this.state.status === "loading")) return this.ready;
+    return this.start(voice);
   }
 
-  /**
-   * Switch to the graphics-chip mode (faster where supported). Keeps the
-   * processor mode if it fails.
-   */
-  useGpu(): Promise<void> {
-    if (this.state.status === "unsupported") return Promise.reject(new Error("This browser can't run the voice"));
-    try {
-      localStorage.setItem(DEVICE_KEY, "webgpu");
-    } catch {
-      /* private mode */
-    }
-    return this.start("webgpu");
-  }
-
-  private start(device: Device): Promise<void> {
-    this.rejectPending(new Error("Voice restarted"));
-    this.readyHooks?.reject(new Error("Voice restarted"));
+  private start(voice: string): Promise<void> {
+    this.rejectPending(new Error("Voice changed"));
+    this.readyHooks?.reject(new Error("Voice changed"));
     this.ready = new Promise<void>((resolve, reject) => {
       this.readyHooks = { resolve, reject };
     });
     this.ready.catch(() => {});
-    this.set({ status: "loading", progress: 0, device, sizeLabel: sizeOf(device), error: null });
-    try {
-      this.worker?.terminate();
-      this.worker = new Worker(new URL("./kokoro.worker.ts", import.meta.url), { type: "module" });
-    } catch (err) {
-      this.fail(err instanceof Error ? err.message : String(err));
-      return this.ready;
+    this.set({ status: "loading", progress: 0, voice, error: null });
+    if (!this.slots.length) {
+      try {
+        this.spawn(true);
+      } catch (err) {
+        this.fail(err instanceof Error ? err.message : String(err));
+        return this.ready;
+      }
     }
-    this.worker.onmessage = (ev) => this.onMessage(ev.data);
-    this.worker.onerror = (ev) => {
-      ev.preventDefault?.();
-      this.fail(ev.message || "The voice stopped unexpectedly");
-    };
-    this.worker.postMessage({ type: "load", device });
+    for (const slot of this.slots) this.loadInto(slot, voice);
     return this.ready;
   }
 
-  private onMessage(msg: { type: string; id?: number; loaded?: number; total?: number; device?: Device; rtf?: number; audio?: Float32Array; sampleRate?: number; message?: string }) {
+  private spawn(primary: boolean): Slot {
+    const worker = new Worker(new URL("./piper.worker.ts", import.meta.url), { type: "module" });
+    const slot: Slot = { worker, primary, voice: null, busy: false };
+    worker.onmessage = (ev) => this.onMessage(slot, ev.data as WorkerMsg);
+    worker.onerror = (ev) => {
+      ev.preventDefault?.();
+      this.lost(slot, ev.message || "The voice stopped unexpectedly");
+    };
+    this.slots.push(slot);
+    this.set({ workers: this.slots.length });
+    return slot;
+  }
+
+  private loadInto(slot: Slot, voice: string) {
+    slot.voice = null;
+    slot.worker.postMessage({ type: "load", voice, ...voiceFiles(voice), size: VOICE_BYTES });
+  }
+
+  private onMessage(slot: Slot, msg: WorkerMsg) {
     if (msg.type === "progress") {
-      if (msg.total) this.set({ progress: Math.min(1, (msg.loaded ?? 0) / msg.total) });
+      if (slot.primary && msg.voice === this.state.voice && msg.total) this.set({ progress: Math.min(1, (msg.loaded ?? 0) / msg.total) });
     } else if (msg.type === "ready") {
-      const device = msg.device ?? this.state.device;
-      const wanted = this.state.device;
-      const rtf = typeof msg.rtf === "number" && Number.isFinite(msg.rtf) ? msg.rtf : 0;
-      const gpuFailed = wanted === "webgpu" && device !== "webgpu";
-      if (gpuFailed) {
+      if (msg.voice !== this.state.voice) return; // an older request
+      slot.voice = msg.voice;
+      const rtf = typeof msg.rtf === "number" && Number.isFinite(msg.rtf) && msg.rtf > 0 ? msg.rtf : this.state.rtf;
+      if (this.state.status !== "ready") {
+        this.set({ status: "ready", progress: 1, rtf });
+        this.readyHooks?.resolve();
+        this.readyHooks = null;
+        void nav()?.storage?.persist?.().catch(() => {}); // ask the browser to keep the download
+        void pruneVoices(msg.voice);
+      }
+      // Now the file is cached, a second worker can start from it quickly.
+      if (slot.primary && this.slots.length < poolLimit() && rtf > PARALLEL_RTF) {
         try {
-          localStorage.setItem(DEVICE_KEY, "wasm");
+          this.loadInto(this.spawn(false), msg.voice);
         } catch {
-          /* private mode */
+          /* one worker is enough */
         }
       }
-      this.set({ status: "ready", progress: 1, device, sizeLabel: sizeOf(device), rtf, gpuFailed: this.state.gpuFailed || gpuFailed });
-      this.readyHooks?.resolve();
-      // Ask the browser not to evict the downloaded model.
-      void nav()?.storage?.persist?.().catch(() => {});
-      if (device === "webgpu") void dropModelFile("model_quantized"); // the processor copy isn't needed now
+      void this.pump();
     } else if (msg.type === "audio" && msg.id) {
       const call = this.calls.get(msg.id);
       this.calls.delete(msg.id);
-      call?.resolve({ samples: msg.audio as Float32Array, sampleRate: msg.sampleRate ?? 24000 });
+      call?.resolve({ samples: msg.audio as Float32Array, sampleRate: msg.sampleRate ?? 22050 });
     } else if (msg.type === "error") {
       if (msg.id) {
         const call = this.calls.get(msg.id);
         this.calls.delete(msg.id);
         call?.reject(new Error(msg.message || "Speech generation failed"));
-      } else {
-        this.fail(msg.message || "The voice couldn't load");
+      } else if (msg.voice === this.state.voice) {
+        this.lost(slot, msg.message || "The voice couldn't load");
       }
     }
+  }
+
+  /** A worker failed: the main one ends this load; a helper is just dropped. */
+  private lost(slot: Slot, message: string) {
+    if (slot.primary || this.slots.length === 1) {
+      this.fail(message);
+      return;
+    }
+    slot.worker.terminate();
+    this.slots = this.slots.filter((s) => s !== slot);
+    this.calls.forEach((c, id) => {
+      if (c.slot === slot) {
+        this.calls.delete(id);
+        c.reject(new Error(message));
+      }
+    });
+    this.set({ workers: this.slots.length });
   }
 
   private rejectPending(err: Error) {
@@ -242,42 +304,44 @@ class NeuralVoice {
     this.queue.forEach((j) => j.reject(err));
     this.queue = [];
     this.cache.clear();
-    this.busy = false;
+    this.slots.forEach((s) => (s.busy = false));
   }
 
   private fail(message: string) {
-    this.set({ status: "error", error: message });
+    this.set({ status: "error", error: message, workers: 0 });
     const err = new Error(message);
     this.readyHooks?.reject(err);
     this.readyHooks = null;
     this.rejectPending(err);
-    this.worker?.terminate();
-    this.worker = null;
+    this.slots.forEach((s) => s.worker.terminate());
+    this.slots = [];
   }
 
-  private rpc(text: string, voice: string, speed: number): Promise<Clip> {
-    const worker = this.worker;
-    if (!worker) return Promise.reject(new Error("Voice not loaded"));
+  private rpc(slot: Slot, job: Job): Promise<Clip> {
     const id = this.nextId++;
     return new Promise<Clip>((resolve, reject) => {
-      this.calls.set(id, { resolve, reject });
-      worker.postMessage({ type: "generate", id, text, voice, speed });
+      this.calls.set(id, { resolve, reject, slot });
+      slot.worker.postMessage({ type: "generate", id, text: job.text, voice: job.voice, speed: job.speed });
     });
   }
 
-  private async pump() {
-    if (this.busy) return;
-    const job = this.queue.shift();
-    if (!job) return;
-    this.busy = true;
-    try {
-      job.resolve(await this.rpc(job.text, job.voice, job.speed));
-    } catch (err) {
-      this.cache.delete(job.key);
-      job.reject(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      this.busy = false;
-      void this.pump();
+  /** Hands the most urgent queued parts to free workers. */
+  private pump() {
+    for (const slot of this.slots) {
+      if (slot.busy || !slot.voice) continue;
+      const at = this.queue.findIndex((j) => j.voice === slot.voice);
+      if (at < 0) return;
+      const [job] = this.queue.splice(at, 1);
+      slot.busy = true;
+      this.rpc(slot, job)
+        .then(job.resolve, (err) => {
+          this.cache.delete(job.key);
+          job.reject(err instanceof Error ? err : new Error(String(err)));
+        })
+        .finally(() => {
+          slot.busy = false;
+          this.pump();
+        });
     }
   }
 
@@ -292,7 +356,7 @@ class NeuralVoice {
    * Queued work for anything not in the list is dropped (the reader jumped).
    */
   want(texts: string[], speed: number): Promise<Clip>[] {
-    const voice = voiceSettings.get().naturalVoice || NEURAL_VOICE;
+    const voice = this.state.voice;
     const firstParts = this.partsOf(texts[0] ?? "");
     const parts = [...firstParts, ...texts.slice(1).flatMap((t) => this.partsOf(t))];
     const keys = parts.map((t) => `${voice}|${speed}|${t}`);
@@ -318,7 +382,7 @@ class NeuralVoice {
     this.queue.sort((a, b) => order.get(a.key)! - order.get(b.key)!);
     const out = keys.slice(0, firstParts.length).map((k) => this.cache.get(k)!);
     while (this.cache.size > CACHE_LIMIT) this.cache.delete(this.cache.keys().next().value as string);
-    void this.pump();
+    this.pump();
     return out;
   }
 
@@ -420,18 +484,6 @@ class NeuralVoice {
 
   get playing(): boolean {
     return this.source !== null;
-  }
-}
-
-/** Delete one model variant from the download cache (frees storage). */
-async function dropModelFile(name: string) {
-  try {
-    if (typeof caches === "undefined") return;
-    const cache = await caches.open("transformers-cache");
-    const keys = await cache.keys();
-    await Promise.all(keys.filter((k) => k.url.includes("Kokoro-82M") && k.url.includes(`/${name}.onnx`)).map((k) => cache.delete(k)));
-  } catch {
-    /* storage unavailable */
   }
 }
 

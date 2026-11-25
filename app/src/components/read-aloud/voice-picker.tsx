@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Check, X, Zap } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { readAloud } from "@/lib/read-aloud/engine";
-import { neuralVoice } from "@/lib/read-aloud/neural-voice";
 import { voiceSettings, NATURAL_VOICES } from "@/lib/read-aloud/voice-settings";
 import { useNeuralVoiceState } from "@/hooks/use-neural-voice";
 import { useVoiceSettings } from "@/hooks/use-voice-settings";
@@ -51,10 +50,10 @@ function Row({ selected, title, detail, onPick }: { selected: boolean; title: st
 }
 
 /**
- * Voice menu for the read-aloud player: the Kokoro voices and speed, plus the
- * voice's download / speed status and (on slow devices) the faster
- * graphics-chip mode. Picking a voice plays it straight away (restarting the
- * current sentence, or a short sample).
+ * Voice menu for the read-aloud player: the Piper voices and speed, plus the
+ * voice's download status. Picking a voice plays it straight away (restarting
+ * the current sentence, or a short sample); a voice not used before is
+ * downloaded first (once).
  */
 export function VoicePicker({ onClose }: { onClose: () => void }) {
   const voice = useNeuralVoiceState();
@@ -90,18 +89,16 @@ export function VoicePicker({ onClose }: { onClose: () => void }) {
     restart.current = setTimeout(() => readAloud.voiceChanged(), 450);
   };
 
-  const mode = voice.device === "webgpu" ? "graphics chip" : "processor";
   const status =
     voice.status === "ready"
-      ? `Ready · works offline · running on this device's ${mode}`
+      ? "Ready · works offline · made on this device"
       : voice.status === "loading"
         ? voice.progress >= 0.999
           ? "Starting the voice…"
           : `Downloading the voice… ${Math.round(voice.progress * 100)}% (one-time ${voice.sizeLabel})`
         : voice.status === "error"
           ? `The voice couldn't load${voice.error ? ` (${voice.error})` : ""}. Check your connection, then pick a voice to try again.`
-          : `One-time ${voice.sizeLabel} download the first time you listen, then it works offline.`;
-  const offerGpu = voice.status === "ready" && neuralVoice.slow && voice.device === "wasm" && voice.gpuAvailable && !voice.gpuFailed;
+          : `One-time ${voice.sizeLabel} download per voice the first time you listen, then it works offline.`;
 
   return (
     <div
@@ -135,31 +132,6 @@ export function VoicePicker({ onClose }: { onClose: () => void }) {
         {status}
       </div>
 
-      {voice.status === "ready" && neuralVoice.slow && (
-        <div style={{ fontSize: "0.68rem", lineHeight: 1.45, margin: "0.4rem 0", padding: "0.5rem 0.6rem", borderRadius: 10, background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.3)" }}>
-          This device makes speech about {voice.rtf.toFixed(1)}× slower than it's spoken, so there are pauses between sentences.
-          {offerGpu ? (
-            <>
-              {" "}Its graphics chip can usually do it much faster.
-              <button
-                type="button"
-                onClick={() => {
-                  neuralVoice.unlock();
-                  void neuralVoice.useGpu().catch(() => {});
-                }}
-                style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, padding: "0.4rem 0.7rem", borderRadius: 999, border: "none", background: "#d4af37", color: "#1a0d33", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}
-              >
-                <Zap size={14} /> Use the faster mode (one-time 325 MB)
-              </button>
-            </>
-          ) : voice.gpuFailed ? (
-            " The faster graphics-chip mode didn't work in this browser."
-          ) : (
-            " Pauses get shorter on a faster device."
-          )}
-        </div>
-      )}
-
       <div role="radiogroup" aria-label="Voices">
         <div style={sectionTitle}>Voices</div>
         {NATURAL_VOICES.map((v) => (
@@ -167,7 +139,7 @@ export function VoicePicker({ onClose }: { onClose: () => void }) {
             key={v.id}
             selected={settings.naturalVoice === v.id}
             title={`${v.name}${v.note ? ` · ${v.note}` : ""}`}
-            detail={`${v.accent} ${v.gender.toLowerCase()} · grade ${v.grade}`}
+            detail={`${v.accent} ${v.gender.toLowerCase()}`}
             onPick={() => pick(v.id)}
           />
         ))}

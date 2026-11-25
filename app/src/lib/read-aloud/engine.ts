@@ -3,7 +3,7 @@
  *
  * It reads what is actually on screen. Given a root element it collects the
  * visible text, splits it into sentences (split-sentences.ts), and speaks
- * them one at a time with the natural Kokoro voice the listener picked
+ * them one at a time with the natural Piper voice the listener picked
  * (neural-voice.ts), generated on the device. It is the only voice: the
  * browser's built-in speech (speechSynthesis) is not used anywhere.
  * Only the sentence being spoken is highlighted, through the CSS Custom

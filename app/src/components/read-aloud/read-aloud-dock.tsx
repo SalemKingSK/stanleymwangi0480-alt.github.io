@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AudioLines, Headphones, Pause, Play, Square, SkipBack, SkipForward } from "lucide-react";
 import { readAloud } from "@/lib/read-aloud/engine";
 import { useReadAloudState } from "@/hooks/use-read-aloud";
-import { neuralVoice } from "@/lib/read-aloud/neural-voice";
 import { useNeuralVoiceState } from "@/hooks/use-neural-voice";
 import { useToast } from "@/hooks/use-toast";
 import { VoicePicker } from "./voice-picker";
@@ -40,20 +39,6 @@ export function ReadAloudDock() {
   const { toast } = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
-
-  // Tell the user once if speech will have pauses on this device.
-  const toldSlow = useRef(false);
-  useEffect(() => {
-    if (voice.status !== "ready" || !neuralVoice.slow || toldSlow.current) return;
-    toldSlow.current = true;
-    const gpu = voice.device === "wasm" && voice.gpuAvailable && !voice.gpuFailed;
-    toast({
-      title: "Expect short pauses",
-      description: gpu
-        ? "This device makes speech slower than it's spoken. Open the voice menu (sound-wave button) to switch on the faster mode."
-        : "This device makes speech slower than it's spoken, so the voice pauses between sentences.",
-    });
-  }, [voice.status, voice.rtf, voice.device, voice.gpuAvailable, voice.gpuFailed, toast]);
 
   useEffect(() => {
     readAloud.setErrorHandler((message) => toast({ title: "Read aloud", description: message }));
