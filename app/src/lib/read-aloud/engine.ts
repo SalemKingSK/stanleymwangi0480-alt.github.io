@@ -23,6 +23,7 @@
  *   sentence.
  * - While reading, tapping a sentence inside the root jumps to it.
  */
+import { topOffset } from "../reveal-top";
 import { splitSentences, toSpeechText, isSpeakable } from "./split-sentences";
 import { neuralVoice } from "./neural-voice";
 import { voiceSettings } from "./voice-settings";
@@ -256,7 +257,7 @@ function bringIntoView(sentence: TtsSentence) {
     if (/(auto|scroll)/.test(s.overflowY) && el.scrollHeight > el.clientHeight + 4) {
       const box = el.getBoundingClientRect();
       if (rect.top < box.top + 8 || rect.bottom > box.bottom - 8) {
-        el.scrollBy({ top: rect.top - box.top - box.height * 0.3, behavior });
+        el.scrollBy({ top: rect.top - box.top - 12, behavior });
         return;
       }
       break;
@@ -264,9 +265,12 @@ function bringIntoView(sentence: TtsSentence) {
     el = el.parentElement;
   }
 
+  // Out of view (above, or down behind the player): turn the page so the
+  // sentence sits at the top, just under the tab bar.
   const vh = window.innerHeight;
-  if (rect.top < 72 || rect.bottom > vh - 150) {
-    window.scrollBy({ top: rect.top - vh * 0.35, behavior });
+  const top = topOffset();
+  if (rect.top < top || rect.bottom > vh - 150) {
+    window.scrollBy({ top: rect.top - top - 6, behavior });
   }
 }
 

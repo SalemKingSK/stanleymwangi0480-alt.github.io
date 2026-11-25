@@ -3,6 +3,7 @@
  * MYSTIQUE COMPASS — Synthesis Sections
  * Deep cross-module insights rendered as subsections under existing tabs.
  */
+import { revealTop } from "@/lib/reveal-top";
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -2070,11 +2071,7 @@ export function SynthesisFourPlanesSections({
                             e.stopPropagation();
                             const el =
                               document.getElementById("psychomatrix-grid");
-                            if (el)
-                              el.scrollIntoView({
-                                behavior: "smooth",
-                                block: "center",
-                              });
+                            revealTop(el);
                           }}
                           className="text-violet-400 hover:text-violet-300 underline underline-offset-2 decoration-dotted transition-colors cursor-pointer font-bold"
                           title={`Tap to jump to Psychomatrix — cell ${cell}`}

@@ -11,6 +11,7 @@ import "@fontsource/inter/700.css";
 import "./index.css";
 import { initUsageTracking } from "./lib/usage-tracker";
 import { registerServiceWorker } from "./lib/sw-update";
+import { installRevealTop } from "./lib/reveal-top";
 
 // ─── Anonymous install/usage tracking (no login) ─────────────────────────────
 // Queues events locally and syncs when a connection is available — including
@@ -37,6 +38,9 @@ window.addEventListener("beforeinstallprompt", (e) => {
   window.dispatchEvent(new CustomEvent("pwa-prompt-ready"));
 });
 // ────────────────────────────────────────────────────────────────────────────
+
+// Anything opened (collapsibles, compartments, layers) is shown from its top.
+installRevealTop();
 
 createRoot(document.getElementById("root")!).render(<App />);
 

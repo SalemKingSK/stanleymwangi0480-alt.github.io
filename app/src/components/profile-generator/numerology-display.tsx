@@ -2,6 +2,7 @@
 /**
  * MYSTIQUE COMPASS — Premium Numerology Display
  */
+import { revealTop } from "@/lib/reveal-top";
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import LoShuGrid from "@/components/lo-shu-grid";
@@ -822,10 +823,7 @@ export function NumerologyDisplay({
         setPersonalYearAccordionValue("personal-year-detail");
         setTimeout(
           () =>
-            pyDetailRef.current?.scrollIntoView({
-              behavior: "smooth",
-              block: "center",
-            }),
+            revealTop(pyDetailRef.current),
           150,
         );
       } else setPersonalYearAccordionValue("");
@@ -845,10 +843,7 @@ export function NumerologyDisplay({
               setActiveCoreLayer("psyche");
               setTimeout(
                 () =>
-                  coreVibrationsRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center",
-                  }),
+                  revealTop(coreVibrationsRef.current),
                 150,
               );
             }}
@@ -861,10 +856,7 @@ export function NumerologyDisplay({
               setActiveCoreLayer("destiny");
               setTimeout(
                 () =>
-                  coreVibrationsRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center",
-                  }),
+                  revealTop(coreVibrationsRef.current),
                 150,
               );
             }}
@@ -874,10 +866,7 @@ export function NumerologyDisplay({
             value={kuaNum}
             icon={<Compass className="h-3.5 w-3.5" />}
             onClick={() =>
-              kuaRef.current?.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-              })
+              revealTop(kuaRef.current)
             }
           />
         </div>
