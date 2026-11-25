@@ -1258,6 +1258,10 @@ html {
   background-color: rgba(212, 175, 55, 0.34);
   color: #fff8dc;
 }
+/* Keep the centred player clear of the side buttons on very narrow phones. */
+@media (max-width: 379px) {
+  .mc-tts-count { display: none; }
+}
 .mc-tts-fallback {
   background-color: rgba(212, 175, 55, 0.14);
   outline: 1px solid rgba(212, 175, 55, 0.35);

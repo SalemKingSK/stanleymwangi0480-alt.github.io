@@ -1640,7 +1640,8 @@ function FloatingNavigation({
           <ArrowLeft className="h-5 w-5" />
         </Button>
       </div>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
+      {/* Sits above the centred read-aloud player (bottom centre). */}
+      <div className="fixed left-1/2 -translate-x-1/2 z-50 pointer-events-auto" style={{ bottom: "78px" }}>
         <InstallButton minimal />
       </div>
       <ExportFab insight={insight} numerology={numerology} />

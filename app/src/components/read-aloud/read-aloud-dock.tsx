@@ -26,7 +26,7 @@ const btn: React.CSSProperties = {
 };
 
 /**
- * Floating "Listen" button on every screen. Reads everything visible, from the
+ * Floating "Listen" button, bottom centre of every screen. Reads everything visible, from the
  * first sentence on screen, one sentence at a time with highlighting,
  * including fields that have no Listen button of their own. While any
  * reading runs (this one or a field's), it shows the controls.
@@ -57,8 +57,11 @@ export function ReadAloudDock() {
       aria-label="Read aloud"
       style={{
         position: "fixed",
-        right: "max(0.9rem, env(safe-area-inset-right))",
-        bottom: "max(0.9rem, env(safe-area-inset-bottom))",
+        // Bottom centre, in line with the back / history buttons (bottom-6),
+        // so it never covers the PDF and history buttons on the right.
+        left: "50%",
+        transform: "translateX(-50%)",
+        bottom: "max(24px, env(safe-area-inset-bottom))",
         zIndex: 45,
         display: "flex",
         alignItems: "center",
@@ -101,7 +104,7 @@ export function ReadAloudDock() {
           <button type="button" style={btn} onClick={() => readAloud.next()} aria-label="Next sentence">
             <SkipForward size={16} />
           </button>
-          <span style={{ color: "rgba(241,217,138,0.75)", fontSize: "0.66rem", fontVariantNumeric: "tabular-nums", padding: "0 0.3rem", fontFamily: "'Cinzel',serif" }}>
+          <span className="mc-tts-count" style={{ color: "rgba(241,217,138,0.75)", fontSize: "0.66rem", fontVariantNumeric: "tabular-nums", padding: "0 0.3rem", fontFamily: "'Cinzel',serif" }}>
             {state.index + 1}/{state.total}
           </span>
           <button type="button" style={{ ...btn, color: "#fb7185" }} onClick={() => readAloud.stop()} aria-label="Stop reading">
