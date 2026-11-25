@@ -187,6 +187,13 @@ class NeuralVoice {
     const capable = NeuralVoice.capable();
     if (capable) {
       dropOldVersions();
+      // Opened in the background (a notification, a background tab): warm
+      // up when the page is first shown instead of waiting for Listen.
+      if (typeof document !== "undefined") {
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") void this.warmUp();
+        });
+      }
       // A different voice picked while one is loaded: switch to it.
       voiceSettings.subscribe(() => {
         const voice = currentVoice();
@@ -386,16 +393,20 @@ class NeuralVoice {
 
   /**
    * The same, for the sentence a reading starts with: a long first part is
-   * cut at its first clause break ("Similar to the PY4," | "this is…"), so
-   * the voice can start after making only a few words.
+   * cut at its first clause break ("Similar to the PY4," | "this is…"), or,
+   * when none comes early, at a word boundary after ~45 characters, so the
+   * voice can start after making only a few words.
    */
   openingParts(text: string): string[] {
     const parts = this.partsOf(text);
     const first = parts[0] ?? "";
     if (first.length <= OPENING_MAX) return parts;
     const m = /^([\s\S]{20,}?[,;:—–])\s+([\s\S]+)$/.exec(first);
-    if (!m || m[1].length > OPENING_MAX) return parts;
-    return [m[1], m[2], ...parts.slice(1)];
+    if (m && m[1].length <= OPENING_MAX) return [m[1], m[2], ...parts.slice(1)];
+    // No early clause break: cut at a word boundary between 45 and 80 characters.
+    const cut = first.indexOf(" ", 45);
+    if (cut > 0 && cut <= OPENING_MAX) return [first.slice(0, cut), first.slice(cut + 1), ...parts.slice(1)];
+    return parts;
   }
 
   private key(voice: string, speed: number, text: string): string {
@@ -418,6 +429,9 @@ class NeuralVoice {
     } catch {
       return;
     }
+    // Audio output too, so the Listen tap only has to resume it (parked
+    // suspended, so it doesn't interrupt other apps' sound).
+    this.primeAudio();
     if (this.state.status !== "idle") return;
     void this.start(voice).catch(() => {});
   }

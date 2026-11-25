@@ -72,6 +72,7 @@ function usePrepareVoice() {
       schedule();
     };
     const warm = setTimeout(() => idle(() => void neuralVoice.warmUp()), 1200);
+    schedule(1500); // the voice may already be ready (warmed while hidden)
     let wasReady = neuralVoice.getState().status === "ready";
     const offVoice = neuralVoice.subscribe((s) => {
       const ready = s.status === "ready";

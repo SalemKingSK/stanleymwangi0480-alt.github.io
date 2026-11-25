@@ -184,6 +184,18 @@ describe("the voice (Piper, on the device) is the only voice", () => {
     expect(readAloud.getState().index).toBe(0); // one sentence, highlighted once
   });
 
+  it("a long opening with no early comma starts after a few words, cut between words", async () => {
+    const sentence = "This is a trough year of consolidation when no major change should be undertaken by anyone at all.";
+    readAloud.start("t", mount(`<p>${sentence}</p>`));
+    await tick();
+    const first = lastPlayed()!;
+    expect(first).toBe("This is a trough year of consolidation when no");
+    expect(first.length).toBeLessThanOrEqual(80);
+    await endClip();
+    expect(`${first} ${lastPlayed()}`).toBe(sentence);
+    expect(readAloud.getState().index).toBe(0);
+  });
+
   it("if the phone blocks sound, it pauses and asks for a tap instead of hanging", async () => {
     fake.audioFrozen = true;
     const errors: string[] = [];

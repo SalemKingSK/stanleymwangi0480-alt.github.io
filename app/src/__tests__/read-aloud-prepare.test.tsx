@@ -48,6 +48,21 @@ describe("getting the voice ready before Listen is tapped", () => {
     await act(async () => root.unmount());
   });
 
+  it("opened in the background, it warms up (voice and audio) when first shown", async () => {
+    stored.add(voiceFiles(NEURAL_VOICE).model);
+    (neuralVoice as unknown as { ctx: unknown }).ctx = null;
+    const setVisibility = (v: string) => Object.defineProperty(document, "visibilityState", { value: v, configurable: true });
+    setVisibility("hidden");
+    await neuralVoice.warmUp();
+    expect(neuralVoice.getState().status).toBe("idle");
+    setVisibility("visible");
+    document.dispatchEvent(new Event("visibilitychange"));
+    await tick(50);
+    expect(neuralVoice.getState().status).toBe("ready");
+    const ctx = (neuralVoice as unknown as { ctx: { state: string } | null }).ctx;
+    expect(ctx?.state).toBe("suspended"); // ready for the tap, without taking over the sound
+  });
+
   it("the app starts a downloaded voice by itself, then prepares what's on screen", async () => {
     stored.add(voiceFiles(NEURAL_VOICE).model);
     document.body.innerHTML = `<div id="app"></div><main><p>Opening line on screen. Second line.</p><div data-tts-scope><p>A field's first sentence. More.</p></div></main>`;
