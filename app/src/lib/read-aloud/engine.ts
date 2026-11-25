@@ -301,6 +301,9 @@ function rangeAlive(r: Range): boolean {
 
 // ── Controller ──────────────────────────────────────────────────────────────
 
+/** How long to wait for the natural voice before the device voice steps in. */
+const NATURAL_WAIT_MS = 2500;
+
 export interface StartOptions {
   /** Start at the first sentence visible on screen (global reader). */
   fromVisible?: boolean;
@@ -565,28 +568,62 @@ class ReadAloudController {
   private speakNatural(sentence: TtsSentence, index: number, gen: number) {
     const ahead = [sentence.speech];
     for (let i = index + 1; i < Math.min(index + 3, this.sentences.length); i++) ahead.push(this.sentences[i].speech);
-    const speed = this.rate / 0.95;
-    neuralVoice
-      .want(ahead, speed)
-      .then((clip) => {
-        if (gen !== this.generation) return;
-        return neuralVoice.play(clip).then(() => {
-          if (gen === this.generation) this.finished(sentence, index);
-        });
-      })
-      .catch(() => {
-        if (gen !== this.generation) return;
+    const parts = neuralVoice.partsOf(sentence.speech);
+    const clips = neuralVoice.want(ahead, this.rate / 0.95);
+
+    // Play each part as soon as it's ready. If a part isn't ready in time,
+    // the device voice says the rest of the sentence, so reading never goes
+    // quiet; repeated stalls switch the natural voice off for this device.
+    const playPart = (p: number) => {
+      let settled = false;
+      const rest = () => parts.slice(p).join(" ");
+      const timer = this.hasSystemVoice
+        ? setTimeout(() => {
+            if (settled || gen !== this.generation) return;
+            settled = true;
+            neuralVoice.reportStall();
+            this.speakSystem(sentence, index, gen, rest());
+          }, NATURAL_WAIT_MS)
+        : null;
+      const settle = () => {
+        if (settled) return false;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        return gen === this.generation;
+      };
+      const fallBack = () => {
         neuralVoice.reportFailure();
-        // Say this sentence with the device voice instead.
-        if (this.hasSystemVoice) return this.speakSystem(sentence, index, gen);
+        // Say the rest with the device voice instead.
+        if (this.hasSystemVoice) return this.speakSystem(sentence, index, gen, rest());
         this.stop();
         this.onError?.("Speech stopped: the voice couldn't read this part.");
-      });
+      };
+      clips[p].then(
+        (clip) => {
+          if (!settle()) return;
+          neuralVoice.reportOnTime();
+          neuralVoice.play(clip).then(
+            () => {
+              if (gen !== this.generation) return;
+              if (p + 1 < clips.length) playPart(p + 1);
+              else this.finished(sentence, index);
+            },
+            () => {
+              if (gen === this.generation) fallBack();
+            },
+          );
+        },
+        () => {
+          if (settle()) fallBack();
+        },
+      );
+    };
+    playPart(0);
   }
 
-  private speakSystem(sentence: TtsSentence, index: number, gen: number) {
+  private speakSystem(sentence: TtsSentence, index: number, gen: number, text = sentence.speech) {
     const synth = window.speechSynthesis;
-    const parts = chunkForSpeech(sentence.speech);
+    const parts = chunkForSpeech(text);
     const sayPart = (p: number) => {
       const u = new SpeechSynthesisUtterance(parts[p]);
       u.lang = this.lang;

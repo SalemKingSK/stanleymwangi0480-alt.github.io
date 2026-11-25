@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Headphones, Pause, Play, Square, SkipBack, SkipForward, Sparkles } from "lucide-react";
 import { readAloud } from "@/lib/read-aloud/engine";
 import { neuralVoice } from "@/lib/read-aloud/neural-voice";
@@ -38,9 +38,19 @@ export function ReadAloudDock() {
   const voice = useNeuralVoiceState();
   const { toast } = useToast();
 
+  // Tell the user once when the natural voice drops out (not on every load).
+  const lastStatus = useRef(voice.status);
   useEffect(() => {
-    if (voice.status === "error" && voice.enabled) {
+    const was = lastStatus.current;
+    lastStatus.current = voice.status;
+    if (was === voice.status || !voice.enabled) return;
+    if (voice.status === "error") {
       toast({ title: "Natural voice unavailable", description: "Reading with your device's voice instead." });
+    } else if (voice.status === "slow") {
+      toast({
+        title: "Using your device's voice",
+        description: "The natural voice runs too slowly on this device to read without long pauses, so your device's own voice will read instead.",
+      });
     }
   }, [voice.status, voice.enabled, toast]);
 
@@ -58,14 +68,16 @@ export function ReadAloudDock() {
 
   if (!readAloud.supported) return null;
   const active = state.status !== "idle";
-  const voiceAvailable = voice.status !== "unsupported" && voice.status !== "error";
+  const voiceAvailable = voice.status !== "unsupported" && voice.status !== "error" && voice.status !== "slow";
   const natural = voice.enabled && voiceAvailable;
   // Shown above the controls while the natural voice downloads (or when a
   // data-saver device is waiting for the user to ask for it).
   const voiceNote = !active || !voice.enabled
     ? null
     : voice.status === "loading"
-      ? `Getting the natural voice… ${Math.round(voice.progress * 100)}% (one-time ${voice.sizeLabel})`
+      ? voice.progress >= 0.999
+        ? "Checking the natural voice runs smoothly on this device…"
+        : `Getting the natural voice… ${Math.round(voice.progress * 100)}% (one-time ${voice.sizeLabel})`
       : voice.status === "idle"
         ? `Tap ✦ for the natural voice (one-time ${voice.sizeLabel} download)`
         : null;

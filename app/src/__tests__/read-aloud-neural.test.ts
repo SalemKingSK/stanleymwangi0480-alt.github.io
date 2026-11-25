@@ -18,6 +18,7 @@ const synth = { speaking: false, pending: false, paused: false, speak: (u: FakeU
 type Msg = { type: string; id?: number; text?: string; voice?: string; speed?: number; device?: string };
 let worker: FakeWorker | null = null;
 let failText: string | null = null;
+let hangText: string | null = null;
 class FakeWorker {
   onmessage: ((ev: { data: unknown }) => void) | null = null;
   onerror: ((ev: unknown) => void) | null = null;
@@ -28,11 +29,12 @@ class FakeWorker {
   postMessage(msg: Msg) {
     this.sent.push(msg);
     if (msg.type === "generate") {
-      // one "sample" per character, so tests can tell clips apart
+      // one "sample" per character, so tests can tell clips apart;
+      // hangText takes 3 s, like a long sentence on a slow phone
       setTimeout(() => {
         if (msg.text === failText) this.onmessage?.({ data: { type: "error", id: msg.id, message: "boom" } });
         else this.onmessage?.({ data: { type: "audio", id: msg.id, audio: new Float32Array(msg.text!.length), sampleRate: 24000 } });
-      }, 1);
+      }, msg.text === hangText ? 3000 : 1);
     }
   }
   emit(data: unknown) {
@@ -47,8 +49,13 @@ interface FakeSource {
   stopped: boolean;
 }
 const played: FakeSource[] = [];
+const audioClock = { frozen: false, t: 0 };
 class FakeAudioContext {
   state = "running";
+  private t0 = performance.now();
+  get currentTime() {
+    return audioClock.frozen ? 0 : (performance.now() - this.t0) / 1000;
+  }
   destination = {};
   resume = vi.fn(() => Promise.resolve());
   createBuffer(_c: number, length: number) {
@@ -95,6 +102,8 @@ describe("natural voice (Kokoro af_heart)", () => {
     spoken.length = 0;
     played.length = 0;
     failText = null;
+    hangText = null;
+    audioClock.frozen = false;
   });
 
   it("uses the device voice while the model downloads, then switches at the next sentence", async () => {
@@ -150,19 +159,51 @@ describe("natural voice (Kokoro af_heart)", () => {
     expect(spoken).toHaveLength(0);
   });
 
-  it("splits a very long sentence into model-sized parts and plays it as one clip", async () => {
+  it("splits a very long sentence into model-sized parts and plays them in order", async () => {
     const long = Array.from({ length: 30 }, (_, i) => `part ${i} of a long thought`).join(", ") + ".";
-    const root = mount(`<p>${long}</p>`);
+    const root = mount(`<p>${long} After.</p>`);
     const from = generated().length;
     readAloud.start("t", root);
     await tick();
-    const parts = generated().slice(from);
+    const parts = generated().slice(from, -1); // last one is "After." generated ahead
     expect(parts.length).toBeGreaterThan(1);
     expect(parts.join(" ")).toBe(long);
-    expect(parts.every((t) => t!.length <= 260)).toBe(true);
-    expect(played).toHaveLength(1);
-    expect(played[0].buffer!.length).toBeGreaterThan(long.length); // parts + short pauses
+    expect(parts.every((t) => t!.length <= 200)).toBe(true);
+    // the first part plays as soon as it's ready; the rest follow
+    for (let i = 0; i < parts.length; i++) {
+      expect(played.at(-1)!.buffer!.length).toBe(parts[i]!.length);
+      expect(readAloud.getState().index).toBe(0);
+      await endClip();
+    }
+    expect(readAloud.getState().index).toBe(1);
+    expect(played.at(-1)!.buffer!.length).toBe("After.".length);
   });
+
+  it("if the audio output is blocked, the device voice reads instead of going quiet", async () => {
+    audioClock.frozen = true; // e.g. iOS interrupted the audio session
+    const root = mount(`<p>Muted one. Muted two.</p>`);
+    readAloud.start("t", root);
+    await new Promise((r) => setTimeout(r, 450));
+    expect(played).toHaveLength(1);
+    expect(spoken.map((u) => u.text)).toEqual(["Muted one."]);
+    expect(readAloud.getState()).toMatchObject({ status: "playing", index: 0 });
+  });
+
+  it("if a sentence isn't generated in time, the device voice says it and reading continues", async () => {
+    hangText = "Stuck sentence here.";
+    const root = mount(`<p>Stuck sentence here. Flowing sentence.</p>`);
+    readAloud.start("t", root);
+    await tick();
+    expect(played).toHaveLength(0);
+    expect(spoken).toHaveLength(0);
+    await new Promise((r) => setTimeout(r, 2600));
+    expect(spoken.map((u) => u.text)).toEqual(["Stuck sentence here."]);
+    spoken[0].onend?.();
+    await new Promise((r) => setTimeout(r, 600)); // the slow part finishes, then the next one
+    expect(spoken).toHaveLength(1);
+    expect(played.at(-1)!.buffer!.length).toBe("Flowing sentence.".length);
+    readAloud.stop();
+  }, 8000);
 
   it("falls back to the device voice for a sentence the model can't say", async () => {
     failText = "Gamma.";
@@ -196,6 +237,24 @@ describe("natural voice (Kokoro af_heart)", () => {
     readAloud.start("t", root, { lang: "fr-FR" });
     await tick();
     expect(spoken.map((u) => u.text)).toEqual(["Bonjour."]);
+    expect(played).toHaveLength(0);
+  });
+
+  it("a device too slow to keep up is detected, remembered, and uses its own voice", async () => {
+    // Make the singleton reload so it runs the speed test again.
+    (neuralVoice as unknown as { fail(m: string): void }).fail("reset");
+    expect(neuralVoice.getState().status).toBe("error");
+    const ready = neuralVoice.load();
+    worker!.emit({ type: "ready", device: "wasm", rtf: 3.1 }); // 3 s of work per second of speech
+    await expect(ready).rejects.toThrow(/too slow/);
+    expect(neuralVoice.getState().status).toBe("slow");
+    expect(JSON.parse(localStorage.getItem("mc-voice-speed")!)).toMatchObject({ device: "wasm", slow: true, rtf: 3.1 });
+    expect(neuralVoice.wanted("en-US")).toBe(false);
+
+    const root = mount(`<p>Plain one. Plain two.</p>`);
+    readAloud.start("t", root);
+    await tick();
+    expect(spoken.map((u) => u.text)).toEqual(["Plain one."]);
     expect(played).toHaveLength(0);
   });
 });

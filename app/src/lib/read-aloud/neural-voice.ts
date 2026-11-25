@@ -9,15 +9,26 @@
  * It is downloaded once (about 92 MB on the CPU path, 325 MB on the GPU path)
  * and then works offline. Until it is ready, or if it can't run, the reader
  * uses the device's own voice (speechSynthesis) instead.
+ *
+ * Speed matters as much as quality: on many phone CPUs the model needs 3-10
+ * seconds of work per second of speech, which would mean long silences
+ * between sentences. So after loading it times itself; if it can't keep up
+ * with reading (real-time factor above MAX_RTF), it isn't used on that device
+ * and the verdict is remembered so the phone isn't asked to load it again.
  */
 import { chunkForSpeech } from "./split-sentences";
 
 export const NEURAL_VOICE = "af_heart";
 const PREF_KEY = "mc-voice"; // "natural" (default) | "system"
-const MAX_PART = 260; // characters per model call (the model takes ≤510 tokens)
-const CACHE_LIMIT = 24;
+const SPEED_KEY = "mc-voice-speed"; // remembered speed-test verdict
+const MAX_PART = 200; // characters per model call (the model takes ≤510 tokens); parts play as they're ready
+const CACHE_LIMIT = 40;
+/** Seconds of work per second of speech above which reading would stall. */
+export const MAX_RTF = 0.8;
+const SLOW_RETEST_MS = 30 * 24 * 3600 * 1000;
 
-export type NeuralStatus = "unsupported" | "idle" | "loading" | "ready" | "error";
+/** "slow": works, but too slowly on this device to read without gaps. */
+export type NeuralStatus = "unsupported" | "idle" | "loading" | "ready" | "slow" | "error";
 type Device = "webgpu" | "wasm";
 
 export interface NeuralState {
@@ -64,6 +75,23 @@ function readPref(): boolean {
   }
 }
 
+function rememberedSlow(device: Device): boolean {
+  try {
+    const v = JSON.parse(localStorage.getItem(SPEED_KEY) || "null") as { device?: string; slow?: boolean; at?: number } | null;
+    return !!v && v.slow === true && v.device === device && Date.now() - (v.at ?? 0) < SLOW_RETEST_MS;
+  } catch {
+    return false;
+  }
+}
+
+function rememberSpeed(device: Device, rtf: number, slow: boolean) {
+  try {
+    localStorage.setItem(SPEED_KEY, JSON.stringify({ device, rtf: Math.round(rtf * 100) / 100, slow, at: Date.now() }));
+  } catch {
+    /* private mode */
+  }
+}
+
 function pickDevice(): Device {
   const n = nav();
   const coarse = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
@@ -83,6 +111,7 @@ class NeuralVoice {
   private ready: Promise<void> | null = null;
   private readyHooks: { resolve: () => void; reject: (e: Error) => void } | null = null;
   private failures = 0;
+  private stalls = 0;
   private ctx: AudioContext | null = null;
   private source: AudioBufferSourceNode | null = null;
 
@@ -90,7 +119,7 @@ class NeuralVoice {
     const capable = NeuralVoice.capable();
     const device = capable ? pickDevice() : null;
     this.state = {
-      status: capable ? "idle" : "unsupported",
+      status: !capable ? "unsupported" : rememberedSlow(device!) ? "slow" : "idle",
       enabled: readPref(),
       progress: 0,
       sizeLabel: device === "webgpu" ? "325 MB" : "92 MB",
@@ -127,7 +156,14 @@ class NeuralVoice {
 
   /** Could the natural voice be used (now or once downloaded)? */
   wanted(lang: string): boolean {
-    return this.state.enabled && this.state.status !== "unsupported" && this.state.status !== "error" && /^en\b/i.test(lang);
+    const st = this.state.status;
+    return this.state.enabled && (st === "idle" || st === "loading" || st === "ready") && /^en\b/i.test(lang);
+  }
+
+  /** It can run here but not fast enough, or failed to load. */
+  get unavailable(): boolean {
+    const st = this.state.status;
+    return st === "unsupported" || st === "slow" || st === "error";
   }
 
   setEnabled(on: boolean) {
@@ -150,8 +186,10 @@ class NeuralVoice {
   /** Download + start the model (once). Resolves when it can speak. */
   load(): Promise<void> {
     if (this.state.status === "unsupported") return Promise.reject(new Error("Natural voice isn't supported on this device"));
+    if (this.state.status === "slow") return Promise.reject(new Error("Natural voice is too slow on this device"));
     if (this.ready && this.state.status !== "error") return this.ready;
     this.failures = 0;
+    this.stalls = 0;
     this.ready = new Promise<void>((resolve, reject) => {
       this.readyHooks = { resolve, reject };
     });
@@ -173,11 +211,19 @@ class NeuralVoice {
     return this.ready;
   }
 
-  private onMessage(msg: { type: string; id?: number; loaded?: number; total?: number; device?: Device; audio?: Float32Array; sampleRate?: number; message?: string }) {
+  private onMessage(msg: { type: string; id?: number; loaded?: number; total?: number; device?: Device; rtf?: number; audio?: Float32Array; sampleRate?: number; message?: string }) {
     if (msg.type === "progress") {
       if (msg.total) this.set({ progress: Math.min(1, (msg.loaded ?? 0) / msg.total) });
     } else if (msg.type === "ready") {
-      this.set({ status: "ready", progress: 1, device: msg.device ?? this.state.device });
+      const device = msg.device ?? this.state.device ?? "wasm";
+      const rtf = typeof msg.rtf === "number" && Number.isFinite(msg.rtf) ? msg.rtf : 0;
+      const slow = rtf > MAX_RTF;
+      if (slow) {
+        this.markSlow(rtf);
+        return;
+      }
+      rememberSpeed(device, rtf, false);
+      this.set({ status: "ready", progress: 1, device });
       this.readyHooks?.resolve();
       // Ask the browser not to evict the downloaded model.
       void nav()?.storage?.persist?.().catch(() => {});
@@ -196,8 +242,19 @@ class NeuralVoice {
     }
   }
 
+  /** Too slow to read without gaps here: stop using it (and free its memory). */
+  private markSlow(rtf = MAX_RTF + 1) {
+    if (this.state.device) rememberSpeed(this.state.device, rtf, true);
+    this.shutdown("slow", "Natural voice is too slow on this device");
+    void freeDownloadedModel();
+  }
+
   private fail(message: string) {
-    this.set({ status: "error" });
+    this.shutdown("error", message);
+  }
+
+  private shutdown(status: "slow" | "error", message: string) {
+    this.set({ status });
     const err = new Error(message);
     this.readyHooks?.reject(err);
     this.readyHooks = null;
@@ -213,6 +270,21 @@ class NeuralVoice {
   /** A sentence failed to generate; give up on the natural voice after a few. */
   reportFailure() {
     if (++this.failures >= 3) this.fail("Too many speech errors");
+  }
+
+  /** A part wasn't ready in time and the device voice stepped in. */
+  reportStall() {
+    if (++this.stalls >= 3) this.markSlow();
+  }
+
+  /** A part was ready in time. */
+  reportOnTime() {
+    this.stalls = 0;
+  }
+
+  /** How a sentence is split into model calls (each played as soon as it's ready). */
+  partsOf(text: string): string[] {
+    return chunkForSpeech(text, MAX_PART);
   }
 
   private rpc(text: string, speed: number): Promise<Clip> {
@@ -231,9 +303,7 @@ class NeuralVoice {
     if (!job) return;
     this.busy = true;
     try {
-      const clips: Clip[] = [];
-      for (const part of chunkForSpeech(job.text, MAX_PART)) clips.push(await this.rpc(part, job.speed));
-      job.resolve(concat(clips));
+      job.resolve(await this.rpc(job.text, job.speed));
     } catch (err) {
       this.cache.delete(job.key);
       job.reject(err instanceof Error ? err : new Error(String(err)));
@@ -244,13 +314,15 @@ class NeuralVoice {
   }
 
   /**
-   * Audio for texts[0]; texts[1..] are generated next, in order, so the
-   * following sentences are ready when they're needed. Queued work for
-   * anything not in the list is dropped (the reader jumped elsewhere).
+   * Audio for each part of texts[0] (see partsOf); texts[1..] are generated
+   * next, in order, so the following sentences are ready when they're needed.
+   * Queued work for anything not in the list is dropped (the reader jumped).
    */
-  want(texts: string[], speed: number): Promise<Clip> {
-    const keys = texts.map((t) => `${speed}|${t}`);
-    texts.forEach((text, i) => {
+  want(texts: string[], speed: number): Promise<Clip>[] {
+    const firstParts = this.partsOf(texts[0] ?? "");
+    const parts = [...firstParts, ...texts.slice(1).flatMap((t) => this.partsOf(t))];
+    const keys = parts.map((t) => `${speed}|${t}`);
+    parts.forEach((text, i) => {
       const key = keys[i];
       if (this.cache.has(key)) {
         const p = this.cache.get(key)!;
@@ -270,9 +342,10 @@ class NeuralVoice {
       return false;
     });
     this.queue.sort((a, b) => order.get(a.key)! - order.get(b.key)!);
+    const out = keys.slice(0, firstParts.length).map((k) => this.cache.get(k)!);
     while (this.cache.size > CACHE_LIMIT) this.cache.delete(this.cache.keys().next().value as string);
     void this.pump();
-    return this.cache.get(keys[0])!;
+    return out;
   }
 
   // ── Playback ──────────────────────────────────────────────────────────────
@@ -300,14 +373,31 @@ class NeuralVoice {
     }
   }
 
-  /** Plays a clip; resolves when it finishes (never, if stopped first). */
+  /**
+   * Plays a clip; resolves when it finishes (never, if stopped first).
+   * Rejects if the audio output is blocked or stuck (a suspended or
+   * interrupted AudioContext plays nothing and never "ends"), so the reader
+   * can fall back instead of going quiet.
+   */
   play(clip: Clip): Promise<void> {
     this.stopPlayback();
     const Ctor = audioCtor();
     if (!Ctor) return Promise.reject(new Error("No audio output"));
-    if (!this.ctx) this.ctx = new Ctor();
+    if (!this.ctx || this.ctx.state === "closed") this.ctx = new Ctor();
     const ctx = this.ctx;
+    const seconds = clip.samples.length / clip.sampleRate;
     return new Promise<void>((resolve, reject) => {
+      let done = false;
+      let watchdog: ReturnType<typeof setTimeout> | null = null;
+      const finish = (err?: Error) => {
+        if (done) return;
+        done = true;
+        if (watchdog) clearTimeout(watchdog);
+        if (err) {
+          this.stopPlayback();
+          reject(err);
+        } else resolve();
+      };
       try {
         if (ctx.state !== "running") void ctx.resume().catch(() => {});
         const buffer = ctx.createBuffer(1, clip.samples.length, clip.sampleRate);
@@ -317,12 +407,27 @@ class NeuralVoice {
         src.connect(ctx.destination);
         src.onended = () => {
           if (this.source === src) this.source = null;
-          resolve();
+          finish();
         };
         this.source = src;
+        const startedAt = ctx.currentTime;
         src.start();
+        const check = (ms: number, final: boolean) => {
+          watchdog = setTimeout(() => {
+            if (done || this.source !== src) return; // stopped meanwhile
+            const advanced = ctx.currentTime > startedAt + 0.05;
+            if (!advanced || ctx.state !== "running") return finish(new Error(`Audio output is ${ctx.state}`));
+            if (final) {
+              // Played through but "ended" never came: move on anyway.
+              if (this.source === src) this.source = null;
+              return finish();
+            }
+            check(seconds * 1000 + 1500, true);
+          }, ms);
+        };
+        check(Math.min(1200, seconds * 1000 + 300), false);
       } catch (err) {
-        reject(err instanceof Error ? err : new Error(String(err)));
+        finish(err instanceof Error ? err : new Error(String(err)));
       }
     });
   }
@@ -344,18 +449,17 @@ class NeuralVoice {
   }
 }
 
-function concat(clips: Clip[]): Clip {
-  if (clips.length === 1) return clips[0];
-  const sampleRate = clips[0]?.sampleRate ?? 24000;
-  const gap = Math.round(sampleRate * 0.12); // short breath between parts
-  const length = clips.reduce((n, c) => n + c.samples.length, 0) + gap * Math.max(0, clips.length - 1);
-  const samples = new Float32Array(length);
-  let at = 0;
-  clips.forEach((c, i) => {
-    samples.set(c.samples, at);
-    at += c.samples.length + (i < clips.length - 1 ? gap : 0);
-  });
-  return { samples, sampleRate };
+/** Give back the storage used by a model this device can't use. */
+async function freeDownloadedModel() {
+  try {
+    if (typeof caches === "undefined") return;
+    await caches.delete("kokoro-voices");
+    const cache = await caches.open("transformers-cache");
+    const keys = await cache.keys();
+    await Promise.all(keys.filter((k) => k.url.includes("Kokoro-82M")).map((k) => cache.delete(k)));
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 export const neuralVoice = new NeuralVoice();

@@ -3,7 +3,7 @@
  * Runs the Kokoro-82M neural voice off the main thread.
  *
  * Messages in:  { type: "load", device }  |  { type: "generate", id, text, voice, speed }
- * Messages out: { type: "progress", loaded, total }  |  { type: "ready", device }
+ * Messages out: { type: "progress", loaded, total }  |  { type: "ready", device, rtf }
  *               { type: "audio", id, audio, sampleRate }  |  { type: "error", id?, message }
  *
  * The model and voice files are downloaded once from Hugging Face and kept in
@@ -62,7 +62,14 @@ async function load(device: Device): Promise<KokoroTTSType> {
   // Warm up: fetches + caches the voice file and compiles the graph, so the
   // first real sentence starts quickly and everything is cached for offline.
   await model.generate("Ready.", { voice: "af_heart" });
-  ctx.postMessage({ type: "ready", device: used });
+  // Speed test: seconds of work per second of speech (real-time factor).
+  // Above ~0.8 the voice can't keep up with reading and would leave long
+  // silences between sentences (typical of phone CPUs).
+  const t0 = performance.now();
+  const probe = await model.generate("Your reading is ready, and this is the voice that will read it.", { voice: "af_heart" });
+  const seconds = probe.audio.length / probe.sampling_rate;
+  const rtf = (performance.now() - t0) / 1000 / Math.max(seconds, 0.5);
+  ctx.postMessage({ type: "ready", device: used, rtf });
   return model;
 }
 
