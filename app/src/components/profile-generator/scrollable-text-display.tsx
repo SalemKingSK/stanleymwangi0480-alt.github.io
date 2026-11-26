@@ -7,7 +7,7 @@ interface Props {
   sentences?: string[];
 }
 
-type BlockKind = 'hero' | 'heading' | 'subheading' | 'probability' | 'bullet' | 'numbered' | 'divider' | 'empty' | 'body' | 'compound';
+type BlockKind = 'hero' | 'heading' | 'subheading' | 'probability' | 'bullet' | 'subbullet' | 'numbered' | 'divider' | 'empty' | 'body' | 'compound';
 
 interface Block {
   kind: BlockKind;
@@ -52,6 +52,9 @@ function classifyLine(line: string): Block {
   if (!t) return { kind: 'empty', text: '' };
   if (/^---+$/.test(t)) return { kind: 'divider', text: t };
   if (isHero(t)) return { kind: 'hero', text: t };
+  // Markdown-style sub-heading ("#### Title") and nested bullet ("◦ item").
+  if (/^#{3,4}\s+/.test(t)) return { kind: 'subheading', text: t.replace(/^#{3,4}\s+/, '') };
+  if (/^◦\s+/.test(t)) return { kind: 'subbullet', text: t.replace(/^◦\s+/, '') };
   if (SECTION_HEADING_RE.test(t)) return { kind: 'heading', text: t.replace(/^\d+\.\s+/, '') };
   const probability = t.match(PROBABILITY_RE);
   if (probability && Number(probability[2]) <= 100) {
@@ -158,6 +161,15 @@ export const ScrollableTextDisplay: React.FC<Props> = ({ text }) => {
           return (
             <div key={idx} ref={setRef} style={{ ...activeWrap, margin: '0.95rem 0 0.35rem' }}>
               <div style={{ fontFamily: "'Cinzel', serif", fontSize: '0.7rem', letterSpacing: '0.11em', textTransform: 'uppercase', color: block.kind === 'compound' ? '#f1d98a' : '#c4b5fd', fontWeight: 750 }}>{renderInline(block.text)}</div>
+            </div>
+          );
+        }
+
+        if (block.kind === 'subbullet') {
+          return (
+            <div key={idx} ref={setRef} style={{ ...activeWrap, display: 'grid', gridTemplateColumns: '0.9rem 1fr', gap: '0.4rem', alignItems: 'start', margin: '0.3rem 0 0.3rem 1.35rem' }}>
+              <span style={{ color: 'rgba(196,181,253,0.7)', fontSize: '0.62rem', lineHeight: 1.9, textAlign: 'center' }}>◇</span>
+              <span style={{ fontSize: '0.81rem', color: 'rgba(231,221,255,0.8)', lineHeight: 1.72 }}>{renderInline(block.text)}</span>
             </div>
           );
         }

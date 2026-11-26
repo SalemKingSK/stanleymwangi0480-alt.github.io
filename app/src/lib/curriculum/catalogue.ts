@@ -26,6 +26,7 @@ import { yearDiveOracle } from "@/lib/cosmic-fate/oracle";
 import { analyzeNumber } from "@/lib/loshu-analysis";
 import { COMPOUNDS as PYN_COMPOUNDS } from "@/lib/numerology/chaldean-pyn-compounds";
 import { futureTexts } from "@/lib/zodiac/futures";
+import { codexAnimal, codexAnimalKey, codexNumber, codexNumbersFor, animalName } from "@/lib/codex";
 
 // ── Modules (the five results tabs + the timing panels above them) ─────────
 
@@ -186,6 +187,10 @@ export const K = {
   master: (n: number) => `Master ${n}`,
   maturity: (n: number) => `Maturity ${n}`,
   lifePath: (n: number) => `Life Path ${n}`,
+  /** The Number Codex entry for a number (1–9, 11, 22, 33). */
+  codexNumber: (n: number) => `Codex ${n}`,
+  /** The Animal Codex entry for an animal (the Rabbit is read as the Cat). */
+  codexAnimal: (animal: string) => `${animalName(animal)} Codex`,
   period: (period: string, n: number) => `${period} Period · ${n}`,
   karmicDebt: (n: number, foundIn: string) => `Debt ${n} in ${foundIn}`,
   missing: (n: number) => `Missing ${n}`,
@@ -272,6 +277,13 @@ export function timingFieldForTitle(title: string): string | null {
 
 const A: ModuleId = "astro", N: ModuleId = "numerology", P: ModuleId = "psychomatrix", F: ModuleId = "fate";
 
+/** Every layer of a Codex entry is one passage of its study. */
+function codexParts(entry: { layers: { id: string; title: string }[] } | null): PartDef[] {
+  return (entry?.layers ?? []).map((l, i) => ({ id: l.id, label: `Layer ${i + 1} · ${l.title}` }));
+}
+const codexNumberOf = (v: string) => codexNumber(Number(/Codex (\d+)/.exec(v)?.[1] ?? 0));
+const codexAnimalOf = (v: string) => codexAnimal(/^(\w+) Codex/.exec(v)?.[1] ?? "");
+
 export const FIELDS: FieldDef[] = [
   // ── Astrology ────────────────────────────────────────────────────────────
   { id: "astro.totem", module: A, topic: "The Animal Oracle", label: "Animal Sign Totem", kind: "chart", anchor: "astro.oracle",
@@ -286,6 +298,13 @@ export const FIELDS: FieldDef[] = [
   { id: "astro.future", module: A, topic: "The Animal Oracle", label: "Temporal Trajectory", kind: "chart", anchor: "astro.oracle",
     where: "Astrology › The Animal Oracle › Layer 4 › Temporal Trajectory", blurb: "Each sign's forecast for each of the twelve year animals.",
     variants: (c) => Object.keys(futureTexts(c.insight.zodiacData?.futures)).map((animal) => K.future(c.insight.sign, animal)) },
+  { id: "astro.codex", module: A, topic: "The Animal Codex", label: "Animal Codex", kind: "chart", anchor: "astro.codex",
+    where: "Astrology › The Animal Codex › Layers", blurb: "Each of the twelve animals in layers — essence, trines, enemies, child-rearing, geopolitics and famous figures — with the trine alliances of the Strategic Matrix.",
+    parts: (v) => codexParts(codexAnimalOf(v)),
+    variants: (c) => {
+      const k = codexAnimalKey(c.insight.sign);
+      return k ? [K.codexAnimal(k)] : [];
+    } },
   { id: "astro.decan", module: A, topic: "Deep Synthesis", label: "Decan", kind: "chart", anchor: "astro.synthesis",
     where: "Astrology › Deep Synthesis › decan card", blurb: "The 36 ten-degree decans of the Western zodiac.",
     variants: (c) => (c.synthesis.decan ? [K.decan(c.synthesis.decan.sign, c.synthesis.decan.decanNumber)] : []) },
@@ -344,6 +363,10 @@ export const FIELDS: FieldDef[] = [
   { id: "num.destiny", module: N, topic: "Core Vibrations", label: "Destiny Path", kind: "chart", anchor: "num.core",
     where: "Numerology › Core Vibrations › Chamber 3", blurb: "The destiny numbers.",
     variants: (c) => [K.destiny(c.numerology.destinyNum)] },
+  { id: "num.codex", module: N, topic: "The Number Codex", label: "Number Codex", kind: "chart", anchor: "num.codex",
+    where: "Numerology › The Number Codex › Layers", blurb: "The numbers 1–9 and the Master Numbers 11, 22 and 33 in layers — essence, letterology, enemies and friends, birthdays, cycles and famous figures — read for the Life Path and the birth-day energy.",
+    parts: (v) => codexParts(codexNumberOf(v)),
+    variants: (c) => codexNumbersFor(c.day, c.month, c.year).map((x) => K.codexNumber(x.n)) },
   { id: "num.loshu", module: N, topic: "Lo Shu Grid", label: "Lo Shu Number", kind: "chart", anchor: "num.loshu",
     where: "Numerology › Lo Shu Grid › tap a number", blurb: "Each grid number at each repetition.",
     parts: (v) => {
