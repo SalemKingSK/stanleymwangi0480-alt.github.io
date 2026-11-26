@@ -210,7 +210,7 @@ describe("handbook in the Animal Oracle and the Curriculum", () => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     await act(async () => root.render(<AstroDisplay insight={insight as never} />));
     expect(div.textContent).toContain("Moon Signs Meet Sun Signs");
-    expect(div.textContent).toContain("Loaded on this device");
+    expect(div.textContent).toContain("loaded on this device");
 
     const layer = (title: string) => Array.from(div.querySelectorAll<HTMLButtonElement>(".astro-acc-header")).find((b) => b.textContent!.includes(title))!;
     await act(async () => layer("Wood Influence").click());
@@ -236,7 +236,7 @@ describe("handbook in the Animal Oracle and the Curriculum", () => {
     const insight = { name: "T", western_sign: "Aries", sign: "Rat", element: "Wood", month: 4, year: 1984, gender: "female", new_astrology_sign: "Aries/Rat", zodiacData: {}, signData: {} };
     await act(async () => root.render(<AstroDisplay insight={insight as never} />));
     expect(div.textContent).toContain("Load my Handbook");
-    expect(div.textContent).not.toContain("Layer 7");
+    expect(div.textContent).not.toContain("Layer 5");
     await act(async () => root.unmount());
   });
 });

@@ -27,7 +27,8 @@ import { analyzeNumber } from "@/lib/loshu-analysis";
 import { COMPOUNDS as PYN_COMPOUNDS } from "@/lib/numerology/chaldean-pyn-compounds";
 import { futureTexts } from "@/lib/zodiac/futures";
 import { codexAnimal, codexAnimalKey, codexNumber, codexNumbersFor, animalName } from "@/lib/codex";
-import { hasHandbook } from "@/lib/handbook/store";
+import { hasHandbook, hasZodiacs } from "@/lib/handbook/store";
+import { FOUNDATION_KEYS } from "@/lib/handbook/zodiacs";
 import { birthSeason, HB_ELEMENTS, HB_SEASONS, HB_WESTERN } from "@/lib/handbook/types";
 
 // ── Modules (the five results tabs + the timing panels above them) ─────────
@@ -95,12 +96,14 @@ export interface FieldDef {
   /** Every value a temporal field can take. */
   universe?: () => string[];
   /** Only offered once the user has loaded their handbook on this device. */
-  requires?: "handbook";
+  requires?: "handbook" | "zodiacs";
 }
 
 /** Whether a field can be studied on this device (handbook fields need the book loaded). */
 export function fieldAvailable(field: FieldDef): boolean {
-  return !field.requires || hasHandbook();
+  if (field.requires === "handbook") return hasHandbook();
+  if (field.requires === "zodiacs") return hasZodiacs();
+  return true;
 }
 
 export const PRACTICE = "Practice";
@@ -176,6 +179,8 @@ export const K = {
   hbMoon: (western: string, sign: string) => `${western} ${sign}`,
   /** Handbook: a sign born in a season ("Winter Rat"). */
   hbSeason: (season: string, sign: string) => `${season} ${sign}`,
+  /** Chinese Zodiacs: "Meanings of the Elements" for one element ("Wood People"). */
+  zgElementPeople: (el: string) => `${el} People`,
   decan: (sign: string, n: number) => `${sign} · Decan ${n}`,
   stem: (stem: number, polarity: string, element: string) => `Stem ${stem} · ${polarity} ${element}`,
   branch: (animal: string, chinese: string) => `${animal} (${chinese})`,
@@ -315,36 +320,59 @@ export const FIELDS: FieldDef[] = [
     variants: (c) => Object.keys(futureTexts(c.insight.zodiacData?.futures)).map((animal) => K.future(c.insight.sign, animal)) },
   // The user's own handbook, loaded on the device (lib/handbook): word-for-word passages in the Oracle.
   { id: "astro.hb.five", module: A, topic: "My Handbook", label: "The Five Different Animals", kind: "chart", anchor: "astro.oracle", requires: "handbook",
-    where: "Astrology › The Animal Oracle › Layer 2 › My Handbook", blurb: "The handbook's portrait of each animal in each of the five elements — 60 passages.",
+    where: "Astrology › The Animal Oracle › Element layer › The Five Different …", blurb: "The handbook's portrait of each animal in each of the five elements — 60 passages.",
     variants: (c) => [K.element(c.insight.element, c.insight.sign)] },
   { id: "astro.hb.compat", module: A, topic: "My Handbook", label: "Compatibility, Conflict & Pairings", kind: "chart", anchor: "astro.oracle", requires: "handbook",
     where: "Astrology › The Animal Oracle › Layer 3 › With the …", blurb: "Each partner's Compatibility and Conflict entry together with the handbook's \"Rat + Ox\" pairing.",
     parts: [{ id: "conflict", label: "Compatibility and Conflict" }, { id: "pair", label: "The pairing" }],
     variants: (c) => ANIMALS.map((p) => K.compat(c.insight.sign, p)) },
   { id: "astro.hb.intro", module: A, topic: "My Handbook", label: "Section Openings", kind: "chart", anchor: "astro.oracle", requires: "handbook",
-    where: "Astrology › The Animal Oracle › Layers 3, 6 and 7 › opening", blurb: "The handbook's opening words on compatibility, ascendants and moon signs for each animal.",
+    where: "Astrology › The Animal Oracle › Compatibility Bonds, Ascendants, Moon Signs › opening", blurb: "The handbook's opening words on compatibility, ascendants and moon signs for each animal.",
     parts: [{ id: "compat", label: "Compatibility and Conflict" }, { id: "ascendant", label: "Ascendant Relationships" }, { id: "moon", label: "Moon Signs Meet Sun Signs" }],
     variants: (c) => [K.sign(c.insight.sign)] },
   { id: "astro.hb.character", module: A, topic: "My Handbook", label: "Personality & Child", kind: "chart", anchor: "astro.oracle", requires: "handbook",
-    where: "Astrology › The Animal Oracle › Layer 5 › Personality & Child", blurb: "The handbook's Personality and Child chapters for each animal.",
+    where: "Astrology › The Animal Oracle › Personality layer", blurb: "The handbook's Personality and Child chapters for each animal.",
     parts: [{ id: "personality", label: "Personality" }, { id: "child", label: "Child" }],
     variants: (c) => [K.sign(c.insight.sign)] },
   { id: "astro.hb.ascendant", module: A, topic: "My Handbook", label: "Ascendants", kind: "chart", anchor: "astro.oracle", requires: "handbook",
-    where: "Astrology › The Animal Oracle › Layer 6 › Ascendants", blurb: "Each animal with each of the twelve hour-animals rising — 144 passages.",
+    where: "Astrology › The Animal Oracle › Ascendants", blurb: "Each animal with each of the twelve hour-animals rising — 144 passages.",
     variants: (c) => ANIMALS.map((h) => K.hbAscendant(c.insight.sign, h)) },
   { id: "astro.hb.moon", module: A, topic: "My Handbook", label: "Moon Signs Meet Sun Signs", kind: "chart", anchor: "astro.oracle", requires: "handbook",
-    where: "Astrology › The Animal Oracle › Layer 7 › Moon Signs Meet Sun Signs", blurb: "Each animal under each of the twelve Western sun signs — 144 passages.",
+    where: "Astrology › The Animal Oracle › Moon Signs Meet Sun Signs", blurb: "Each animal under each of the twelve Western sun signs — 144 passages.",
     variants: (c) => [c.insight.western_sign, ...HB_WESTERN.filter((w) => w !== c.insight.western_sign)].filter(Boolean).map((w) => K.hbMoon(w, c.insight.sign)) },
   { id: "astro.hb.season", module: A, topic: "My Handbook", label: "The Four Seasons", kind: "chart", anchor: "astro.oracle", requires: "handbook",
-    where: "Astrology › The Animal Oracle › Layer 8 › The Seasons", blurb: "Each animal born in spring, summer, autumn and winter.",
+    where: "Astrology › The Animal Oracle › The Four Seasons", blurb: "Each animal born in spring, summer, autumn and winter.",
     variants: (c) => {
       const own = birthSeason(c.day, c.month);
       return [own, ...HB_SEASONS.filter((x) => x !== own)].map((x) => K.hbSeason(x, c.insight.sign));
     } },
   { id: "astro.hb.famous", module: A, topic: "My Handbook", label: "Famous People", kind: "chart", anchor: "astro.oracle", requires: "handbook",
-    where: "Astrology › The Animal Oracle › Layer 9 › Famous People", blurb: "The handbook's famous people of each animal, by element.",
+    where: "Astrology › The Animal Oracle › Famous People", blurb: "The handbook's famous people of each animal, by element.",
     parts: HB_ELEMENTS.map((e) => ({ id: e.toLowerCase(), label: e })),
     variants: (c) => [K.sign(c.insight.sign)] },
+  // The user's "Chinese Zodiacs" book, loaded on the device: Foundations and each animal's chapter.
+  { id: "astro.zg.found", module: A, topic: "Chinese Zodiacs", label: "Foundations: Yang, Yin & the Elements", kind: "library", anchor: "astro.oracle", requires: "zodiacs",
+    where: "Astrology › The Animal Oracle › Foundations", blurb: "The twelve animals, your horoscope, Yang and Yin, the elements, the Creation and Destruction Cycles and what each element means.",
+    parts: (v) => (/ People$/.test(v) ? [{ id: "main", label: "The element" }, { id: "yang", label: "Yang year" }, { id: "yin", label: "Yin year" }] : [{ id: "main", label: "Reading" }]),
+    library: () => [...FOUNDATION_KEYS, ...["Wood", "Fire", "Earth", "Metal", "Water"].map(K.zgElementPeople)] },
+  { id: "astro.zg.character", module: A, topic: "Chinese Zodiacs", label: "Virtues, Vices & Personality", kind: "chart", anchor: "astro.oracle", requires: "zodiacs",
+    where: "Astrology › The Animal Oracle › Personality layer", blurb: "Each animal's opening, virtues, vices and personality.",
+    parts: [{ id: "opening", label: "Opening", optional: true }, { id: "virtues", label: "Virtues" }, { id: "vices", label: "Vices" }, { id: "personality", label: "Personality" }],
+    variants: (c) => [K.sign(c.insight.sign)] },
+  { id: "astro.zg.love", module: A, topic: "Chinese Zodiacs", label: "Love & Career", kind: "chart", anchor: "astro.oracle", requires: "zodiacs",
+    where: "Astrology › The Animal Oracle › Love & Career", blurb: "Each animal in love — lovers, friends and enemies — and at work.",
+    parts: [{ id: "love", label: "In Love" }, { id: "career", label: "Career" }],
+    variants: (c) => [K.sign(c.insight.sign)] },
+  { id: "astro.zg.five", module: A, topic: "Chinese Zodiacs", label: "The Animal and the Five Elements", kind: "chart", anchor: "astro.oracle", requires: "zodiacs",
+    where: "Astrology › The Animal Oracle › Element layer › … and the Five Elements", blurb: "Each animal in each element — 60 portraits.",
+    parts: [{ id: "main", label: "Reading" }, { id: "intro", label: "Opening", optional: true }],
+    variants: (c) => [K.element(c.insight.element, c.insight.sign)] },
+  { id: "astro.zg.year", module: A, topic: "Chinese Zodiacs", label: "The Year of the Animal", kind: "chart", anchor: "astro.oracle", requires: "zodiacs",
+    where: "Astrology › The Animal Oracle › Temporal Trajectory › The Year of the …", blurb: "What each animal's year brings to everyone.",
+    variants: (c) => [K.sign(c.insight.sign)] },
+  { id: "astro.zg.fortune", module: A, topic: "Chinese Zodiacs", label: "Fortunes Year by Year", kind: "chart", anchor: "astro.oracle", requires: "zodiacs",
+    where: "Astrology › The Animal Oracle › Temporal Trajectory › each year", blurb: "Each animal's fortunes in each of the twelve animal years — 144 passages.",
+    variants: (c) => ANIMALS.map((a) => K.future(c.insight.sign, a)) },
   { id: "astro.codex", module: A, topic: "The Animal Codex", label: "Animal Codex", kind: "chart", anchor: "astro.codex",
     where: "Astrology › The Animal Codex › Layers", blurb: "Each of the twelve animals in layers — essence, trines, enemies, child-rearing, geopolitics and famous figures — with the trine alliances of the Strategic Matrix.",
     parts: (v) => codexParts(codexAnimalOf(v)),

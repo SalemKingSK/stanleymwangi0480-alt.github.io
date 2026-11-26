@@ -9,18 +9,17 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { AccordionContentWithPlayer } from "@/components/profile-generator/accordion-content-with-player";
 import { ZOO } from "@/lib/cosmic-fate/zoo";
 import { K } from "@/lib/curriculum/catalogue";
-import { loadHandbookFile, removeHandbook, useHandbook } from "@/lib/handbook/store";
-import { handbookSummary } from "@/lib/handbook/parse";
+import { loadBookFile, removeBook, useHandbook, type BookKind } from "@/lib/handbook/store";
 import { birthSeason, pairKey, type HbChapter, type HbItem, type HbSection, type Handbook } from "@/lib/handbook/types";
 
-const itemCls = "border-none bg-white/5 rounded-lg overflow-hidden px-3";
-const triggerCls = "hover:no-underline py-3";
+export const itemCls = "border-none bg-white/5 rounded-lg overflow-hidden px-3";
+export const triggerCls = "hover:no-underline py-3";
 
-function Title({ children }: { children: React.ReactNode }) {
+export function Title({ children }: { children: React.ReactNode }) {
   return <span className="font-cinzel text-[0.7rem] uppercase tracking-widest text-primary flex items-center gap-2 text-left">{children}</span>;
 }
 
-function BookTag({ children }: { children: React.ReactNode }) {
+export function BookTag({ children }: { children: React.ReactNode }) {
   return (
     <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-amber-300/90 mt-2 mb-1 px-1">
       <BookMarked className="h-3.5 w-3.5" /> {children}
@@ -28,19 +27,19 @@ function BookTag({ children }: { children: React.ReactNode }) {
   );
 }
 
-function YoursBadge({ label = "Yours" }: { label?: string }) {
+export function YoursBadge({ label = "Yours" }: { label?: string }) {
   return <span className="ml-1 rounded-full bg-amber-400/15 border border-amber-300/40 px-2 py-0.5 text-[9px] tracking-wider text-amber-200">{label}</span>;
 }
 
 /** Moves the user's own item to the front. */
-function yoursFirst(items: HbItem[], key: string | undefined): HbItem[] {
+export function yoursFirst<T extends { key: string }>(items: T[], key: string | undefined): T[] {
   if (!key) return items;
   const own = items.find((i) => i.key === key);
   return own ? [own, ...items.filter((i) => i !== own)] : items;
 }
 
 /** One collapsible passage with Listen. */
-function Passage({ value, title, text, field, variant, part, yours }: {
+export function Passage({ value, title, text, field, variant, part, yours }: {
   value: string; title: React.ReactNode; text: string; field: string; variant: string; part?: string; yours?: boolean | string;
 }) {
   if (!text) return null;
@@ -58,6 +57,7 @@ function Passage({ value, title, text, field, variant, part, yours }: {
 
 // ── Load / status card ────────────────────────────────────────────────────
 
+/** "My Books": load either book (it is recognised automatically), see what's loaded, remove. */
 export function HandbookLoader({ compact = false }: { compact?: boolean }) {
   const hb = useHandbook();
   const input = React.useRef<HTMLInputElement>(null);
@@ -67,9 +67,8 @@ export function HandbookLoader({ compact = false }: { compact?: boolean }) {
     if (!file) return;
     setMessage(null);
     try {
-      const book = await loadHandbookFile(file);
-      const s = handbookSummary(book);
-      setMessage(`Loaded ${s.chapters} animal chapters and ${s.pairs} relationship pairings. They now appear in every Animal Oracle.`);
+      const r = await loadBookFile(file);
+      setMessage(r.message);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : String(e));
     } finally {
@@ -78,25 +77,40 @@ export function HandbookLoader({ compact = false }: { compact?: boolean }) {
   };
 
   const loading = hb.status === "loading";
-  const book = hb.book;
+  const loaded: { kind: BookKind; label: string; file: string }[] = [];
+  if (hb.book) loaded.push({ kind: "handbook", label: "The Handbook", file: hb.book.meta.file });
+  if (hb.zodiacs) loaded.push({ kind: "zodiacs", label: "Chinese Zodiacs", file: hb.zodiacs.meta.file });
+  const missing = [!hb.book && "the Handbook", !hb.zodiacs && "Chinese Zodiacs"].filter(Boolean).join(" or ");
   return (
     <div className="rounded-xl border border-amber-300/25 bg-amber-300/[0.04] p-3 space-y-2" data-no-study-open>
       <div className="flex items-center gap-2">
         <BookMarked className="h-4 w-4 text-amber-300" />
-        <span className="font-cinzel text-[0.7rem] uppercase tracking-[0.2em] text-amber-200">My Handbook</span>
+        <span className="font-cinzel text-[0.7rem] uppercase tracking-[0.2em] text-amber-200">My Books</span>
       </div>
-      {book ? (
+      {loaded.map((b) => (
+        <div key={b.kind} className="flex items-center justify-between gap-2 text-[12px] text-slate-300">
+          <span>
+            <span className="text-amber-100 font-semibold">{b.label}</span> — loaded on this device{!compact && <> (<span className="text-slate-400">{b.file}</span>)</>}
+          </span>
+          {!loading && (
+            <button
+              type="button"
+              aria-label={`Remove ${b.label} from this device`}
+              onClick={() => { if (window.confirm(`Remove ${b.label} from this device?`)) void removeBook(b.kind).then(() => setMessage(`${b.label} removed from this device.`)); }}
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-white/15 px-2 py-1 text-[11px] text-slate-300"
+            >
+              <Trash2 className="h-3 w-3" /> Remove
+            </button>
+          )}
+        </div>
+      ))}
+      {!loaded.length && !compact && (
         <p className="text-[12px] text-slate-300">
-          Loaded on this device: <span className="text-slate-100">{book.meta.file}</span>
-          {!compact && " — its passages appear in the layers above."}
+          Pick your own copy of a book (PDF) once — the Handbook of Chinese Horoscopes or Chinese Zodiacs; the app recognises
+          which it is. It is read and kept on this device only — nothing is uploaded — and each animal's sections then open in
+          its Oracle, word for word.
         </p>
-      ) : !compact ? (
-        <p className="text-[12px] text-slate-300">
-          Pick your own copy of the handbook (PDF) once. It is read and kept on this device only — nothing is uploaded — and each
-          animal's sections then open here, word for word: the Five Different animals, Compatibility and Conflict, the pairings,
-          Ascendants, Moon Signs Meet Sun Signs, the Seasons, the Personality and Child, and the famous people.
-        </p>
-      ) : null}
+      )}
       {loading && (
         <p className="flex items-center gap-2 text-[12px] text-amber-200">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -104,25 +118,14 @@ export function HandbookLoader({ compact = false }: { compact?: boolean }) {
         </p>
       )}
       {message && <p className="text-[12px] text-slate-200" role="status">{message}</p>}
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => input.current?.click()}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-1.5 text-[12px] font-semibold text-amber-100 disabled:opacity-50"
-        >
-          <Upload className="h-3.5 w-3.5" /> {book ? "Load a different copy" : "Load my Handbook"}
-        </button>
-        {book && !loading && (
-          <button
-            type="button"
-            onClick={() => { if (window.confirm("Remove the handbook from this device?")) void removeHandbook().then(() => setMessage("Removed from this device.")); }}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-[12px] text-slate-300"
-          >
-            <Trash2 className="h-3.5 w-3.5" /> Remove
-          </button>
-        )}
-      </div>
+      <button
+        type="button"
+        disabled={loading}
+        onClick={() => input.current?.click()}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-1.5 text-[12px] font-semibold text-amber-100 disabled:opacity-50"
+      >
+        <Upload className="h-3.5 w-3.5" /> {loaded.length === 0 ? "Load my Handbook" : missing ? `Load ${missing}` : "Load a fresh copy"}
+      </button>
       <input ref={input} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => void pick(e.target.files?.[0])} />
     </div>
   );

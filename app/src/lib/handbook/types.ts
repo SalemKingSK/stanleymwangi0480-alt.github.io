@@ -75,7 +75,7 @@ export function pairKey(a: string, b: string): string {
   return `${a}+${b}`;
 }
 
-const BOOK_TO_APP: Record<string, HbAnimal> = { Sheep: "Goat", Boar: "Pig", Oxen: "Ox", Cat: "Rabbit", Ram: "Goat" };
+const BOOK_TO_APP: Record<string, HbAnimal> = { Sheep: "Goat", Boar: "Pig", Oxen: "Ox", Cat: "Rabbit", Ram: "Goat", Hare: "Rabbit", Roster: "Rooster" };
 /** "Sheep" → "Goat", "Boar" → "Pig", "Rats" → "Rat"; null when it isn't an animal. */
 export function appAnimal(name: string): HbAnimal | null {
   const n = name.trim().replace(/[’']s$/, "");

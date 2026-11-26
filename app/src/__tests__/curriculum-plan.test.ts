@@ -39,7 +39,10 @@ describe("Curriculum case-study plan", () => {
         expect(idx.every((i) => i >= 0 && i < P.cases.length)).toBe(true);
       }
     }
-    expect(allUnits(P).length).toBeGreaterThan(P.stats.units);
+    // Without the user's books loaded, their fields are left out of the syllabus.
+    const bookUnits = Object.entries(P.fields).filter(([fid]) => FIELD_BY_ID.get(fid)?.requires).reduce((n, [, v]) => n + Object.keys(v).length, 0);
+    expect(bookUnits).toBeGreaterThan(0);
+    expect(allUnits(P).length).toBeGreaterThan(P.stats.units - bookUnits);
   });
 
   it("matches what the case studies' charts actually show", async () => {

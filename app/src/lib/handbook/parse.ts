@@ -17,16 +17,18 @@ import {
 
 type Level = 0 | 1 | 2 | 3;
 
-interface Ctx {
-  level: (l: PdfLine) => Level;
+export interface Ctx {
+  level: (l: PdfLine) => number;
   lineGap: number;
   right: number;
   left: number;
+  /** A line that stops well short of the margin ends its paragraph (books that set lists line by line). */
+  shortBreak?: boolean;
 }
 
 const IMAGE_RE = /\.(tif|tiff|eps|jpe?g|png|gif|svg)$/i;
 const CAPTION_RE = /^(Triangle of Affinity\b|Circle of Conflict\b)/i;
-const clean = (s: string) => s.normalize("NFKC").replace(/\u00ad/g, "").replace(/\s+/g, " ").trim();
+export const clean = (s: string) => s.normalize("NFKC").replace(/\u00ad/g, "").replace(/\s+/g, " ").trim();
 
 function mode(values: number[]): number {
   const counts = new Map<number, number>();
@@ -42,7 +44,7 @@ function quantile(values: number[], q: number): number {
   return s[Math.min(s.length - 1, Math.floor(q * s.length))];
 }
 
-function makeCtx(lines: PdfLine[]): Ctx {
+function makeCtx(lines: PdfLine[]): Ctx & { level: (l: PdfLine) => Level } {
   const body = mode(lines.map((l) => Math.round(l.size * 2) / 2));
   const level = (l: PdfLine): Level => {
     const r = l.size / (body || 1);
@@ -62,6 +64,7 @@ const TERMINAL = /[.!?:;”"’)\]]$/;
 
 /** Joins body lines into paragraphs, mending page breaks and line-end hyphens and dashes. */
 export function toParagraphs(lines: PdfLine[], ctx: Ctx): string[] {
+  const BULLET = /^[•◦▪●]\s/;
   const paras: string[] = [];
   let cur = "";
   let prev: PdfLine | null = null;
@@ -72,7 +75,11 @@ export function toParagraphs(lines: PdfLine[], ctx: Ctx): string[] {
     if (CAPTION_RE.test(text) && raw.x0 > ctx.left + 15) continue;
     let fresh = !prev;
     if (prev) {
-      if (prev.page === raw.page) {
+      if (BULLET.test(text)) {
+        fresh = true;
+      } else if (ctx.shortBreak && prev.x1 < ctx.right * 0.75 && !/[,;]$/.test(cur) && /^[A-Z“"(]/.test(text)) {
+        fresh = true;
+      } else if (prev.page === raw.page) {
         fresh = prev.y - raw.y > ctx.lineGap * 1.3 || raw.y > prev.y;
       } else {
         const ended = TERMINAL.test(cur);
