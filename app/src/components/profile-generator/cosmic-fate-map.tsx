@@ -16,11 +16,19 @@ import { Button }   from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { CalendarDays, Star, Compass, Activity, ShieldAlert, Telescope, BookOpen, Zap, RotateCcw } from 'lucide-react';
 import { AccordionContentWithPlayer } from './accordion-content-with-player';
+import { K } from '@/lib/curriculum/catalogue';
+import { studyAttrs } from '@/lib/curriculum/study-scope';
+import { GraduationCap } from 'lucide-react';
+
+const CurriculumPanel = React.lazy(() => import('@/components/curriculum/curriculum-panel'));
 
 interface Props {
 birthDay: number;
 birthMonth: number;
 birthYear: number;
+/** Open this inner tab (set by the Curriculum's "study this" links); `focusKey` re-applies it. */
+focusTab?: string;
+focusKey?: number;
 }
 
 const reduce = (n: number): number => {
@@ -99,8 +107,11 @@ const stripHtml = (html: string) => {
 return html.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ');
 };
 
-export function CosmicFateMap({ birthDay, birthMonth, birthYear }: Props) {
-const [activeTab, setActiveTab] = useState('synthesis');
+export function CosmicFateMap({ birthDay, birthMonth, birthYear, focusTab, focusKey }: Props) {
+const [activeTab, setActiveTab] = useState(focusTab || 'synthesis');
+React.useEffect(() => {
+if (focusTab) setActiveTab(focusTab);
+}, [focusTab, focusKey]);
 const [readYear, setReadYear] = useState(new Date().getFullYear());
 const [inputYear, setInputYear] = useState(new Date().getFullYear().toString());
 const [selectedZodiacYear, setSelectedZodiacYear] = useState<any>(null);
@@ -170,7 +181,8 @@ if (pyn === 4 || pyn === 7) {
 const yearAni = getAnimalForDate(15, 6, y);
 const iCat = getCategory(stats.birthSign, yearAni);
 const isNegative = iCat === 'clash' || iCat === 'harm' || iCat === 'destruction' || iCat === 'ben';
-const synKey = `${pyn}_${iCat}`;
+// The synthesis table names the Ben Ming year "ben-ming".
+const synKey = `${pyn}_${iCat === 'ben' ? 'ben-ming' : iCat}`;
 const synth = INTERSECTION_SYNTHESIS[synKey] || INTERSECTION_SYNTHESIS[`${pyn}_neutral`].replace('Neutral', yearAni + ' Neutral');
 const dyn = ZOO[stats.birthSign][`${iCat}Desc`] || ZOO[stats.birthSign][`${iCat === 'destruction' ? 'destruction' : iCat}Desc`] || `Personal Year ${pyn}'s discipline proceeds in a ${yearAni} Neutral year — neither amplified by alliance support nor undermined by conflict energy.`;
 list.push({ y, pyn, yearAni, iCat, isNegative, synth, dyn });
@@ -249,7 +261,7 @@ return (
 
 <Card className="p-6 bg-slate-900/60 border-primary/20">
 <div className="section-header">✦ &nbsp; Your {readYear} Reading &nbsp; ✦</div>
-<AccordionContentWithPlayer text={oracleText} />
+<AccordionContentWithPlayer text={oracleText} study={{ field: "fate.oracle" }} />
 </Card>
 </div>
 );
@@ -273,7 +285,7 @@ return (
 </div>
 <div className="p-4 min-h-[300px]">
 {diveSubTab === 'pr' ? (
-<div className="practice-grid grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div className="practice-grid grid grid-cols-1 sm:grid-cols-2 gap-4" {...(yr ? studyAttrs(null, { field: "fate.dive", variant: K.personalYear(stats.py), part: "pr" }) : {})}>
 {yr?.pr?.map((p: any, idx: number) => (
 <div key={idx} className="pi p-4 rounded-xl bg-black/40 border border-white/5">
 <div className="pi-icon text-xl mb-2">{p.i}</div>
@@ -290,7 +302,7 @@ diveSubTab === 'py' ? yr?.pyth :
 diveSubTab === 've' ? yr?.vedic :
 diveSubTab === 'ch' ? yr?.chinese :
 yr?.chald
-} />
+} study={yr ? { field: "fate.dive", variant: K.personalYear(stats.py), part: diveSubTab } : false} />
 )}
 </div>
 </div>
@@ -311,7 +323,7 @@ const renderIntersections = () => (
 {i.isNegative && <Badge className="bg-rose-500 text-[11px] px-2 py-0">HIGH TENSION</Badge>}
 </div>
 <div className="space-y-4">
-<AccordionContentWithPlayer text={`${i.synth}\n\nSpecific dynamics: ${i.dyn}`} />
+<AccordionContentWithPlayer text={`${i.synth}\n\nSpecific dynamics: ${i.dyn}`} study={{ field: "fate.intersection", variant: K.intersection(i.pyn, i.iCat) }} />
 </div>
 </Card>
 ))}
@@ -405,7 +417,7 @@ return (
 </div>
 
 <div className="cp text-lg leading-relaxed text-slate-300 max-w-2xl mx-auto mb-8 font-body text-center">
-<AccordionContentWithPlayer text={`Born in a ${stats.birthSign} year — ${bz.el} element, ${bz.pol} polarity, Branch ${az?.br || bz.br}. Your characteristic nature: ${bz.trait}. Your health domains: ${bz.organ}. Your cardinal direction: ${bz.dir}. Below are your next 12 years mapped through Tai Sui astrology — click any year for detailed analysis.`} />
+<AccordionContentWithPlayer text={`Born in a ${stats.birthSign} year — ${bz.el} element, ${bz.pol} polarity, Branch ${az?.br || bz.br}. Your characteristic nature: ${bz.trait}. Your health domains: ${bz.organ}. Your cardinal direction: ${bz.dir}. Below are your next 12 years mapped through Tai Sui astrology — click any year for detailed analysis.`} study={{ field: "fate.taisui-intro", variant: K.sign(stats.birthSign) }} />
 </div>
 
 <div className="flex flex-col items-center gap-3 mb-6">
@@ -464,7 +476,7 @@ return (
 </div>
 </div>
 <div className="space-y-3">
-<AccordionContentWithPlayer text={`${PINNACLE_DESC[Number(s.p)]}\n\nChallenge: ${CHALLENGE_DESC[Number(s.c)]}`} />
+<AccordionContentWithPlayer text={`${PINNACLE_DESC[Number(s.p)]}\n\nChallenge: ${CHALLENGE_DESC[Number(s.c)]}`} study={{ field: "fate.pinnacle", variant: K.fatePinnacle(Number(s.p), Number(s.c)) }} />
 </div>
 </Card>
 ))}
@@ -481,7 +493,7 @@ const renderEnemy = () => (
 <Card key={card.year} className="p-6 bg-slate-950/60 border-primary/20">
 <h3 className="text-xl font-cinzel text-primary mb-2">{card.title}</h3>
 <p className="text-sm italic text-muted-foreground mb-4">{card.sub}</p>
-<AccordionContentWithPlayer text={card.intro} />
+<AccordionContentWithPlayer text={card.intro} study={{ field: "fate.enemy", variant: card.title }} />
 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
 {card.chips.map((chip, idx) => (
 <div key={idx} className="p-4 rounded-xl bg-black/40 border border-white/5">
@@ -500,7 +512,7 @@ const renderEnemy = () => (
 );
 
 return (
-<div className="cosmic-fate-root relative min-h-screen rounded-3xl overflow-hidden">
+<div className="cosmic-fate-root relative min-h-screen rounded-3xl overflow-hidden" data-study-anchor="fate.root">
 <div id="stars-cf"></div>
 <div className="cf-page p-4">
 <div className="cf-hero">
@@ -551,7 +563,7 @@ Today
 </div>
 </Card>
 
-<nav className="dash-nav grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-1 mb-6 relative z-20">
+<nav className="dash-nav grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-1 mb-6 relative z-20">
 {[
 { id: 'synthesis', label: '✦ Oracle', icon: <Star className="h-3 w-3" /> },
 { id: 'yeardive', label: '☽ Dive', icon: <Compass className="h-3 w-3" /> },
@@ -560,6 +572,7 @@ Today
 { id: 'pinnacles', label: '◈ Pinnacle', icon: <Activity className="h-3 w-3" /> },
 { id: 'enemy', label: '⚠️ Enemy', icon: <ShieldAlert className="h-3 w-3" /> },
 { id: 'scanner', label: '🔭 Scan', icon: <Telescope className="h-3 w-3" /> },
+{ id: 'curriculum', label: '🎓 Curriculum', icon: <GraduationCap className="h-3 w-3" /> },
 ].map(tab => (
 <button 
 key={tab.id}
@@ -579,6 +592,11 @@ className={`dash-tab flex items-center justify-center gap-2 ${activeTab === tab.
 {activeTab === 'pinnacles' && renderPinnacles()}
 {activeTab === 'enemy' && renderEnemy()}
 {activeTab === 'scanner' && <CosmicRiskScanner targetYear={readYear} />}
+{activeTab === 'curriculum' && (
+<React.Suspense fallback={<div className="py-16 text-center text-xs uppercase tracking-[0.3em] text-primary/60 font-cinzel">Opening the Curriculum…</div>}>
+<CurriculumPanel />
+</React.Suspense>
+)}
 </div>
 </div>
 
@@ -596,25 +614,25 @@ className={`dash-tab flex items-center justify-center gap-2 ${activeTab === tab.
 </DialogHeader>
 <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-4 scrollbar-thin">
 <div className="p-4 bg-primary/5 border-l-[3px] border-primary rounded-r-lg font-body italic text-sm text-slate-300">
-<AccordionContentWithPlayer text={`${selectedZodiacYear.y} (${selectedZodiacYear.yearAni} Year, Age ${selectedZodiacYear.age}) — Tai Sui: ${catLabel(selectedZodiacYear.category)}`} />
+<AccordionContentWithPlayer text={`${selectedZodiacYear.y} (${selectedZodiacYear.yearAni} Year, Age ${selectedZodiacYear.age}) — Tai Sui: ${catLabel(selectedZodiacYear.category)}`} study={false} />
 </div>
 
 {(BOOK.categories as Record<string, string>)[selectedZodiacYear.category === 'destruction' ? 'destruction' : selectedZodiacYear.category] && (
 <div className="p-4 bg-white/5 border-l-[3px] border-primary/40 rounded-r-lg font-body text-sm leading-relaxed text-slate-300">
-<AccordionContentWithPlayer text={stripHtml((BOOK.categories as Record<string, string>)[selectedZodiacYear.category === 'destruction' ? 'destruction' : selectedZodiacYear.category])} />
+<AccordionContentWithPlayer text={stripHtml((BOOK.categories as Record<string, string>)[selectedZodiacYear.category === 'destruction' ? 'destruction' : selectedZodiacYear.category])} study={{ field: "fate.taisui-category", variant: K.category(selectedZodiacYear.category) }} />
 </div>
 )}
 
 <div className="space-y-4">
 <h4 className="font-cinzel text-xs uppercase tracking-widest opacity-60">Your {stats.birthSign.toUpperCase()} in {selectedZodiacYear.yearAni.toUpperCase()} Year</h4>
 <div className="font-body text-base leading-relaxed text-slate-200">
-<AccordionContentWithPlayer text={ZOO[stats.birthSign][`${selectedZodiacYear.category}Desc`] || ZOO[stats.birthSign][`${selectedZodiacYear.category === 'destruction' ? 'destruction' : selectedZodiacYear.category}Desc`] || `This ${selectedZodiacYear.y} ${selectedZodiacYear.yearAni} year is a Neutral period for ${stats.birthSign}.`} />
+<AccordionContentWithPlayer text={ZOO[stats.birthSign][`${selectedZodiacYear.category}Desc`] || ZOO[stats.birthSign][`${selectedZodiacYear.category === 'destruction' ? 'destruction' : selectedZodiacYear.category}Desc`] || `This ${selectedZodiacYear.y} ${selectedZodiacYear.yearAni} year is a Neutral period for ${stats.birthSign}.`} study={{ field: "fate.taisui-relation", variant: K.taiSui(stats.birthSign, selectedZodiacYear.category) }} />
 </div>
 </div>
 <div className="space-y-2">
 <h4 className="font-cinzel text-xs uppercase tracking-widest opacity-60">{selectedZodiacYear.yearAni.toUpperCase()} Year Qualities</h4>
 <div className="font-body text-sm text-slate-400">
-<AccordionContentWithPlayer text={`${ZOO[selectedZodiacYear.yearAni].trait}. Health focus: ${ZOO[selectedZodiacYear.yearAni].organ}. Direction: ${ZOO[selectedZodiacYear.yearAni].dir}.`} />
+<AccordionContentWithPlayer text={`${ZOO[selectedZodiacYear.yearAni].trait}. Health focus: ${ZOO[selectedZodiacYear.yearAni].organ}. Direction: ${ZOO[selectedZodiacYear.yearAni].dir}.`} study={{ field: "fate.year-animal", variant: K.yearAnimal(selectedZodiacYear.yearAni) }} />
 </div>
 </div>
 </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { K } from "@/lib/curriculum/catalogue";
 import React, { forwardRef } from "react";
 import { BookUser, Star, Sparkles, Lock } from "lucide-react";
 import { AccordionContentWithPlayer } from "./accordion-content-with-player";
@@ -87,7 +88,7 @@ export const CoreVibrations = forwardRef<HTMLDivElement, CoreVibrationsProps>(({
                             {title} Activation
                         </span>
                     </div>
-                    <AccordionContentWithPlayer text={content || ""} />
+                    <AccordionContentWithPlayer text={content || ""} study={id === "day" ? { field: "num.day", variant: K.day(birthDay) } : id === "destiny" ? { field: "num.destiny", variant: K.destiny(destinyNum) } : false} />
                   </>
                 )}
              </div>
@@ -106,7 +107,7 @@ export const CoreVibrations = forwardRef<HTMLDivElement, CoreVibrationsProps>(({
   };
 
   return (
-    <div ref={ref} className="core-v-root glass-card p-4 mt-4">
+    <div ref={ref} className="core-v-root glass-card p-4 mt-4" data-study-anchor="num.core">
       <div className="flex items-center gap-4 mb-4">
         <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
         <h3 className="font-cinzel font-semibold text-[0.75rem] text-primary flex items-center gap-2 uppercase tracking-[0.3em]">

@@ -1,3 +1,7 @@
+import { StudyScope, StudyBlock } from "@/lib/curriculum/study-scope";
+import { studyNav } from "@/lib/curriculum/navigation";
+import { revealTop } from "@/lib/reveal-top";
+import { useStudyFocus, StudyBanner, StudyToasts, type FateFocus } from "@/components/curriculum/study-focus";
 /**
  * MYSTIQUE COMPASS — Premium Results Display
  */
@@ -1170,7 +1174,7 @@ function CosmicProfilerPanel({
             transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
             style={{ padding: "0 1.25rem 1.25rem" }}
           >
-            <AccordionContentWithPlayer text={profile} />
+            <AccordionContentWithPlayer text={profile} study={{ field: "astro.profiler" }} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -1326,7 +1330,7 @@ function NewAstroSignDetails({
   const animalEmoji = ZOO[animalName]?.e || "";
   const toggle = (num: number) => setOpenLayer(openLayer === num ? null : num);
   return (
-    <div className="glass-card p-4 space-y-4">
+    <div className="glass-card p-4 space-y-4" data-study-anchor="na.layers">
       <div className="flex items-center gap-4 mb-2">
         <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
         <h2 className="font-decorative text-xl text-primary flex items-center justify-center gap-3">
@@ -1337,51 +1341,61 @@ function NewAstroSignDetails({
         <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
       </div>
       <div className="flex flex-col">
-        <NewAstroLayer
-          layerNum={1}
-          title="Psychological Profile"
-          icon={<BookUser className="h-4 w-4" />}
-          content={signData.description}
-          badgeColor="#9b8ec4"
-          isOpen={openLayer === 1}
-          onToggle={() => toggle(1)}
-        />
-        <NewAstroLayer
-          layerNum={2}
-          title="Romantic Blueprint"
-          icon={<Heart className="h-4 w-4" />}
-          content={signData.love}
-          badgeColor="#3a8ee0"
-          isOpen={openLayer === 2}
-          onToggle={() => toggle(2)}
-        />
-        <NewAstroLayer
-          layerNum={3}
-          title="Domestic Sphere"
-          icon={<Home className="h-4 w-4" />}
-          content={signData.homeAndFamily}
-          badgeColor="#4caf7d"
-          isOpen={openLayer === 3}
-          onToggle={() => toggle(3)}
-        />
-        <NewAstroLayer
-          layerNum={4}
-          title="Social Resonance"
-          icon={<Users className="h-4 w-4" />}
-          content={signData.compatibilities}
-          badgeColor="#e0a83a"
-          isOpen={openLayer === 4}
-          onToggle={() => toggle(4)}
-        />
-        <NewAstroLayer
-          layerNum={5}
-          title="Professional Path"
-          icon={<Briefcase className="h-4 w-4" />}
-          content={signData.profession}
-          badgeColor="#de78a0"
-          isOpen={openLayer === 5}
-          onToggle={() => toggle(5)}
-        />
+        <StudyScope field="na.profile" variant={sign}>
+          <NewAstroLayer
+            layerNum={1}
+            title="Psychological Profile"
+            icon={<BookUser className="h-4 w-4" />}
+            content={signData.description}
+            badgeColor="#9b8ec4"
+            isOpen={openLayer === 1}
+            onToggle={() => toggle(1)}
+          />
+        </StudyScope>
+        <StudyScope field="na.love" variant={sign}>
+          <NewAstroLayer
+            layerNum={2}
+            title="Romantic Blueprint"
+            icon={<Heart className="h-4 w-4" />}
+            content={signData.love}
+            badgeColor="#3a8ee0"
+            isOpen={openLayer === 2}
+            onToggle={() => toggle(2)}
+          />
+        </StudyScope>
+        <StudyScope field="na.home" variant={sign}>
+          <NewAstroLayer
+            layerNum={3}
+            title="Domestic Sphere"
+            icon={<Home className="h-4 w-4" />}
+            content={signData.homeAndFamily}
+            badgeColor="#4caf7d"
+            isOpen={openLayer === 3}
+            onToggle={() => toggle(3)}
+          />
+        </StudyScope>
+        <StudyScope field="na.social" variant={sign}>
+          <NewAstroLayer
+            layerNum={4}
+            title="Social Resonance"
+            icon={<Users className="h-4 w-4" />}
+            content={signData.compatibilities}
+            badgeColor="#e0a83a"
+            isOpen={openLayer === 4}
+            onToggle={() => toggle(4)}
+          />
+        </StudyScope>
+        <StudyScope field="na.career" variant={sign}>
+          <NewAstroLayer
+            layerNum={5}
+            title="Professional Path"
+            icon={<Briefcase className="h-4 w-4" />}
+            content={signData.profession}
+            badgeColor="#de78a0"
+            isOpen={openLayer === 5}
+            onToggle={() => toggle(5)}
+          />
+        </StudyScope>
       </div>
     </div>
   );
@@ -1941,6 +1955,27 @@ export function ResultsDisplay({
     // Switching tabs replaces the text being read, so stop the reader.
     return () => stopReadAloud();
   }, [activeTab]);
+  // ── Curriculum: the reading on screen, and "study this" requests ──
+  const [fateFocus, setFateFocus] = React.useState<FateFocus | null>(null);
+  React.useEffect(() => {
+    studyNav.setSubject({
+      name: insight.name,
+      day: numerology.birthDay,
+      month: numerology.birthMonth,
+      year: numerology.birthYear,
+      gender: insight.gender,
+    });
+  }, [insight.name, insight.gender, numerology.birthDay, numerology.birthMonth, numerology.birthYear]);
+  React.useEffect(() => () => studyNav.setSubject(null), []);
+  useStudyFocus(setActiveTab, setFateFocus);
+  const backToCurriculum = React.useCallback(() => {
+    setActiveTab("cosmic-fate");
+    setFateFocus({ tab: "curriculum", key: Date.now() });
+    window.setTimeout(() => {
+      const el = document.querySelector('[data-study-anchor="fate.root"]');
+      if (el) revealTop(el);
+    }, 450);
+  }, []);
   const getOrdinalSuffix = (day: number) => {
     if (day > 3 && day < 21) return "th";
     switch (day % 10) {
@@ -1980,6 +2015,8 @@ export function ResultsDisplay({
           <ConstellationReveal onDone={() => setShowReveal(false)} />
         )}
       </AnimatePresence>
+      <StudyBanner onBack={backToCurriculum} />
+      <StudyToasts />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -2011,6 +2048,7 @@ export function ResultsDisplay({
           />
           {/* ── Soul Resonance (permanent, above all tabs) ── */}
           {history.length >= 2 && (
+            <div data-study-anchor="res.panel">
             <CollapsibleSection
               title="Soul Resonance"
               subtitle="Compatibility via Cheiro harmony, Lo Shu, personal-year sync & zodiac rhythm"
@@ -2018,6 +2056,7 @@ export function ResultsDisplay({
             >
               <SoulResonancePanel history={history} />
             </CollapsibleSection>
+            </div>
           )}
           {/* ── Share Reading (centered, above all tabs) ── */}
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.9rem" }}>
@@ -2043,20 +2082,26 @@ export function ResultsDisplay({
                       <SynthesisAstroMoreSections synthesis={synthesis} />
                     </>
                   )}
-                  <CollapsibleSection
-                    title="Cosmic Profile Synthesis"
-                    subtitle="Field-strict character analysis with Speech"
-                    icon={<Brain size={16} />}
-                  >
-                    <CosmicProfilerPanel insight={insight} numerology={numerology} />
-                  </CollapsibleSection>
-                  <CollapsibleSection
-                    title="Cosmic Twins"
-                    subtitle="Famous lives sharing birthday, life-path or zodiac resonance"
-                    icon={<Star size={16} />}
-                  >
-                    <CosmicTwinsPanel insight={insight} numerology={numerology} />
-                  </CollapsibleSection>
+                  <div data-study-anchor="astro.profiler">
+                    <CollapsibleSection
+                      title="Cosmic Profile Synthesis"
+                      subtitle="Field-strict character analysis with Speech"
+                      icon={<Brain size={16} />}
+                    >
+                      <CosmicProfilerPanel insight={insight} numerology={numerology} />
+                    </CollapsibleSection>
+                  </div>
+                  <div data-study-anchor="astro.twins">
+                    <CollapsibleSection
+                      title="Cosmic Twins"
+                      subtitle="Famous lives sharing birthday, life-path or zodiac resonance"
+                      icon={<Star size={16} />}
+                    >
+                      <StudyBlock field="astro.twins">
+                        <CosmicTwinsPanel insight={insight} numerology={numerology} />
+                      </StudyBlock>
+                    </CollapsibleSection>
+                  </div>
                 </>
               )}
               {activeTab === "numerology" && (
@@ -2069,13 +2114,17 @@ export function ResultsDisplay({
                     />
                   )}
                   {synthesis?.personalYearAnalysis?.dualEssence?.precedentLedger && (
+                    <div data-study-anchor="num.precedent">
                     <CollapsibleSection
                       title="Precedent Ledger"
                       subtitle={`How this year's historical precedents actually turned out — ${synthesis.personalYearAnalysis.dualEssence.precedentLedger.pairLabel}`}
                       icon={<History size={16} />}
                     >
-                      <PrecedentLedger ledger={synthesis.personalYearAnalysis.dualEssence.precedentLedger} />
+                      <StudyBlock field="num.precedent">
+                        <PrecedentLedger ledger={synthesis.personalYearAnalysis.dualEssence.precedentLedger} />
+                      </StudyBlock>
                     </CollapsibleSection>
+                    </div>
                   )}
                   <NumberMeaningsSection />
                 </>
@@ -2114,6 +2163,8 @@ export function ResultsDisplay({
                   birthDay={numerology.birthDay}
                   birthMonth={numerology.birthMonth}
                   birthYear={numerology.birthYear}
+                  focusTab={fateFocus?.tab}
+                  focusKey={fateFocus?.key}
                 />
               )}
             </motion.div>

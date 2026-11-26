@@ -2,6 +2,8 @@
 /**
  * MYSTIQUE COMPASS — Premium Numerology Display
  */
+import { K } from "@/lib/curriculum/catalogue";
+import { studyAttrs } from "@/lib/curriculum/study-scope";
 import { revealTop } from "@/lib/reveal-top";
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -548,6 +550,7 @@ function ThisYearBanner({
   );
 }
 // ── Missing Numbers ───────────────────────────────────────────────────────────
+const MISSING_PARTS = ["shadow", "lesson", "practice"];
 function MissingNumbers({
   numberCounts,
 }: {
@@ -747,6 +750,7 @@ function MissingNumbers({
                     ))}
                   </div>
                   <div
+                    {...studyAttrs(null, { field: "num.missing-quick", variant: K.missing(n), part: MISSING_PARTS[tab] })}
                     style={{
                       fontSize: "0.8rem",
                       lineHeight: 1.65,
@@ -883,7 +887,7 @@ export function NumerologyDisplay({
         activeLayer={activeCoreLayer}
         onLayerChange={setActiveCoreLayer}
       />
-      <div className="glass-card p-4" id="loshu-grid">
+      <div className="glass-card p-4" id="loshu-grid" data-study-anchor="num.loshu">
         <SH icon={<Grid className="h-4 w-4" />} title="Lo Shu Grid" />
         <LoShuGrid
           grid={loShuGrid}
@@ -892,11 +896,11 @@ export function NumerologyDisplay({
           birthDate={birthDate}
         />
       </div>
-      <div className="glass-card p-4">
+      <div className="glass-card p-4" data-study-anchor="num.missing">
         <SH icon={<Zap className="h-4 w-4" />} title="Missing Numbers" />
         <MissingNumbers numberCounts={numberCounts} />
       </div>
-      <div className="glass-card p-4">
+      <div className="glass-card p-4" data-study-anchor="num.pinnacles">
         <SH
           icon={<Layers className="h-4 w-4" />}
           title="Pinnacles & Challenges"
@@ -924,7 +928,7 @@ export function NumerologyDisplay({
         birthMonth={birthMonth}
         birthYear={birthYear}
       />
-      <div className="glass-card p-4">
+      <div className="glass-card p-4" data-study-anchor="num.py-wave">
         <SH
           icon={<CalendarDays className="h-4 w-4" />}
           title="Personal Year Wave"
@@ -1022,7 +1026,7 @@ export function NumerologyDisplay({
                 {activePyTab === 0 && (
                   <AccordionContentWithPlayer
                     text={selectedPersonalYear.meaning}
-                  />
+ study={{ field: "num.py-theme", variant: K.pyTheme(selectedPersonalYear.pyn) }} />
                 )}
                 {activePyTab === 4 &&
                   selectedPersonalYear.dualEssenceSynthesis && (
@@ -1101,7 +1105,7 @@ export function NumerologyDisplay({
                       <PersonalYearEmphasisGraph items={selectedPersonalYear.predictionFocusAreas} />
                       <AccordionContentWithPlayer
                         text={selectedPersonalYear.dualEssenceSynthesis}
-                      />
+ study={{ field: "num.py-dual" }} />
                     </div>
                   )}
                 {activePyTab === 1 && selectedPersonalYear.compound && (
@@ -1183,7 +1187,7 @@ export function NumerologyDisplay({
                     {selectedPersonalYear.compoundEssence && (
                       <AccordionContentWithPlayer
                         text={selectedPersonalYear.compoundEssence}
-                      />
+ study={selectedPersonalYear.compound ? { field: "num.py-compound", variant: K.compound(selectedPersonalYear.compound), part: "essence" } : false} />
                     )}
                   </div>
                 )}
@@ -1279,7 +1283,7 @@ export function NumerologyDisplay({
                     {selectedPersonalYear.compoundClassicEssence && (
                       <AccordionContentWithPlayer
                         text={selectedPersonalYear.compoundClassicEssence}
-                      />
+ study={selectedPersonalYear.compoundClassic ? { field: "num.py-compound", variant: K.compound(selectedPersonalYear.compoundClassic), part: "essence" } : false} />
                     )}
                   </div>
                 )}
@@ -1305,7 +1309,7 @@ export function NumerologyDisplay({
                           </p>
                           <AccordionContentWithPlayer
                             text={selectedPersonalYear.compoundKarmic}
-                          />
+ study={selectedPersonalYear.compound ? { field: "num.py-compound", variant: K.compound(selectedPersonalYear.compound), part: "karmic" } : false} />
                         </div>
                       )}
                       {selectedPersonalYear.compoundClassicKarmic && (
@@ -1326,7 +1330,7 @@ export function NumerologyDisplay({
                           </p>
                           <AccordionContentWithPlayer
                             text={selectedPersonalYear.compoundClassicKarmic}
-                          />
+ study={selectedPersonalYear.compoundClassic ? { field: "num.py-compound", variant: K.compound(selectedPersonalYear.compoundClassic), part: "karmic" } : false} />
                         </div>
                       )}
                       {selectedPersonalYear.compoundManifestation && (
@@ -1347,7 +1351,7 @@ export function NumerologyDisplay({
                           </p>
                           <AccordionContentWithPlayer
                             text={selectedPersonalYear.compoundManifestation}
-                          />
+ study={selectedPersonalYear.compound ? { field: "num.py-compound", variant: K.compound(selectedPersonalYear.compound), part: "manifestation" } : false} />
                         </div>
                       )}
                       {selectedPersonalYear.compoundClassicManifestation && (
@@ -1370,7 +1374,7 @@ export function NumerologyDisplay({
                             text={
                               selectedPersonalYear.compoundClassicManifestation
                             }
-                          />
+ study={selectedPersonalYear.compoundClassic ? { field: "num.py-compound", variant: K.compound(selectedPersonalYear.compoundClassic), part: "manifestation" } : false} />
                         </div>
                       )}
                     </div>
@@ -1385,7 +1389,7 @@ export function NumerologyDisplay({
         birthMonth={birthMonth}
         birthYear={birthYear}
       />
-      <div className="glass-card p-4" ref={arrowsRef}>
+      <div className="glass-card p-4" ref={arrowsRef} data-study-anchor="num.arrows">
         <SH icon={<Activity className="h-4 w-4" />} title="Arrows of Power" />
         <Accordion type="multiple" className="w-full">
           {[...arrowsOfStrength, ...arrowsOfWeakness].map((arrow) => {
@@ -1422,9 +1426,11 @@ export function NumerologyDisplay({
           })}
         </Accordion>
       </div>
-      <div className="glass-card p-4" ref={kuaRef}>
+      <div className="glass-card p-4" ref={kuaRef} data-study-anchor="num.kua">
         <SH icon={<Compass className="h-4 w-4" />} title="Lucky Compass" />
-        <LuckyCompass kuaNum={kuaNum} kuaAttributes={kuaAttributes as any} />
+        <div {...studyAttrs(null, { field: "num.kua", variant: K.kua(kuaNum) })}>
+          <LuckyCompass kuaNum={kuaNum} kuaAttributes={kuaAttributes as any} />
+        </div>
       </div>
     </div>
   );

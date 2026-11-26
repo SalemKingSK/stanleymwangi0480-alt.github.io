@@ -320,9 +320,13 @@ export interface StartOptions {
 const LOOKAHEAD = 4;
 const PREVIEW_TEXT = "Hello. This is how I'll sound reading your profile.";
 
+/** Told about every sentence the voice finished saying out loud. */
+export type SpokenListener = (sentence: TtsSentence, owner: string | null) => void;
+
 class ReadAloudController {
   private state: ReaderState = { status: "idle", owner: null, index: 0, total: 0, waiting: false };
   private listeners = new Set<(s: ReaderState) => void>();
+  private spokenListeners = new Set<SpokenListener>();
   private sentences: TtsSentence[] = [];
   private root: HTMLElement | null = null;
   private generation = 0;
@@ -344,6 +348,17 @@ class ReadAloudController {
     this.listeners.add(fn);
     return () => {
       this.listeners.delete(fn);
+    };
+  }
+
+  /**
+   * Called after each sentence that was really heard (not skipped or failed),
+   * e.g. so the Curriculum can mark a field studied once all of it was read.
+   */
+  onSpoken(fn: SpokenListener): () => void {
+    this.spokenListeners.add(fn);
+    return () => {
+      this.spokenListeners.delete(fn);
     };
   }
 
@@ -591,9 +606,19 @@ class ReadAloudController {
   }
 
   /** Called when a sentence has been fully spoken. */
-  private finished(sentence: TtsSentence, index: number) {
+  private finished(sentence: TtsSentence, index: number, heard = true) {
     const last = sentence.ranges[sentence.ranges.length - 1];
     if (rangeAlive(last)) this.lastEnd = { node: last.endContainer, offset: last.endOffset };
+    if (heard) {
+      const owner = this.state.owner;
+      this.spokenListeners.forEach((fn) => {
+        try {
+          fn(sentence, owner);
+        } catch {
+          /* a listener's problem must never stop the reading */
+        }
+      });
+    }
     this.speak(index + 1);
   }
 
@@ -641,7 +666,7 @@ class ReadAloudController {
             this.onError?.(`Reading stopped: ${err.message}`);
             return;
           }
-          this.finished(sentence, index); // skip the sentence it couldn't say
+          this.finished(sentence, index, false); // skip the sentence it couldn't say
         },
       );
     };

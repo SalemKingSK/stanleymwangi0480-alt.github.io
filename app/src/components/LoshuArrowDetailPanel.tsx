@@ -71,7 +71,7 @@ export default function LoshuArrowDetailPanel({
 
       {/* ── LAYER 1: existing meaning ── */}
       <div className="arr-layer1">
-        <AccordionContentWithPlayer text={existingMeaning} />
+        <AccordionContentWithPlayer text={existingMeaning} study={{ field: "num.arrow", variant: definition.name, part: "meaning" }} />
       </div>
 
       {/* ── LAYER 2: Arrow Metadata + Core Trait ── */}
@@ -136,7 +136,7 @@ export default function LoshuArrowDetailPanel({
             <SectionDivider label="Core Characteristics" />
             <div className="arr-core-card">
               <div className="arr-core-text">
-                <AccordionContentWithPlayer text={definition.coreTrait} />
+                <AccordionContentWithPlayer text={definition.coreTrait} study={{ field: "num.arrow", variant: definition.name, part: "anatomy" }} />
               </div>
             </div>
 
@@ -163,7 +163,7 @@ export default function LoshuArrowDetailPanel({
               <div className="mt-4 p-4 rounded-lg bg-primary/5 border border-primary/20">
                 <p className="text-[11px] font-bold uppercase tracking-widest text-primary mb-2">⚡ Optimization Guidance</p>
                 <div className="text-sm italic text-slate-300">
-                  <AccordionContentWithPlayer text={`To activate this primary plane, focus on the elemental remedies for your missing number(s): ${missingPrimaryNumbers.map(n => `\n\nNumber ${n}: ${REMEDIES[n]?.missing || 'General grounding'}`).join('')}`} />
+                  <AccordionContentWithPlayer text={`To activate this primary plane, focus on the elemental remedies for your missing number(s): ${missingPrimaryNumbers.map(n => `\n\nNumber ${n}: ${REMEDIES[n]?.missing || 'General grounding'}`).join('')}`} study={{ field: "num.arrow", variant: definition.name, part: "activation" }} />
                 </div>
               </div>
             )}
@@ -194,7 +194,7 @@ export default function LoshuArrowDetailPanel({
               <div className="arr-potential-card">
                 <p className="arr-potential-headline" style={{ color: "#4caf7d" }}>{isPrimary ? "Core Strength" : definition.potentialTitle}</p>
                 <div className="arr-potential-text">
-                  <AccordionContentWithPlayer text={definition.potentialBody} />
+                  <AccordionContentWithPlayer text={definition.potentialBody} study={{ field: "num.arrow", variant: definition.name, part: "potential" }} />
                 </div>
               </div>
             </div>
@@ -248,7 +248,7 @@ export default function LoshuArrowDetailPanel({
                   {definition.name} — {definition.shadowTitle}
                 </p>
                 <div className="arr-shadow-body">
-                  <AccordionContentWithPlayer text={definition.shadowBody} />
+                  <AccordionContentWithPlayer text={definition.shadowBody} study={{ field: "num.arrow", variant: definition.name, part: "shadow" }} />
                 </div>
               </div>
 

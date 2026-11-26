@@ -3,6 +3,7 @@
  * MYSTIQUE COMPASS — Synthesis Sections
  * Deep cross-module insights rendered as subsections under existing tabs.
  */
+import { K } from "@/lib/curriculum/catalogue";
 import { revealTop } from "@/lib/reveal-top";
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -97,7 +98,7 @@ export function SynthesisAstroSections({
   )
     return null;
   return (
-    <motion.div
+    <motion.div data-study-anchor="astro.synthesis"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.5 }}
@@ -138,7 +139,7 @@ export function SynthesisAstroSections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={decan.interpretation} />
+              <AccordionContentWithPlayer text={decan.interpretation} study={{ field: "astro.decan", variant: K.decan(decan.sign, decan.decanNumber) }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -173,7 +174,7 @@ export function SynthesisAstroSections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={doubleAnimal.interpretation} />
+              <AccordionContentWithPlayer text={doubleAnimal.interpretation} study={{ field: "astro.double", variant: `Double ${doubleAnimal.animal}` }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -209,7 +210,7 @@ export function SynthesisAstroSections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={sexagenary.interpretation} />
+              <AccordionContentWithPlayer text={sexagenary.interpretation} study={{ field: "astro.sexagenary", variant: (sexagenary as { name?: string }).name }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -245,7 +246,7 @@ export function SynthesisAstroSections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={heavenlyStem.interpretation} />
+              <AccordionContentWithPlayer text={heavenlyStem.interpretation} study={{ field: "astro.stem", variant: K.stem(heavenlyStem.stem, heavenlyStem.polarity, heavenlyStem.element) }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -282,7 +283,7 @@ export function SynthesisAstroSections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={earthlyBranch.interpretation} />
+              <AccordionContentWithPlayer text={earthlyBranch.interpretation} study={{ field: "astro.branch", variant: K.branch(earthlyBranch.animal, earthlyBranch.animalChinese) }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -322,7 +323,7 @@ export function SynthesisAstroSections({
             <AccordionContent className="px-4 pb-4">
               <AccordionContentWithPlayer
                 text={synthesis.zodiacRelationships.interpretation}
-              />
+ study={{ field: "astro.relations", variant: K.sign(synthesis.zodiacRelationships.animal) }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -341,7 +342,7 @@ export function SynthesisAstroMoreSections({
   const { birthDayOfWeek } = synthesis;
   if (!birthDayOfWeek) return null;
   return (
-    <motion.div
+    <motion.div data-study-anchor="astro.more"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.5 }}
@@ -378,7 +379,7 @@ export function SynthesisAstroMoreSections({
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4">
-            <AccordionContentWithPlayer text={birthDayOfWeek.interpretation} />
+            <AccordionContentWithPlayer text={birthDayOfWeek.interpretation} study={{ field: "astro.weekday", variant: (birthDayOfWeek as { dayName?: string }).dayName }} />
           </AccordionContent>
         </AccordionItem>
       </Accordion>
@@ -432,7 +433,7 @@ export function SynthesisNumerologySections({
     !!synthesis.karmicLessons;
   if (!hasAny) return null;
   return (
-    <motion.div
+    <motion.div data-study-anchor="num.synthesis"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.5 }}
@@ -474,7 +475,7 @@ export function SynthesisNumerologySections({
             <AccordionContent className="px-4 pb-4">
               <AccordionContentWithPlayer
                 text={birthDayAnalysis.interpretation}
-              />
+ study={{ field: "num.birthday", variant: K.birthDay(birthDayAnalysis.day, birthDayAnalysis.title) }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -511,7 +512,7 @@ export function SynthesisNumerologySections({
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <AccordionContentWithPlayer text={c.interpretation} />
+                <AccordionContentWithPlayer text={c.interpretation} study={{ field: "num.challenge-deep", variant: K.challengeStage(c.stage, c.number) }} />
               </AccordionContent>
             </AccordionItem>
           ))}
@@ -547,7 +548,7 @@ export function SynthesisNumerologySections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={m.interpretation} />
+              <AccordionContentWithPlayer text={m.interpretation} study={{ field: "num.master", variant: K.master(m.number) }} />
             </AccordionContent>
           </AccordionItem>
         ))}
@@ -585,7 +586,7 @@ export function SynthesisNumerologySections({
             <AccordionContent className="px-4 pb-4">
               <AccordionContentWithPlayer
                 text={maturityNumber.interpretation}
-              />
+ study={{ field: "num.maturity", variant: K.maturity(maturityNumber.number) }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -620,7 +621,7 @@ export function SynthesisNumerologySections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={lifePath.interpretation} />
+              <AccordionContentWithPlayer text={lifePath.interpretation} study={{ field: "num.lifepath", variant: K.lifePath(lifePath.number) }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -657,7 +658,7 @@ export function SynthesisNumerologySections({
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <AccordionContentWithPlayer text={p.interpretation} />
+                <AccordionContentWithPlayer text={p.interpretation} study={{ field: "num.period", variant: K.period(p.period, p.number) }} />
               </AccordionContent>
             </AccordionItem>
           ))}
@@ -695,7 +696,7 @@ export function SynthesisNumerologySections({
             <AccordionContent className="px-4 pb-4">
               <AccordionContentWithPlayer
                 text={birthMonthAnalysis.interpretation}
-              />
+ study={{ field: "num.birthmonth", variant: (birthMonthAnalysis as { monthName?: string }).monthName }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -731,7 +732,7 @@ export function SynthesisNumerologySections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={personalMonth.interpretation} />
+              <AccordionContentWithPlayer text={personalMonth.interpretation} study={{ field: "num.personal-month", variant: K.personalMonth(personalMonth.personalMonth) }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -767,7 +768,7 @@ export function SynthesisNumerologySections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={kd.interpretation} />
+              <AccordionContentWithPlayer text={kd.interpretation} study={{ field: "num.karmic-debt", variant: K.karmicDebt(kd.number, kd.foundIn) }} />
             </AccordionContent>
           </AccordionItem>
         ))}
@@ -810,7 +811,7 @@ export function SynthesisNumerologySections({
               <AccordionContent className="px-4 pb-4">
                 <AccordionContentWithPlayer
                   text={synthesis.karmicLessons.summary}
-                />
+ study={{ field: "num.karmic-lessons", variant: K.lessonCount(synthesis.karmicLessons.lessons.filter((x) => !x.present).length) }} />
               </AccordionContent>
             </AccordionItem>
             {synthesis.karmicLessons.lessons
@@ -847,7 +848,7 @@ export function SynthesisNumerologySections({
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4">
-                    <AccordionContentWithPlayer text={l.interpretation} />
+                    <AccordionContentWithPlayer text={l.interpretation} study={{ field: "num.karmic-lesson", variant: K.missing(l.number) }} />
                   </AccordionContent>
                 </AccordionItem>
               ))}
@@ -885,7 +886,7 @@ export function SynthesisNumerologySections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={p.interpretation} />
+              <AccordionContentWithPlayer text={p.interpretation} study={{ field: "num.absence", variant: p.name }} />
             </AccordionContent>
           </AccordionItem>
         ))}
@@ -920,7 +921,7 @@ export function SynthesisNumerologySections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={karmicFateNullMeaning} />
+              <AccordionContentWithPlayer text={karmicFateNullMeaning} study={{ field: "num.karmic-null", variant: "Fresh Slate" }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -955,7 +956,7 @@ export function SynthesisNumerologySections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={compoundPersonalizedInsight} />
+              <AccordionContentWithPlayer text={compoundPersonalizedInsight} study={numerology.compoundNum ? { field: "num.compound-insight", variant: K.compound(numerology.compoundNum) } : false} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -994,7 +995,7 @@ export function SynthesisNumerologySections({
                 text={
                   personalYearCustomized + (synthesis.compoundEnrichedPY || "")
                 }
-              />
+ study={{ field: "num.py-custom" }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -1053,12 +1054,12 @@ export function SynthesisNumerologySections({
                   </p>
                   <AccordionContentWithPlayer
                     text={synthesis.personalYearAnalysis.dualEssenceSynthesis}
-                  />
+ study={{ field: "num.personal-year", variant: K.personalYear(synthesis.personalYearAnalysis.year), part: "dual" }} />
                 </div>
               )}
               <AccordionContentWithPlayer
                 text={synthesis.personalYearAnalysis.interpretation}
-              />
+ study={{ field: "num.personal-year", variant: K.personalYear(synthesis.personalYearAnalysis.year), part: "main" }} />
               {synthesis.personalYearAnalysis.rawYearClassic !==
                 synthesis.personalYearAnalysis.rawYear && (
                 <div
@@ -1080,7 +1081,7 @@ export function SynthesisNumerologySections({
                   </p>
                   <AccordionContentWithPlayer
                     text={synthesis.personalYearAnalysis.interpretationClassic}
-                  />
+ study={{ field: "num.personal-year", variant: K.personalYear(synthesis.personalYearAnalysis.year), part: "classic" }} />
                 </div>
               )}
             </AccordionContent>
@@ -1120,7 +1121,7 @@ export function SynthesisNumerologySections({
             <AccordionContent className="px-4 pb-4">
               <AccordionContentWithPlayer
                 text={synthesis.universalYear.interpretation}
-              />
+ study={{ field: "num.universal-year", variant: `Universal Year ${new Date().getFullYear()}` }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -1252,7 +1253,7 @@ function ContradictionAccordionCard({
               {c.pattern}
             </p>
           </div>
-          <AccordionContentWithPlayer text={c.deepReading} />
+          <AccordionContentWithPlayer text={c.deepReading} study={{ field: "psy.contradiction", variant: c.name }} />
           {hasManifestations && (
             <div className="space-y-1.5">
               <p className="text-[0.7rem] font-cinzel uppercase tracking-widest text-slate-500">
@@ -1341,7 +1342,7 @@ function RecommendationAccordionCard({
       </AccordionTrigger>
       <AccordionContent className="px-4 pb-4">
         <div className="space-y-3">
-          <AccordionContentWithPlayer text={r.text} />
+          <AccordionContentWithPlayer text={r.text} study={{ field: "psy.recommendation", variant: r.title, part: "main" }} />
           <div
             className="rounded-lg px-3 py-2.5 border"
             style={{
@@ -1352,7 +1353,7 @@ function RecommendationAccordionCard({
             <p className="text-[0.7rem] font-cinzel uppercase tracking-widest text-amber-400/70 mb-1.5">
               30-Day Practice
             </p>
-            <AccordionContentWithPlayer text={r.practice} />
+            <AccordionContentWithPlayer text={r.practice} study={{ field: "psy.recommendation", variant: r.title, part: "practice" }} />
           </div>
         </div>
       </AccordionContent>
@@ -1425,7 +1426,7 @@ export function SynthesisPsychomatrixSections({
     recommendations.length > 0;
   if (!hasAnything) return null;
   return (
-    <motion.div
+    <motion.div data-study-anchor="psy.synthesis"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.5 }}
@@ -1471,7 +1472,7 @@ export function SynthesisPsychomatrixSections({
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
-                  <AccordionContentWithPlayer text={p.interpretation} />
+                  <AccordionContentWithPlayer text={p.interpretation} study={{ field: "psy.line-pattern", variant: p.name }} />
                 </AccordionContent>
               </AccordionItem>
             ))}
@@ -1604,7 +1605,7 @@ export function SynthesisPsychomatrixSections({
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="px-4 pb-4">
-                        <AccordionContentWithPlayer text={deepText} />
+                        <AccordionContentWithPlayer text={deepText} study={{ field: "psy.dominant", variant: entry.element }} />
                       </AccordionContent>
                     </AccordionItem>
                   );
@@ -1647,7 +1648,7 @@ export function SynthesisPsychomatrixSections({
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="px-4 pb-4">
-                            <AccordionContentWithPlayer text={deepText} />
+                            <AccordionContentWithPlayer text={deepText} study={{ field: "psy.suppressed", variant: entry.element }} />
                           </AccordionContent>
                         </AccordionItem>
                       );
@@ -1735,7 +1736,7 @@ export function SynthesisPsychomatrixSections({
                     >
                       {m.label} — Grid-Derived Reading
                     </p>
-                    <AccordionContentWithPlayer text={combinedNarrative} />
+                    <AccordionContentWithPlayer text={combinedNarrative} study={{ field: "psy.domain" }} />
                   </div>
                 );
               })()}
@@ -1865,7 +1866,7 @@ export function SynthesisCellPairsSections({
   const INITIAL_SHOW = 5;
   const visible = showAll ? cellPatterns : cellPatterns.slice(0, INITIAL_SHOW);
   return (
-    <motion.div
+    <motion.div data-study-anchor="psy.cellpairs"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.5 }}
@@ -1908,7 +1909,7 @@ export function SynthesisCellPairsSections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={p.interpretation} />
+              <AccordionContentWithPlayer text={p.interpretation} study={{ field: "psy.cellpair", variant: p.name }} />
             </AccordionContent>
           </AccordionItem>
         ))}
@@ -1937,7 +1938,7 @@ export function SynthesisFourPlanesSections({
   const { planeAnalysis } = synthesis;
   if (!planeAnalysis) return null;
   return (
-    <motion.div
+    <motion.div data-study-anchor="psy.planes"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.5 }}
@@ -1979,7 +1980,7 @@ export function SynthesisFourPlanesSections({
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4">
-            <AccordionContentWithPlayer text={planeAnalysis.synthesis} />
+            <AccordionContentWithPlayer text={planeAnalysis.synthesis} study={{ field: "psy.planes" }} />
           </AccordionContent>
         </AccordionItem>
         {/* Graph view — visualizes the same percentages shown per-plane below */}
@@ -2085,7 +2086,7 @@ export function SynthesisFourPlanesSections({
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={p.interpretation} />
+              <AccordionContentWithPlayer text={p.interpretation} study={{ field: "psy.plane", variant: K.plane(p.name, p.level) }} />
             </AccordionContent>
           </AccordionItem>
         ))}
@@ -2105,7 +2106,7 @@ export function useSynthesis(
 export function NumberMeaningsSection() {
   const meanings = React.useMemo(() => getNumberMeanings(), []);
   return (
-    <motion.div
+    <motion.div data-study-anchor="num.meanings"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4, duration: 0.5 }}
@@ -2150,7 +2151,7 @@ export function NumberMeaningsSection() {
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
-              <AccordionContentWithPlayer text={m.interpretation} />
+              <AccordionContentWithPlayer text={m.interpretation} study={{ field: "num.meanings", variant: K.number(m.number) }} />
             </AccordionContent>
           </AccordionItem>
         ))}

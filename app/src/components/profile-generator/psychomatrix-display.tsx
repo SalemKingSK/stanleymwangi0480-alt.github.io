@@ -4,6 +4,8 @@
  * @fileoverview ALEXANDROV'S PSYCHOMATRIX — Complete Verbatim Reference Data
  */
 
+import { K, zeroLabel } from "@/lib/curriculum/catalogue";
+import { StudyScope } from "@/lib/curriculum/study-scope";
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -141,7 +143,7 @@ function AdvisoryViewer({ advisory }: { advisory: TransitionAdvisory }) {
       <motion.div key={active} initial={{ opacity:0 }} animate={{ opacity:1 }} className="p-4 rounded-xl bg-black/40 border border-white/5 text-[0.75rem] leading-relaxed text-stone-200 shadow-inner">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-cinzel text-xs text-amber-500 uppercase tracking-widest">{section.label} — Deep Reading</h4>
-          <AccordionContentWithPlayer text={text.trim()} />
+          <AccordionContentWithPlayer text={text.trim()} study={{ field: "psy.transition", part: section.key }} />
         </div>
         <div className="whitespace-pre-wrap">{text.trim()}</div>
       </motion.div>
@@ -187,7 +189,9 @@ function TransitionCard({ t, matrixState, isOpen, onToggle }: { t: DetectedTrans
       <AnimatePresence>
         {isOpen && (
           <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="border-t border-stone-800/60 bg-black/20 p-5">
-            <AdvisoryViewer advisory={t.advisory} />
+            <StudyScope field="psy.transition" variant={t.name}>
+              <AdvisoryViewer advisory={t.advisory} />
+            </StudyScope>
           </motion.div>
         )}
       </AnimatePresence>
@@ -266,23 +270,23 @@ function LineAnalysisCard({ line, result, isOpen, onToggle }: { line: Psychomatr
                 <div className="text-[0.75rem] text-stone-200 leading-relaxed space-y-6">
                   {/* Part 1: Old Introduction */}
                   <div className="opacity-90 italic border-b border-white/5 pb-2">
-                    <AccordionContentWithPlayer text={line.introduction} />
+                    <AccordionContentWithPlayer text={line.introduction} study={{ field: "psy.line", variant: line.name, part: "intro" }} />
                   </div>
 
                   {/* Part 2: Old Level Meaning (Verbatim) */}
                   <div className="p-4 rounded-sm border border-amber-600/30 bg-amber-900/10">
                     <p className="text-[0.7rem] font-black text-amber-500 uppercase tracking-widest mb-3">Primary Interpretation ({total} Digits)</p>
-                    <AccordionContentWithPlayer text={level.verbatim} />
+                    <AccordionContentWithPlayer text={level.verbatim} study={level ? { field: "psy.line-level", variant: `${line.name} · ${level.label}`, part: "verbatim" } : false} />
                   </div>
 
                   {/* Part 3: New Introduction */}
                   <div className="pt-2">
-                    <AccordionContentWithPlayer text={line.newIntroduction} />
+                    <AccordionContentWithPlayer text={line.newIntroduction} study={{ field: "psy.line", variant: line.name, part: "new-intro" }} />
                   </div>
 
                   {/* Part 4: New Level Meaning (Deep Dive) */}
                   <div className="p-4 rounded-sm border border-stone-700/40 bg-black/40 shadow-inner">
-                    <AccordionContentWithPlayer text={level.deepDive} />
+                    <AccordionContentWithPlayer text={level.deepDive} study={level ? { field: "psy.line-level", variant: `${line.name} · ${level.label}`, part: "deep" } : false} />
                   </div>
                 </div>
               </div>
@@ -291,9 +295,9 @@ function LineAnalysisCard({ line, result, isOpen, onToggle }: { line: Psychomatr
               <div className="space-y-4">
                 <SectionHeader icon={<Wand2 className="w-4 h-4" />} title="Inner Mechanics" />
                 <div className="p-4 rounded-sm border border-amber-500/30 bg-amber-900/10 text-[0.72rem] text-amber-100 leading-relaxed space-y-6">
-                  <AccordionContentWithPlayer text={line.transmutation} />
+                  <AccordionContentWithPlayer text={line.transmutation} study={{ field: "psy.line", variant: line.name, part: "transmutation" }} />
                   <div className="border-t border-amber-500/20 pt-4">
-                    <AccordionContentWithPlayer text={line.newMechanics} />
+                    <AccordionContentWithPlayer text={line.newMechanics} study={{ field: "psy.line", variant: line.name, part: "mechanics" }} />
                   </div>
                 </div>
               </div>
@@ -302,7 +306,7 @@ function LineAnalysisCard({ line, result, isOpen, onToggle }: { line: Psychomatr
               <div className="space-y-4">
                 <SectionHeader icon={<BookOpen className="w-4 h-4" />} title="Interpreter's Note" />
                 <div className="p-4 rounded-sm border border-stone-700/30 bg-black/40 backdrop-blur-md text-[0.75rem] text-stone-200 leading-relaxed">
-                  <AccordionContentWithPlayer text={line.alexandrovNote} />
+                  <AccordionContentWithPlayer text={line.alexandrovNote} study={{ field: "psy.line", variant: line.name, part: "note" }} />
                 </div>
               </div>
             </div>
@@ -453,7 +457,7 @@ export function PsychomatrixDisplay({ day, month, year, gender = 'male', name }:
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-study-anchor="psy.matrix">
       {/* ── CONSTANT GRID HEADER ── */}
       <div className="space-y-4">
         <div className="text-center space-y-1">
@@ -569,7 +573,7 @@ export function PsychomatrixDisplay({ day, month, year, gender = 'male', name }:
                     {result.zeroAnalysis.interpretations.map((text, idx) => (
                       <div key={idx} className="p-4 rounded-sm border border-stone-700/30 bg-black/40 backdrop-blur-md">
                         <div className="text-[0.72rem] text-stone-300 leading-relaxed italic">
-                          <AccordionContentWithPlayer text={text} />
+                          <AccordionContentWithPlayer text={text} study={{ field: "psy.zero", variant: zeroLabel(text) }} />
                         </div>
                       </div>
                     ))}
@@ -640,7 +644,7 @@ export function PsychomatrixDisplay({ day, month, year, gender = 'male', name }:
                         <SectionHeader icon={<BookOpen className="w-4 h-4" />} title={`General Meaning of Number ${selectedDigit}`} />
                         <div className="p-4 rounded-sm border border-stone-700/30 bg-black/40 backdrop-blur-md">
                           <div className="text-[0.75rem] text-stone-200 leading-relaxed">
-                            <AccordionContentWithPlayer text={selectedCellDef.generalMeaning} />
+                            <AccordionContentWithPlayer text={selectedCellDef.generalMeaning} study={{ field: "psy.cell-meaning", variant: K.number(selectedDigit) }} />
                           </div>
                         </div>
                       </div>
@@ -654,7 +658,7 @@ export function PsychomatrixDisplay({ day, month, year, gender = 'male', name }:
                         style={{ borderColor: `${SCALE_COLORS[selectedReading.scale]}44`, background: `${SCALE_COLORS[selectedReading.scale]}11` }}
                       >
                         <div className="text-[0.75rem] text-stone-200 leading-relaxed">
-                          <AccordionContentWithPlayer text={selectedReading.verbatim} />
+                          <AccordionContentWithPlayer text={selectedReading.verbatim} study={{ field: "psy.cell", variant: K.cell(selectedReading.digit, selectedReading.label) }} />
                         </div>
                       </div>
 
@@ -692,7 +696,7 @@ export function PsychomatrixDisplay({ day, month, year, gender = 'male', name }:
                                     )}
                                   </div>
                                   <div className="text-[0.72rem] leading-relaxed" style={{ color: isActive ? '#d6d3d1' : '#78716c' }}>
-                                    <AccordionContentWithPlayer text={m.verbatim} />
+                                    <AccordionContentWithPlayer text={m.verbatim} study={{ field: "psy.cell", variant: K.cell(selectedDigit, m.label) }} />
                                   </div>
                                 </div>
                               );
@@ -705,7 +709,7 @@ export function PsychomatrixDisplay({ day, month, year, gender = 'male', name }:
                     <div className="space-y-4">
                       <SectionHeader icon={<AlertTriangle className="w-4 h-4" />} title={`Difficulty in interpreting number ${selectedDigit}`} />
                       <div className="p-4 rounded-sm border border-stone-700/30 bg-black/40 backdrop-blur-md text-[0.75rem] text-stone-200 leading-relaxed">
-                        <AccordionContentWithPlayer text={selectedReading.difficultyVerbatim || "Analysis pending."} />
+                        <AccordionContentWithPlayer text={selectedReading.difficultyVerbatim || "Analysis pending."} study={selectedReading.difficultyVerbatim ? { field: "psy.difficulty", variant: K.cell(selectedReading.digit, selectedReading.label) } : false} />
                       </div>
                     </div>
                   </motion.div>
@@ -742,7 +746,7 @@ export function PsychomatrixDisplay({ day, month, year, gender = 'male', name }:
                       <h4 className="font-cinzel text-xs font-bold uppercase tracking-widest text-primary">Millennium Activation Enabled</h4>
                     </div>
                     <div className="text-[0.75rem] text-stone-200 leading-relaxed space-y-4">
-                      <AccordionContentWithPlayer text={dynamicResult.interpretation} />
+                      <AccordionContentWithPlayer text={dynamicResult.interpretation} study={{ field: "psy.dynamic" }} />
                     </div>
                   </div>
                 </div>
@@ -791,7 +795,7 @@ export function PsychomatrixDisplay({ day, month, year, gender = 'male', name }:
                         </span>
                       </div>
                       <div className="text-[0.72rem] text-stone-200 leading-relaxed">
-                        <AccordionContentWithPlayer text={insight.insight} />
+                        <AccordionContentWithPlayer text={insight.insight} study={false} />
                       </div>
                     </div>
                   );

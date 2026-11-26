@@ -1,6 +1,7 @@
 // src/components/LoshuNumberDetailPanel.tsx
 "use client";
 
+import { K } from "@/lib/curriculum/catalogue";
 import React, { useState } from "react";
 import { analyzeNumber } from "@/lib/loshu-analysis";
 import {
@@ -100,7 +101,7 @@ export default function LoshuNumberDetailPanel({
     <div className="loshu-detail-root">
       {/* LAYER 1: Existing Meaning */}
       <div className="loshu-layer-1">
-        <AccordionContentWithPlayer text={existingMeaning} />
+        <AccordionContentWithPlayer text={existingMeaning} study={{ field: "num.loshu", variant: K.loshu(number, count), part: "meaning" }} />
       </div>
 
       {/* LAYER 2: Numerical Saturation */}
@@ -145,7 +146,7 @@ export default function LoshuNumberDetailPanel({
                 {definition.counts[cappedCount as 1 | 2 | 3 | 4]?.label}
               </p>
               <div className="loshu-count-meaning-text">
-                <AccordionContentWithPlayer text={definition.counts[cappedCount as 1 | 2 | 3 | 4]?.meaning} />
+                <AccordionContentWithPlayer text={definition.counts[cappedCount as 1 | 2 | 3 | 4]?.meaning} study={{ field: "num.loshu", variant: K.loshu(number, count), part: "intensity" }} />
               </div>
             </div>
 
@@ -158,7 +159,7 @@ export default function LoshuNumberDetailPanel({
                       {definition.counts[lvl].label}
                     </span>
                     <div className="loshu-count-row-text">
-                      <AccordionContentWithPlayer text={definition.counts[lvl].meaning} />
+                      <AccordionContentWithPlayer text={definition.counts[lvl].meaning} study={{ field: "num.loshu-levels", variant: K.loshuLevel(number, lvl) }} />
                     </div>
                   </div>
                 ))}
@@ -189,14 +190,14 @@ export default function LoshuNumberDetailPanel({
         {openLayer === 3 && isDrowning && (
           <div className="loshu-accordion-body">
             <div className="loshu-drowning-intro">
-              <AccordionContentWithPlayer text={DROWNING_SECTION_INTRO} />
+              <AccordionContentWithPlayer text={DROWNING_SECTION_INTRO} study={{ field: "num.concepts", variant: "Drowning Effect" }} />
             </div>
             <SectionDivider label="Energetic Interference" />
             <div className="loshu-drowning-card">
               <div className="loshu-drowning-flame">🔥</div>
               <p className="loshu-drowning-headline">{`${intensityLabel} ${number} — Saturation Active`}</p>
               <div className="loshu-drowning-body">
-                <AccordionContentWithPlayer text={definition.counts[cappedCount as 3 | 4]?.meaning} />
+                <AccordionContentWithPlayer text={definition.counts[cappedCount as 3 | 4]?.meaning} study={{ field: "num.loshu", variant: K.loshu(number, count), part: "drowning" }} />
               </div>
             </div>
             {drownsNumbers.length > 0 && (
@@ -231,7 +232,7 @@ export default function LoshuNumberDetailPanel({
         {openLayer === 4 && (
           <div className="loshu-accordion-body">
             <div className="loshu-hw-intro">
-              <AccordionContentWithPlayer text={HARDWARE_SOFTWARE_INTRO} />
+              <AccordionContentWithPlayer text={HARDWARE_SOFTWARE_INTRO} study={{ field: "num.concepts", variant: "Hardware vs Software" }} />
             </div>
             <div className="loshu-hw-row">
               <div className="loshu-hw-box" style={{ borderColor: elColor }}>
@@ -254,13 +255,13 @@ export default function LoshuNumberDetailPanel({
                   <p className="loshu-conflict-purpose"><strong>Core Purpose:</strong> {lifePathConflict.corePurpose}</p>
                   <p className="loshu-conflict-condition"><strong>Condition:</strong> {lifePathConflict.condition}</p>
                   <div className="loshu-conflict-result">
-                    <AccordionContentWithPlayer text={lifePathConflict.psychodynamicResult} />
+                    <AccordionContentWithPlayer text={lifePathConflict.psychodynamicResult} study={{ field: "num.loshu-conflict", variant: K.loshuConflict(number, lifePath) }} />
                   </div>
                 </div>
               </>
             ) : (
               <div className="loshu-no-conflict">
-                <AccordionContentWithPlayer text={`Your Life Path (${lifePath}) does not share a direct psychodynamic conflict with this grid number. The system is in relative balance.`} />
+                <AccordionContentWithPlayer text={`Your Life Path (${lifePath}) does not share a direct psychodynamic conflict with this grid number. The system is in relative balance.`} study={false} />
               </div>
             )}
             <SectionDivider label={`Remedies for Number ${number}`} />
@@ -270,7 +271,7 @@ export default function LoshuNumberDetailPanel({
                 <div>
                   <p className="loshu-remedy-type">If Missing (Void)</p>
                   <div className="loshu-remedy-text">
-                    <AccordionContentWithPlayer text={remedy.missing} />
+                    <AccordionContentWithPlayer text={remedy.missing} study={{ field: "num.loshu-remedy", variant: K.number(number), part: "missing" }} />
                   </div>
                 </div>
               </div>
@@ -279,7 +280,7 @@ export default function LoshuNumberDetailPanel({
                 <div>
                   <p className="loshu-remedy-type" style={{ color: elColor }}>If Overloaded (Drowning)</p>
                   <div className="loshu-remedy-text">
-                    <AccordionContentWithPlayer text={remedy.overloaded} />
+                    <AccordionContentWithPlayer text={remedy.overloaded} study={{ field: "num.loshu-remedy", variant: K.number(number), part: "overloaded" }} />
                   </div>
                 </div>
               </div>

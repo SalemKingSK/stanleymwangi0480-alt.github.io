@@ -1,5 +1,6 @@
 "use client";
 
+import { K } from "@/lib/curriculum/catalogue";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cheiroPsychicNumbers } from "@/lib/numerology/cheiro-psychic-numbers";
@@ -64,7 +65,7 @@ export default function PsychicNumberDetailPanel({
             >
               <div className="pb-6">
                 <div className="text-sm leading-relaxed text-white/70">
-                  <AccordionContentWithPlayer text={johariMeaning} />
+                  <AccordionContentWithPlayer text={johariMeaning} study={{ field: "num.psyche", variant: K.psyche(number), part: "johari" }} />
                 </div>
               </div>
             </motion.div>
@@ -104,7 +105,7 @@ export default function PsychicNumberDetailPanel({
                      <Sparkles className="h-3.5 w-3.5 text-amber-400" />
                      <span className="text-[11px] font-bold uppercase text-amber-400/80 tracking-tighter">Verbatim Character Analysis</span>
                   </div>
-                  <AccordionContentWithPlayer text={cheiroData.description} />
+                  <AccordionContentWithPlayer text={cheiroData.description} study={{ field: "num.psyche", variant: K.psyche(number), part: "cheiro" }} />
                 </div>
               </div>
             </motion.div>
@@ -154,7 +155,7 @@ export default function PsychicNumberDetailPanel({
                         <span className="text-[11px] font-bold uppercase text-teal-400/80">General Influence</span>
                       </div>
                       <div className="text-[13px] leading-relaxed text-stone-300">
-                        <AccordionContentWithPlayer text={monthlyData.generalInfluence} />
+                        <AccordionContentWithPlayer text={monthlyData.generalInfluence} study={{ field: "num.psyche-month", variant: K.psycheMonth(number, birthMonth), part: "influence" }} />
                       </div>
                     </div>
 
@@ -164,7 +165,7 @@ export default function PsychicNumberDetailPanel({
                         <span className="text-[11px] font-bold uppercase text-teal-400/80">Monthly Character</span>
                       </div>
                       <div className="text-[13px] leading-relaxed text-stone-300">
-                        <AccordionContentWithPlayer text={monthlyData.monthlyCharacter} />
+                        <AccordionContentWithPlayer text={monthlyData.monthlyCharacter} study={{ field: "num.psyche-month", variant: K.psycheMonth(number, birthMonth), part: "character" }} />
                       </div>
                     </div>
 
@@ -174,7 +175,7 @@ export default function PsychicNumberDetailPanel({
                         <span className="text-[11px] font-bold uppercase text-teal-400/80">Financial Outlook</span>
                       </div>
                       <div className="text-[13px] leading-relaxed text-stone-300">
-                        <AccordionContentWithPlayer text={monthlyData.financialOutlook} />
+                        <AccordionContentWithPlayer text={monthlyData.financialOutlook} study={{ field: "num.psyche-month", variant: K.psycheMonth(number, birthMonth), part: "finance" }} />
                       </div>
                     </div>
 
@@ -184,7 +185,7 @@ export default function PsychicNumberDetailPanel({
                         <span className="text-[11px] font-bold uppercase text-rose-400/80">Specific Health Cautions</span>
                       </div>
                       <div className="text-[13px] leading-relaxed text-stone-300 italic">
-                        <AccordionContentWithPlayer text={monthlyData.healthCautions} />
+                        <AccordionContentWithPlayer text={monthlyData.healthCautions} study={{ field: "num.psyche-month", variant: K.psycheMonth(number, birthMonth), part: "health" }} />
                       </div>
                     </div>
                   </div>
@@ -228,7 +229,7 @@ export default function PsychicNumberDetailPanel({
                      <span className="text-[11px] font-bold uppercase text-emerald-400/80 tracking-widest">Important Numbers & Dates</span>
                   </div>
                   <div className="text-sm leading-relaxed text-stone-300">
-                    <AccordionContentWithPlayer text={monthlyData.luckyNumbers} />
+                    <AccordionContentWithPlayer text={monthlyData.luckyNumbers} study={{ field: "num.psyche-month", variant: K.psycheMonth(number, birthMonth), part: "lucky" }} />
                   </div>
                 </div>
 
@@ -239,7 +240,7 @@ export default function PsychicNumberDetailPanel({
                          <span className="text-[11px] font-bold uppercase text-purple-400 tracking-widest">Colors</span>
                       </div>
                       <div className="text-[11px] text-stone-400 italic">
-                         <AccordionContentWithPlayer text={monthlyData.colors} />
+                         <AccordionContentWithPlayer text={monthlyData.colors} study={{ field: "num.psyche-month", variant: K.psycheMonth(number, birthMonth), part: "colours" }} />
                       </div>
                    </div>
                    <div className="p-4 rounded-xl bg-yellow-950/10 border border-yellow-500/20">
@@ -248,7 +249,7 @@ export default function PsychicNumberDetailPanel({
                          <span className="text-[11px] font-bold uppercase text-yellow-400 tracking-widest">Jewels</span>
                       </div>
                       <div className="text-[11px] text-stone-400 italic">
-                         <AccordionContentWithPlayer text={monthlyData.jewels} />
+                         <AccordionContentWithPlayer text={monthlyData.jewels} study={{ field: "num.psyche-month", variant: K.psycheMonth(number, birthMonth), part: "jewels" }} />
                       </div>
                    </div>
                 </div>
@@ -259,7 +260,7 @@ export default function PsychicNumberDetailPanel({
                       <span className="text-[11px] font-bold uppercase text-indigo-400 tracking-widest">Climacteric Years</span>
                    </div>
                    <div className="text-[11px] text-stone-300">
-                       <AccordionContentWithPlayer text={monthlyData.climactericYears} />
+                       <AccordionContentWithPlayer text={monthlyData.climactericYears} study={{ field: "num.psyche-month", variant: K.psycheMonth(number, birthMonth), part: "climacteric" }} />
                    </div>
                 </div>
 
@@ -269,7 +270,7 @@ export default function PsychicNumberDetailPanel({
                       <span className="text-[11px] font-bold uppercase text-rose-400 tracking-widest">Magnetic Attraction</span>
                    </div>
                    <div className="text-[11px] text-stone-300">
-                       <AccordionContentWithPlayer text={monthlyData.magneticAttraction} />
+                       <AccordionContentWithPlayer text={monthlyData.magneticAttraction} study={{ field: "num.psyche-month", variant: K.psycheMonth(number, birthMonth), part: "magnetic" }} />
                    </div>
                 </div>
               </div>

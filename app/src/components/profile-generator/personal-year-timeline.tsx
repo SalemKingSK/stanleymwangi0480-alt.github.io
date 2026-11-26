@@ -1,4 +1,5 @@
 
+import { K } from "@/lib/curriculum/catalogue";
 import React, { useMemo, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AccordionContentWithPlayer } from './accordion-content-with-player';
@@ -254,7 +255,7 @@ export function PersonalYearTimeline({ birthDay, birthMonth, birthYear }: Person
   const col = selectedPyn ? PY_COLORS[selectedPyn] : null;
 
   return (
-    <motion.div
+    <motion.div data-study-anchor="num.py-timeline"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -379,7 +380,7 @@ export function PersonalYearTimeline({ birthDay, birthMonth, birthYear }: Person
                 </button>
               </div>
               {/* Full interpretation */}
-              <AccordionContentWithPlayer text={PY_INTERPRETATIONS[selectedPyn]} />
+              <AccordionContentWithPlayer text={PY_INTERPRETATIONS[selectedPyn]} study={{ field: "num.py-timeline", variant: K.personalYear(selectedPyn) }} />
             </div>
           </motion.div>
         )}

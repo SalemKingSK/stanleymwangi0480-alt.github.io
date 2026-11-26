@@ -1,3 +1,4 @@
+import { studyAttrs } from "@/lib/curriculum/study-scope";
 import * as React from "react";
 import {
   CalendarDays,
@@ -2127,10 +2128,13 @@ function JohariPairCard({
   label,
   compat,
   explanation,
+  studyPart,
 }: {
   label: string;
   compat: { rating: number; nature: string; advice: string } | null;
   explanation?: string;
+  /** Curriculum passage id. */
+  studyPart?: string;
 }) {
   if (!compat) return null;
   const color = barColor(compat.rating * 10);
@@ -2141,7 +2145,7 @@ function JohariPairCard({
   }, [fullText]);
   const [, setActiveSentenceIndex] = React.useState(-1);
   return (
-    <div data-tts-scope
+    <div data-tts-scope {...studyAttrs(null, { field: "res.johari", part: studyPart })}
       style={{
         padding: "0.72rem 0.78rem",
         borderRadius: 14,
@@ -2467,21 +2471,25 @@ function JohariCompatibilitySection({ report }: { report: SoulResonanceReport })
         <JohariPairCard
           label={`Psychic ↔ Psychic  (${aName} ${report.soulA.psychic} · ${bName} ${report.soulB.psychic})`}
           compat={jc.psychicPair}
+          studyPart="psychic"
           explanation="The most immediately felt layer — how you interact day-to-day and instinctively."
         />
         <JohariPairCard
           label={`Destiny ↔ Destiny  (${aName} ${report.soulA.destiny} · ${bName} ${report.soulB.destiny})`}
           compat={jc.destinyPair}
+          studyPart="destiny"
           explanation="The karmic, long-range compatibility — the deeper spiritual purpose of the bond."
         />
         <JohariPairCard
           label={`${aName}'s Psychic ${report.soulA.psychic} ↔ ${bName}'s Destiny ${report.soulB.destiny}`}
           compat={jc.crossPairAB}
+          studyPart="cross-ab"
           explanation={`How ${aName}'s personality meets ${bName}'s life purpose.`}
         />
         <JohariPairCard
           label={`${bName}'s Psychic ${report.soulB.psychic} ↔ ${aName}'s Destiny ${report.soulA.destiny}`}
           compat={jc.crossPairBA}
+          studyPart="cross-ba"
           explanation={`How ${bName}'s personality meets ${aName}'s life purpose.`}
         />
       </div>
@@ -2646,7 +2654,7 @@ function ChineseZodiacCompatTextCard({ report }: { report: SoulResonanceReport }
   const [, setActiveSentenceIndex] = React.useState(-1);
 
   return (
-    <div data-tts-scope
+    <div data-tts-scope {...studyAttrs(null, { field: "res.chinese" })}
       style={{
         padding: "0.82rem 0.88rem",
         borderRadius: 14,
@@ -2791,7 +2799,7 @@ function NewAstrologyCompatCard({ report }: { report: SoulResonanceReport }) {
 
       {/* A's compat paragraph */}
       {na.aCompatText && (
-        <div data-tts-scope
+        <div data-tts-scope {...studyAttrs(null, { field: "res.newastro", part: "a" })}
           style={{
             padding: "0.65rem 0.72rem",
             borderRadius: 13,
@@ -2888,7 +2896,7 @@ function NewAstrologyCompatCard({ report }: { report: SoulResonanceReport }) {
 
       {/* B's compat paragraph */}
       {na.bCompatText && (
-        <div data-tts-scope
+        <div data-tts-scope {...studyAttrs(null, { field: "res.newastro", part: "b" })}
           style={{
             padding: "0.65rem 0.72rem",
             borderRadius: 13,
@@ -3019,16 +3027,19 @@ function ExtendedResonanceLayers({ report }: { report: SoulResonanceReport }) {
       <ChineseZodiacCard report={report} />
       <StoryCard
         title="Lo Shu Karmic Overlay"
+        studyPart="loshu"
         text={`${report.loShuOverlay.voidFill.narrative} ${report.loShuOverlay.amplification.narrative}`}
         tone="violet"
       />
       <StoryCard
         title="Alexandrov Psychomatrix Comparison"
+        studyPart="psycho"
         text={[psycho.willpower, psycho.energy, psycho.stability, psycho.purpose, psycho.family, psycho.habits].join(" ")}
       />
       {report.famousTwins.length > 0 && (
         <StoryCard
           title="Cosmic Twins"
+          studyPart="twins"
           text={report.famousTwins.map((t) => `${t.name} — ${t.sharedTrait}`).join(" · ")}
           tone="green"
         />
@@ -3040,10 +3051,13 @@ function StoryCard({
   title,
   text,
   tone = "gold",
+  studyPart,
 }: {
   title: string;
   text: string;
   tone?: "gold" | "violet" | "green" | "rose";
+  /** Curriculum passage id. */
+  studyPart?: string;
 }) {
   const color =
     tone === "rose"
@@ -3063,7 +3077,7 @@ function StoryCard({
   }, [text]);
   const [, setActiveSentenceIndex] = React.useState(-1);
   return (
-    <div data-tts-scope
+    <div data-tts-scope {...studyAttrs(null, { field: "res.story", part: studyPart })}
       style={{
         padding: "0.72rem 0.78rem",
         borderRadius: 14,

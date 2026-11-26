@@ -1,3 +1,5 @@
+import { StudyBlock } from "@/lib/curriculum/study-scope";
+import { timingFieldForTitle } from "@/lib/curriculum/catalogue";
 /**
  * MYSTIQUE COMPASS — Temporal Prediction Display
  * Integrates the 14-Layer Temporal Prediction Engine v2
@@ -69,6 +71,7 @@ function TemporalSection({
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = React.useState(defaultOpen);
+  const studyField = timingFieldForTitle(title);
 
   return (
     <div style={{
@@ -138,7 +141,9 @@ function TemporalSection({
             style={{ padding: '0 1rem 1rem' }}
           >
             {/* If text is provided, wrap with listen button; otherwise render children */}
-            {text ? <AccordionContentWithPlayer text={text} /> : children}
+            {studyField ? (
+              <StudyBlock field={studyField}>{text ? <AccordionContentWithPlayer text={text} /> : children}</StudyBlock>
+            ) : text ? <AccordionContentWithPlayer text={text} /> : children}
           </motion.div>
         )}
       </AnimatePresence>
@@ -910,7 +915,7 @@ export function TemporalPredictionPanel({ birthDay, birthMonth, birthYear }: {
   );
 
   return (
-    <div style={{
+    <div data-study-anchor="time.panel" style={{
       borderRadius: '1.1rem',
       overflow: 'hidden',
       border: '1px solid rgba(212,175,55,0.22)',

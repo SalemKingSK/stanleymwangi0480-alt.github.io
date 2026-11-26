@@ -5,6 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import type { AstroInsightOutput } from './types';
 import { AccordionContentWithPlayer } from './accordion-content-with-player';
 import { ZOO } from '@/lib/cosmic-fate/zoo';
+import { K } from '@/lib/curriculum/catalogue';
 
 interface DiagnosticLayerProps {
   id: string;
@@ -67,7 +68,7 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
   const toggle = (num: number) => setOpenLayer(openLayer === num ? null : num);
 
   return (
-    <div className="w-full glass-card p-4 space-y-4">
+    <div className="w-full glass-card p-4 space-y-4" data-study-anchor="astro.oracle">
       <div className="flex items-center gap-4 mb-2">
         <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
         <h3 className="font-cinzel font-semibold text-[0.75rem] text-primary flex items-center gap-2 uppercase tracking-[0.3em] text-center">
@@ -85,7 +86,7 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
           icon={<BookOpen className="h-4 w-4" />}
           isOpen={openLayer === 1}
           onToggle={() => toggle(1)}
-          content={<AccordionContentWithPlayer text={introduction || "No introduction available."} />}
+          content={<AccordionContentWithPlayer text={introduction || "No introduction available."} study={{ field: "astro.totem", variant: K.sign(sign) }} />}
         />
 
         <DiagnosticLayer
@@ -96,7 +97,7 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
           icon={<Leaf className="h-4 w-4" />}
           isOpen={openLayer === 2}
           onToggle={() => toggle(2)}
-          content={<AccordionContentWithPlayer text={signElementData || `No specific data for the ${element} element.`} />}
+          content={<AccordionContentWithPlayer text={signElementData || `No specific data for the ${element} element.`} study={signElementData ? { field: "astro.element", variant: K.element(element, sign) } : false} />}
         />
 
         <DiagnosticLayer
@@ -119,7 +120,7 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
                       </span>
                     </AccordionTrigger>
                     <AccordionContent>
-                      <AccordionContentWithPlayer text={String(text)} />
+                      <AccordionContentWithPlayer text={String(text)} study={{ field: "astro.compat", variant: K.compat(sign, s) }} />
                     </AccordionContent>
                   </AccordionItem>
                 ))}
@@ -156,7 +157,7 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
                             Element: {data.element}
                           </span>
                         </div>
-                        <AccordionContentWithPlayer text={data.prediction} />
+                        <AccordionContentWithPlayer text={data.prediction} study={{ field: "astro.future", variant: K.future(sign, year) }} />
                       </AccordionContent>
                     </AccordionItem>
                   ))}

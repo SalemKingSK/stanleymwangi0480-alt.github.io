@@ -1,3 +1,4 @@
+import { studyNav } from "@/lib/curriculum/navigation";
 import * as React from "react";
 import { stopReadAloud } from "@/lib/read-aloud/engine";
 import { useToast } from "@/hooks/use-toast";
@@ -363,7 +364,7 @@ export function ProfileGenerator() {
     setFormData({ name: "", day: 0, month: 0, year: 0, gender: "" });
   };
   const processRequest = React.useCallback(
-    (data: AstroInsightInput) => {
+    (data: AstroInsightInput, opts?: { skipHistory?: boolean }) => {
       if (
         !data.name ||
         !data.day ||
@@ -410,7 +411,8 @@ export function ProfileGenerator() {
         if (result.success && result.insight && result.numerology) {
           setInsight(result.insight);
           setNumerology(result.numerology);
-          addHistoryRecord(data);
+          // Curriculum case studies are opened for study, not saved as the user's own souls.
+          if (!opts?.skipHistory) addHistoryRecord(data);
         } else {
           toast({
             variant: "destructive",
@@ -433,6 +435,16 @@ export function ProfileGenerator() {
       gender: formData.gender,
     });
   };
+  // The Curriculum opens its case-study birthdays through here.
+  React.useEffect(
+    () =>
+      studyNav.onOpen((input) => {
+        const data: AstroInsightInput = { name: input.name, day: input.day, month: input.month, year: input.year, gender: input.gender };
+        setFormData(data);
+        processRequest(data, { skipHistory: true });
+      }),
+    [processRequest],
+  );
   const handleFamousPersonSelect = (person: FamousPerson) => {
     const personData: AstroInsightInput = {
       name: person.name,

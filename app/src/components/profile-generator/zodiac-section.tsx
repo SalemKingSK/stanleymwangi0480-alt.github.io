@@ -1,6 +1,7 @@
 // src/components/profile-generator/zodiac-section.tsx
 'use client';
 
+import { K } from "@/lib/curriculum/catalogue";
 import React, { useState, useMemo } from 'react';
 import { ZOO } from '@/lib/cosmic-fate/zoo';
 import { chineseSignFor } from '@/lib/astrology/chinese-calendar-math';
@@ -208,7 +209,7 @@ export function ZodiacSection({ birthDay, birthMonth, birthYear }: ZodiacSection
         </div>
         
         <div className="cp text-lg leading-relaxed text-slate-300 max-w-2xl mx-auto mb-8 font-body text-center">
-          <AccordionContentWithPlayer text={`Born in a ${birthSign} year — ${bz.el} element, ${bz.pol} polarity, Branch ${az?.br || bz.br}. Your characteristic nature: ${bz.trait}. Your health domains: ${bz.organ}. Your cardinal direction: ${bz.dir}. Below are your next 12 years mapped through Tai Sui astrology — click any year for detailed analysis.`} />
+          <AccordionContentWithPlayer text={`Born in a ${birthSign} year — ${bz.el} element, ${bz.pol} polarity, Branch ${az?.br || bz.br}. Your characteristic nature: ${bz.trait}. Your health domains: ${bz.organ}. Your cardinal direction: ${bz.dir}. Below are your next 12 years mapped through Tai Sui astrology — click any year for detailed analysis.`} study={{ field: "fate.taisui-intro", variant: K.sign(birthSign) }} />
         </div>
 
         <div className="flex flex-col items-center gap-3 mb-6">
@@ -249,12 +250,12 @@ export function ZodiacSection({ birthDay, birthMonth, birthYear }: ZodiacSection
             </DialogHeader>
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-4 scrollbar-thin">
               <div className="p-4 bg-primary/5 border-l-[3px] border-primary rounded-r-lg font-body italic text-sm text-slate-300">
-                <AccordionContentWithPlayer text={`${selectedYear.year} (${selectedYear.yearAni} Year, Age ${selectedYear.age}) — Tai Sui: ${catLabel(selectedYear.category)}`} />
+                <AccordionContentWithPlayer text={`${selectedYear.year} (${selectedYear.yearAni} Year, Age ${selectedYear.age}) — Tai Sui: ${catLabel(selectedYear.category)}`} study={false} />
               </div>
 
               {(BOOK.categories as Record<string, string>)[selectedYear.category === 'destruction' ? 'destruction' : selectedYear.category] && (
                 <div className="p-4 bg-white/5 border-l-[3px] border-primary/40 rounded-r-lg font-body text-sm leading-relaxed text-slate-300">
-                  <AccordionContentWithPlayer text={stripHtml((BOOK.categories as Record<string, string>)[selectedYear.category === 'destruction' ? 'destruction' : selectedYear.category])} />
+                  <AccordionContentWithPlayer text={stripHtml((BOOK.categories as Record<string, string>)[selectedYear.category === 'destruction' ? 'destruction' : selectedYear.category])} study={{ field: "fate.taisui-category", variant: K.category(selectedYear.category) }} />
                 </div>
               )}
 
@@ -263,7 +264,7 @@ export function ZodiacSection({ birthDay, birthMonth, birthYear }: ZodiacSection
                   Your {birthSign.toUpperCase()} in {selectedYear.yearAni.toUpperCase()} Year
                 </h4>
                 <div className="font-body text-base leading-relaxed text-slate-200">
-                  <AccordionContentWithPlayer text={ZOO[birthSign][`${selectedYear.category}Desc`] || ZOO[birthSign][`${selectedYear.category === 'destruction' ? 'destruction' : selectedYear.category}Desc`] || `This ${selectedYear.year} ${selectedYear.yearAni} year is a Neutral period for ${birthSign}. No special Tai Sui relationship creates extraordinary support or challenge.`} />
+                  <AccordionContentWithPlayer text={ZOO[birthSign][`${selectedYear.category}Desc`] || ZOO[birthSign][`${selectedYear.category === 'destruction' ? 'destruction' : selectedYear.category}Desc`] || `This ${selectedYear.year} ${selectedYear.yearAni} year is a Neutral period for ${birthSign}. No special Tai Sui relationship creates extraordinary support or challenge.`} study={{ field: "fate.taisui-relation", variant: K.taiSui(birthSign, selectedYear.category) }} />
                 </div>
               </div>
 
@@ -272,7 +273,7 @@ export function ZodiacSection({ birthDay, birthMonth, birthYear }: ZodiacSection
                   {selectedYear.yearAni.toUpperCase()} Year Qualities
                 </h4>
                 <div className="font-body text-sm text-slate-400">
-                  <AccordionContentWithPlayer text={`${ZOO[selectedYear.yearAni].trait}. Health focus: ${ZOO[selectedYear.yearAni].organ}. Direction: ${ZOO[selectedYear.yearAni].dir}.`} />
+                  <AccordionContentWithPlayer text={`${ZOO[selectedYear.yearAni].trait}. Health focus: ${ZOO[selectedYear.yearAni].organ}. Direction: ${ZOO[selectedYear.yearAni].dir}.`} study={{ field: "fate.year-animal", variant: K.yearAnimal(selectedYear.yearAni) }} />
                 </div>
               </div>
             </div>

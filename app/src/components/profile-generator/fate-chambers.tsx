@@ -1,5 +1,6 @@
 "use client";
 
+import { K } from "@/lib/curriculum/catalogue";
 import React, { forwardRef } from "react";
 import { Activity, Wand2, ShieldAlert, Lock } from "lucide-react";
 import { AccordionContentWithPlayer } from "./accordion-content-with-player";
@@ -86,7 +87,7 @@ export const FateChambers = forwardRef<HTMLDivElement, FateChambersProps>(({
                         {title} Activation
                     </span>
                 </div>
-                <AccordionContentWithPlayer text={meaning!} />
+                <AccordionContentWithPlayer text={meaning!} study={num ? (layerNum === 1 ? { field: "num.compound", variant: K.compound(num) } : layerNum === 2 ? { field: "num.inherent", variant: `Inherent ${num}` } : { field: "num.karmic-fate", variant: `Karmic Fate ${num}` }) : false} />
              </div>
           </div>
         )}
@@ -103,7 +104,7 @@ export const FateChambers = forwardRef<HTMLDivElement, FateChambersProps>(({
   };
 
   return (
-    <div ref={ref} className="fate-root glass-card p-4 mt-4">
+    <div ref={ref} className="fate-root glass-card p-4 mt-4" data-study-anchor="num.chambers">
       <div className="flex items-center gap-4 mb-4">
         <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
         <h3 className="font-cinzel font-semibold text-[0.75rem] text-primary flex items-center gap-2 uppercase tracking-[0.3em]">
