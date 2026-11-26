@@ -3,4 +3,4 @@ Allow: /
 Disallow: /stats/
 Disallow: /IMPROVEMENTS_AND_ACCURACY_REPORT.md
 
-Sitemap: https://mystique-compass.pages.dev/sitemap.xml
+Sitemap: https://stanleymwangi0480-alt.github.io/sitemap.xml

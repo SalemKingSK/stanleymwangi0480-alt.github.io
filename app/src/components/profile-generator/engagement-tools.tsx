@@ -3279,7 +3279,7 @@ export async function renderReadingCardImage(
     g.font = "400 30px Inter, Arial, sans-serif";
     g.fillText("Get your free reading at", W / 2, 1220);
     g.fillStyle = "#d4af37"; g.font = "600 34px Inter, Arial, sans-serif";
-    g.fillText(location.host || "mystique-compass.pages.dev", W / 2, 1268);
+    g.fillText(location.host || "stanleymwangi0480-alt.github.io", W / 2, 1268);
     return await new Promise<Blob | null>((res) => c.toBlob((b) => res(b), "image/png"));
   } catch {
     return null;

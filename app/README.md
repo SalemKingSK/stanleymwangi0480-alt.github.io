@@ -1,7 +1,7 @@
 # Mystique Compass
 
 Free numerology, psychomatrix and astrology profile generator (PWA).
-Live: https://mystique-compass.pages.dev
+Live: https://stanleymwangi0480-alt.github.io
 
 ## Develop
 ```bash
@@ -14,18 +14,13 @@ npm run build      # production build + static SEO pages into dist/
 ```
 
 ## Deploy
-Two live copies:
+The live app is **GitHub Pages** (https://stanleymwangi0480-alt.github.io), served from the repository root on `main`.
+After `npm run build`, copy `app/dist/` over the repo root and commit it.
+Keep older hashed files in `assets/` so open tabs and cached service workers don't break.
 
-- **Cloudflare Pages** (https://mystique-compass.pages.dev):
-  `.github/workflows/deploy-cloudflare.yml` runs typecheck, `npm run validate` and the build on every pull request.
-  On every push to `main` it also deploys `dist/`.
-  The deploy step needs two repository secrets: `CLOUDFLARE_API_TOKEN` (Pages: Edit) and `CLOUDFLARE_ACCOUNT_ID`.
-  Without them the checks still run and the deploy is skipped.
-- **GitHub Pages** (https://stanleymwangi0480-alt.github.io): served from the repository root on `main`.
-  After `npm run build`, copy `app/dist/` over the repo root and commit it.
-  Keep older hashed files in `assets/` so open tabs and cached service workers don't break.
-
-Manual Cloudflare deploy: `npx wrangler pages deploy dist --project-name=mystique-compass --branch=main`
+`.github/workflows/checks.yml` runs typecheck, `npm run validate` and the build on every pull request and push to `main`.
+(The former Cloudflare Pages copy has been discontinued. The anonymous usage counter is still a separate
+Cloudflare Worker, `services/analytics-worker`.)
 
 ## Updates and offline
 The service worker uses prompt-on-update. A new version installs in the background and waits.
@@ -36,8 +31,7 @@ Fonts (Cinzel, Inter) are self-hosted through `@fontsource`, so no request goes 
 `/privacy/` (`public/privacy/`) describes what is stored and sent, and has an opt-out for the anonymous usage counts.
 
 ## Rollback
-Cloudflare Pages keeps every deployment: Dashboard → Pages → mystique-compass →
-Deployments → pick the previous one → "Rollback to this deployment".
+Revert the commit on `main` (the root build is versioned in Git); GitHub Pages republishes it.
 
 ## Layout
 - `src/lib/` deterministic engines and interpretation data

@@ -11,7 +11,7 @@ import { PSYCHIC_NUMBER_MEANINGS } from '../src/lib/numerology/data/psychicNumbe
 import { zodiacData } from '../src/lib/zodiac';
 import { CHINESE_CALENDAR } from '../src/lib/new-astrology/chinese-calendar';
 
-const SITE = 'https://mystique-compass.pages.dev';
+const SITE = 'https://stanleymwangi0480-alt.github.io';
 const OUT = path.resolve(import.meta.dirname, '..', 'dist');
 const today = new Date().toISOString().slice(0, 10);
 const urls: string[] = [`${SITE}/`];
