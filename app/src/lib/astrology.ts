@@ -88,6 +88,7 @@ export async function getAstroInsight(input: { name: string; day: number; month:
         western_cusp: getWesternCusp(day, month, year),
         sign,
         element,
+        day,
         month,
         year,
         gender,

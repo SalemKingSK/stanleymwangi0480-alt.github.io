@@ -22,6 +22,8 @@ export interface AstroInsightOutput {
   western_cusp?: string | null; // neighbouring sign when born within a day of a boundary
   sign: string; // e.g., "Pig"
   element: string; // e.g., "Wood"
+  /** Birth day (older saved readings may lack it). */
+  day?: number;
   month: number;
   year: number;
   gender: string; // Added gender

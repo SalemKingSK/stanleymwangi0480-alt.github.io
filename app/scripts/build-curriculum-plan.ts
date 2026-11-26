@@ -49,7 +49,7 @@ type Units = Set<string>;
 async function unitsOf(input: BirthInput): Promise<Units> {
   const chart = await buildChart(input);
   const out: Units = new Set();
-  for (const f of chartFields) for (const v of chartVariants(f, chart)) out.add(`${f.id}\u0001${v}`);
+  for (const f of chartFields) for (const v of chartVariants(f, chart, new Date(), { all: true })) out.add(`${f.id}\u0001${v}`);
   return out;
 }
 

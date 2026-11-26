@@ -3,7 +3,7 @@
  * syllabus built from it: every unit of every field, with the birthdays that
  * teach it.
  */
-import { FIELDS, PRACTICE, type FieldDef } from "./catalogue";
+import { FIELDS, PRACTICE, fieldAvailable, type FieldDef } from "./catalogue";
 import type { BirthInput } from "./chart";
 
 export interface PlanCase {
@@ -53,6 +53,7 @@ const natural = new Intl.Collator(undefined, { numeric: true, sensitivity: "base
 
 /** Every unit of a field, in natural order. */
 export function fieldUniverse(field: FieldDef, plan: CurriculumPlan, now = new Date()): string[] {
+  if (!fieldAvailable(field)) return [];
   let list: string[];
   if (field.kind === "practice") list = [PRACTICE];
   else if (field.kind === "library") list = field.library?.() ?? [];
@@ -101,6 +102,7 @@ export function casesForUnit(plan: CurriculumPlan, field: FieldDef, variant: str
 export function unitsOfCase(plan: CurriculumPlan, index: number, now = new Date()): SyllabusUnit[] {
   const out: SyllabusUnit[] = [];
   for (const field of FIELDS) {
+    if (!fieldAvailable(field)) continue;
     if (field.kind === "chart") {
       for (const [variant, idx] of Object.entries(plan.fields[field.id] ?? {})) {
         if (idx.includes(index) && stillCurrent(field, variant, now)) out.push({ field, variant });

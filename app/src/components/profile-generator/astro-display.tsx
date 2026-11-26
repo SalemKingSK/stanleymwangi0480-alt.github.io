@@ -1,12 +1,15 @@
 
 import * as React from 'react';
-import { BookOpen, Leaf, Users, Forward } from "lucide-react";
+import { BookOpen, Leaf, Users, Forward, Baby, Clock, Moon, Sun, Star } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import type { AstroInsightOutput } from './types';
 import { AccordionContentWithPlayer } from './accordion-content-with-player';
 import { ZOO } from '@/lib/cosmic-fate/zoo';
 import { K } from '@/lib/curriculum/catalogue';
 import { futureWindow } from '@/lib/zodiac/futures';
+import { useHandbook } from '@/lib/handbook/store';
+import type { HbAnimal } from '@/lib/handbook/types';
+import { HandbookLoader, HbFive, HbPartner, HbCompatIntro, HbCharacter, HbAscendants, HbMoon, HbSeasons, HbFamous } from '@/components/handbook/handbook-oracle';
 
 interface DiagnosticLayerProps {
   id: string;
@@ -70,6 +73,9 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
   const animalEmoji = ZOO[sign]?.e || '';
 
   const toggle = (num: number) => setOpenLayer(openLayer === num ? null : num);
+  const handbook = useHandbook();
+  const book = handbook.book;
+  const ch = book?.chapters[sign as HbAnimal];
 
   return (
     <div className="w-full glass-card p-4 space-y-4" data-study-anchor="astro.oracle">
@@ -102,8 +108,13 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
           icon={<Leaf className="h-4 w-4" />}
           isOpen={openLayer === 2}
           onToggle={() => toggle(2)}
-          studyOpen="astro.element"
-          content={<AccordionContentWithPlayer text={signElementData || `No specific data for the ${element} element.`} study={signElementData ? { field: "astro.element", variant: K.element(element, sign) } : false} />}
+          studyOpen={ch ? "astro.element;astro.hb.five" : "astro.element"}
+          content={
+            <div className="space-y-4">
+              <AccordionContentWithPlayer text={signElementData || `No specific data for the ${element} element.`} study={signElementData ? { field: "astro.element", variant: K.element(element, sign) } : false} />
+              {ch && <HbFive ch={ch} sign={sign} element={element} />}
+            </div>
+          }
         />
 
         <DiagnosticLayer
@@ -114,20 +125,22 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
           icon={<Users className="h-4 w-4" />}
           isOpen={openLayer === 3}
           onToggle={() => toggle(3)}
-          studyOpen="astro.compat"
+          studyOpen={ch ? "astro.compat;astro.hb.compat;astro.hb.intro" : "astro.compat"}
           content={
             <div className="space-y-4">
               <p className="text-[13px] italic text-slate-400 mb-4 px-2">Analysis of spiritual and social resonance with the 12 signs of the Zodiac.</p>
+              {ch && <HbCompatIntro ch={ch} sign={sign} />}
               <Accordion type="single" collapsible className="w-full space-y-2">
                 {Object.entries(compatibilities || {}).map(([s, text]) => (
                   <AccordionItem key={s} value={s} className="border-none bg-white/5 rounded-lg overflow-hidden px-3">
-                    <AccordionTrigger className="hover:no-underline py-3" data-study-open={`astro.compat|${K.compat(sign, s)}`}>
+                    <AccordionTrigger className="hover:no-underline py-3" data-study-open={`astro.compat|${K.compat(sign, s)};astro.hb.compat|${K.compat(sign, s)}`}>
                       <span className="font-cinzel text-[0.7rem] uppercase tracking-widest text-primary flex items-center gap-2">
                         {ZOO[s]?.e || '🐾'} With the {s}
                       </span>
                     </AccordionTrigger>
                     <AccordionContent>
                       <AccordionContentWithPlayer text={String(text)} study={{ field: "astro.compat", variant: K.compat(sign, s) }} />
+                      {book && <HbPartner book={book} sign={sign} partner={s} />}
                     </AccordionContent>
                   </AccordionItem>
                 ))}
@@ -170,7 +183,68 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
             </div>
           }
         />
+
+        {ch && (
+          <>
+            <DiagnosticLayer
+              id="hb-character"
+              layerNum={5}
+              title="Personality & Child"
+              badgeColor="#d9779b"
+              icon={<Baby className="h-4 w-4" />}
+              isOpen={openLayer === 5}
+              onToggle={() => toggle(5)}
+              studyOpen="astro.hb.character"
+              content={<HbCharacter ch={ch} sign={sign} />}
+            />
+            <DiagnosticLayer
+              id="hb-ascendant"
+              layerNum={6}
+              title="Ascendants"
+              badgeColor="#7b8ce0"
+              icon={<Clock className="h-4 w-4" />}
+              isOpen={openLayer === 6}
+              onToggle={() => toggle(6)}
+              studyOpen="astro.hb.ascendant;astro.hb.intro"
+              content={<HbAscendants ch={ch} sign={sign} />}
+            />
+            <DiagnosticLayer
+              id="hb-moon"
+              layerNum={7}
+              title="Moon Signs Meet Sun Signs"
+              badgeColor="#b28ee0"
+              icon={<Moon className="h-4 w-4" />}
+              isOpen={openLayer === 7}
+              onToggle={() => toggle(7)}
+              studyOpen="astro.hb.moon;astro.hb.intro"
+              content={<HbMoon ch={ch} sign={sign} western={insight.western_sign} />}
+            />
+            <DiagnosticLayer
+              id="hb-seasons"
+              layerNum={8}
+              title="The Four Seasons"
+              badgeColor="#5fbf9a"
+              icon={<Sun className="h-4 w-4" />}
+              isOpen={openLayer === 8}
+              onToggle={() => toggle(8)}
+              studyOpen="astro.hb.season"
+              content={<HbSeasons ch={ch} sign={sign} day={insight.day} month={insight.month} />}
+            />
+            <DiagnosticLayer
+              id="hb-famous"
+              layerNum={9}
+              title="Famous People"
+              badgeColor="#e0c25a"
+              icon={<Star className="h-4 w-4" />}
+              isOpen={openLayer === 9}
+              onToggle={() => toggle(9)}
+              studyOpen="astro.hb.famous"
+              content={<HbFamous ch={ch} sign={sign} element={element} />}
+            />
+          </>
+        )}
       </div>
+      <HandbookLoader compact={!!book} />
     </div>
   );
 }
