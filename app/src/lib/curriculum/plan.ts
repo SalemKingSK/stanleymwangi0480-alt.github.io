@@ -43,10 +43,9 @@ export interface SyllabusUnit {
   variant: string;
 }
 
-/** Fields whose variants include a year drop the years already past. */
+/** (Kept for older plans: variants ending in a past year are dropped.) */
 function stillCurrent(field: FieldDef, variant: string, now: Date): boolean {
-  if (field.id !== "astro.future") return true;
-  const y = Number(/(\d{4})$/.exec(variant)?.[1]);
+  const y = Number(/ · (\d{4})$/.exec(variant)?.[1]);
   return !y || y >= now.getFullYear();
 }
 

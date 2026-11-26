@@ -6,6 +6,7 @@ import type { AstroInsightOutput } from './types';
 import { AccordionContentWithPlayer } from './accordion-content-with-player';
 import { ZOO } from '@/lib/cosmic-fate/zoo';
 import { K } from '@/lib/curriculum/catalogue';
+import { futureWindow } from '@/lib/zodiac/futures';
 
 interface DiagnosticLayerProps {
   id: string;
@@ -16,15 +17,18 @@ interface DiagnosticLayerProps {
   badgeColor: string;
   isOpen: boolean;
   onToggle: () => void;
+  /** Curriculum fields studied inside this layer. */
+  studyOpen?: string;
 }
 
-function DiagnosticLayer({ layerNum, title, icon, content, badgeColor, isOpen, onToggle }: DiagnosticLayerProps) {
+function DiagnosticLayer({ layerNum, title, icon, content, badgeColor, isOpen, onToggle, studyOpen }: DiagnosticLayerProps) {
   return (
     <div className="astro-accordion">
       <button
         className="astro-acc-header"
         onClick={onToggle}
         aria-expanded={isOpen}
+        data-study-open={studyOpen}
       >
         <div className="astro-acc-left">
           <span 
@@ -86,6 +90,7 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
           icon={<BookOpen className="h-4 w-4" />}
           isOpen={openLayer === 1}
           onToggle={() => toggle(1)}
+          studyOpen="astro.totem"
           content={<AccordionContentWithPlayer text={introduction || "No introduction available."} study={{ field: "astro.totem", variant: K.sign(sign) }} />}
         />
 
@@ -97,6 +102,7 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
           icon={<Leaf className="h-4 w-4" />}
           isOpen={openLayer === 2}
           onToggle={() => toggle(2)}
+          studyOpen="astro.element"
           content={<AccordionContentWithPlayer text={signElementData || `No specific data for the ${element} element.`} study={signElementData ? { field: "astro.element", variant: K.element(element, sign) } : false} />}
         />
 
@@ -108,13 +114,14 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
           icon={<Users className="h-4 w-4" />}
           isOpen={openLayer === 3}
           onToggle={() => toggle(3)}
+          studyOpen="astro.compat"
           content={
             <div className="space-y-4">
               <p className="text-[13px] italic text-slate-400 mb-4 px-2">Analysis of spiritual and social resonance with the 12 signs of the Zodiac.</p>
               <Accordion type="single" collapsible className="w-full space-y-2">
                 {Object.entries(compatibilities || {}).map(([s, text]) => (
                   <AccordionItem key={s} value={s} className="border-none bg-white/5 rounded-lg overflow-hidden px-3">
-                    <AccordionTrigger className="hover:no-underline py-3">
+                    <AccordionTrigger className="hover:no-underline py-3" data-study-open={`astro.compat|${K.compat(sign, s)}`}>
                       <span className="font-cinzel text-[0.7rem] uppercase tracking-widest text-primary flex items-center gap-2">
                         {ZOO[s]?.e || '🐾'} With the {s}
                       </span>
@@ -137,18 +144,16 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
           icon={<Forward className="h-4 w-4" />}
           isOpen={openLayer === 4}
           onToggle={() => toggle(4)}
+          studyOpen="astro.future"
           content={
             <div className="space-y-4">
               <p className="text-[13px] italic text-slate-400 mb-4 px-2">A 12-year window into the upcoming cosmic frequencies and life patterns.</p>
               <Accordion type="single" collapsible className="w-full space-y-2">
-                {Object.entries(futures || {})
-                  .filter(([year]) => parseInt(year) >= new Date().getFullYear())
-                  .sort(([a], [b]) => parseInt(a) - parseInt(b))
-                  .map(([year, data]: any) => (
-                    <AccordionItem key={year} value={year} className="border-none bg-white/5 rounded-lg overflow-hidden px-3">
-                      <AccordionTrigger className="hover:no-underline py-3">
+                {futureWindow(futures).map((data) => (
+                    <AccordionItem key={data.year} value={String(data.year)} className="border-none bg-white/5 rounded-lg overflow-hidden px-3">
+                      <AccordionTrigger className="hover:no-underline py-3" data-study-open={`astro.future|${K.future(sign, data.animal)}`}>
                         <span className="font-cinzel text-[0.7rem] uppercase tracking-widest text-primary flex items-center gap-2">
-                          📅 {year} - Year of the {data.year} {ZOO[data.year]?.e || ''}
+                          📅 {data.year} - Year of the {data.animal} {ZOO[data.animal]?.e || ''}
                         </span>
                       </AccordionTrigger>
                       <AccordionContent>
@@ -157,7 +162,7 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
                             Element: {data.element}
                           </span>
                         </div>
-                        <AccordionContentWithPlayer text={data.prediction} study={{ field: "astro.future", variant: K.future(sign, year) }} />
+                        <AccordionContentWithPlayer text={data.prediction} study={{ field: "astro.future", variant: K.future(sign, data.animal) }} />
                       </AccordionContent>
                     </AccordionItem>
                   ))}

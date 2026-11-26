@@ -83,7 +83,8 @@ function TemporalSection({
     }}>
       {/* clickable header */}
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen(o => !o)} aria-expanded={open}
+        data-study-open={studyField ?? undefined}
         style={{
           width: '100%',
           display: 'flex',
@@ -926,7 +927,7 @@ export function TemporalPredictionPanel({ birthDay, birthMonth, birthYear }: {
 
       {/* Header — always clickable */}
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen(o => !o)} aria-expanded={open}
         style={{
           width: '100%',
           display: 'flex',

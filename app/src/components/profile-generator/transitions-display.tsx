@@ -110,7 +110,7 @@ function TransitionCard({ t, matrixState }: { t: DetectedTransition; matrixState
           )}
         </div>
 
-        <button onClick={() => setOpen(!open)} className="w-full py-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg">
+        <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full py-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg">
           <BookOpen className="h-3 w-3" />
           {open ? 'Hide Advisory' : 'Read Deep Advisory'}
           {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}

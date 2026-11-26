@@ -108,7 +108,7 @@ export default function LoshuNumberDetailPanel({
       <div className="loshu-accordion">
         <button
           className="loshu-accordion-header"
-          onClick={() => toggleLayer(2)}
+          onClick={() => toggleLayer(2)} aria-expanded={openLayer === 2}
         >
           <div className="loshu-accordion-left">
             <span className="loshu-layer-badge" style={{ background: elColor + "22", color: elColor, borderColor: elColor + "55" }}>
@@ -219,7 +219,7 @@ export default function LoshuNumberDetailPanel({
 
       {/* LAYER 4: Hardware vs Software */}
       <div className="loshu-accordion">
-        <button className="loshu-accordion-header" onClick={() => toggleLayer(4)}>
+        <button className="loshu-accordion-header" onClick={() => toggleLayer(4)} aria-expanded={openLayer === 4}>
           <div className="loshu-accordion-left">
             <span className="loshu-layer-badge" style={{ background: "#3a8ee022", color: "#3a8ee0", borderColor: "#3a8ee055" }}>
               Layer 4

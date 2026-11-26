@@ -681,7 +681,7 @@ function CosmicAlertsArchive({
         }}
       />
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen((o) => !o)} aria-expanded={open}
         style={{
           width: "100%",
           display: "flex",
@@ -1226,6 +1226,7 @@ function NewAstroLayer({
       <button
         onClick={onToggle}
         aria-expanded={isOpen}
+        data-study-open={["na.profile", "na.love", "na.home", "na.social", "na.career"][layerNum - 1]}
         style={{
           width: "100%",
           background: "transparent",
@@ -1708,7 +1709,7 @@ function CollapsibleSection({
         }}
       />
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen((o) => !o)} aria-expanded={open}
         style={{
           width: "100%",
           display: "flex",

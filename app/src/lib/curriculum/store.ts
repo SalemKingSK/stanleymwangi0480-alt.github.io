@@ -5,6 +5,7 @@
  */
 
 import { useSyncExternalStore } from "react";
+import { yearAnimal } from "@/lib/zodiac/futures";
 
 export interface PartRecord {
   /** Full listens. */
@@ -50,12 +51,42 @@ function valid(x: unknown): x is SyllabusScheme {
   return !!s && s.v === 1 && typeof s.units === "object" && Array.isArray(s.log);
 }
 
+/**
+ * Temporal Trajectory units used to be named by calendar year ("Rooster · 2026");
+ * they are now named by the year's animal ("Rooster · Horse Year"), because the
+ * forecast repeats every twelve years. Carry old progress across.
+ */
+function migrate(s: SyllabusScheme): SyllabusScheme {
+  const fut = s.units["astro.future"];
+  if (!fut || !Object.keys(fut).some((v) => / · \d{4}$/.test(v))) return s;
+  const next: SyllabusScheme["units"][string] = {};
+  const rename = (v: string) => {
+    const m = /^(.*) · (\d{4})$/.exec(v);
+    return m ? `${m[1]} · ${yearAnimal(Number(m[2]))} Year` : v;
+  };
+  for (const [v, parts] of Object.entries(fut)) {
+    const nv = rename(v);
+    const into = (next[nv] = next[nv] ?? {});
+    for (const [p, r] of Object.entries(parts)) {
+      const mine = into[p];
+      into[p] = !mine
+        ? r
+        : { n: mine.n + r.n, first: Math.min(mine.first, r.first), last: Math.max(mine.last, r.last), ...(mine.who || r.who ? { who: [...new Set([...(mine.who ?? []), ...(r.who ?? [])])] } : {}) };
+    }
+  }
+  return {
+    ...s,
+    units: { ...s.units, "astro.future": next },
+    log: s.log.map((e) => (e.f === "astro.future" ? { ...e, v: rename(e.v) } : e)),
+  };
+}
+
 function load(): SyllabusScheme {
   try {
     const raw = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (valid(parsed)) return { ...empty(), ...parsed, starred: parsed.starred ?? [] };
+      if (valid(parsed)) return migrate({ ...empty(), ...parsed, starred: parsed.starred ?? [] });
     }
   } catch {
     /* fall through to a fresh scheme */
@@ -153,6 +184,9 @@ export const syllabus = {
     const parsed = JSON.parse(text);
     const incoming = valid(parsed?.scheme) ? parsed.scheme : parsed;
     if (!valid(incoming)) throw new Error("That file isn't a Curriculum Syllabus Scheme.");
+    const migrated = migrate(incoming as SyllabusScheme);
+    incoming.units = migrated.units;
+    incoming.log = migrated.log;
     if (mode === "replace") {
       commit({ ...empty(), ...incoming });
       return { units: countUnits(incoming) };

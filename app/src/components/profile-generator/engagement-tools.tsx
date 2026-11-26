@@ -1786,7 +1786,7 @@ function SoulSearchSelect({
       {/* Current selection display + toggle button */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen(!isOpen)} aria-expanded={isOpen}
         style={{
           width: "100%",
           display: "flex",

@@ -41,7 +41,7 @@ export default function PsychicNumberDetailPanel({
       <div className="border-b border-white/5 pb-2">
         <button
           className="w-full flex items-center justify-between py-4 group"
-          onClick={() => toggleLayer(1)}
+          onClick={() => toggleLayer(1)} aria-expanded={openLayer === 1}
         >
           <div className="flex items-center gap-3">
              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/30 font-cinzel">
@@ -77,7 +77,7 @@ export default function PsychicNumberDetailPanel({
       <div className="border-b border-white/5">
         <button
           className="w-full flex items-center justify-between py-4 group"
-          onClick={() => toggleLayer(2)}
+          onClick={() => toggleLayer(2)} aria-expanded={openLayer === 2}
         >
           <div className="flex items-center gap-3">
              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 font-cinzel">
@@ -117,7 +117,7 @@ export default function PsychicNumberDetailPanel({
       <div className="border-b border-white/5">
         <button
           className="w-full flex items-center justify-between py-4 group"
-          onClick={() => toggleLayer(3)}
+          onClick={() => toggleLayer(3)} aria-expanded={openLayer === 3}
         >
           <div className="flex items-center gap-3">
              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/30 font-cinzel">
@@ -200,7 +200,7 @@ export default function PsychicNumberDetailPanel({
       <div className="border-t border-white/10">
         <button
           className="w-full flex items-center justify-between py-4 group"
-          onClick={() => toggleLayer(4)}
+          onClick={() => toggleLayer(4)} aria-expanded={openLayer === 4}
         >
           <div className="flex items-center gap-3">
              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-cinzel">

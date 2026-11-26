@@ -6,6 +6,7 @@ import { Layers, X, Activity } from 'lucide-react';
 import LoshuNumberDetailPanel from '@/components/LoshuNumberDetailPanel';
 import LoshuArrowDetailPanel from '@/components/LoshuArrowDetailPanel';
 import * as PopoverPrimitive from "@radix-ui/react-popover";
+import { K } from '@/lib/curriculum/catalogue';
 
 interface LoShuGridProps {
   gridData?: (string | null)[][];
@@ -73,7 +74,14 @@ export default function LoShuGrid({
     return (
       <Popover key={index}>
         <PopoverTrigger asChild>
-          <div className="flex flex-col items-center justify-center bg-black/20 rounded-lg text-white/90 p-2 aspect-square cursor-pointer transition-all duration-300 hover:bg-purple-500/20">
+          <div
+            className="flex flex-col items-center justify-center bg-black/20 rounded-lg text-white/90 p-2 aspect-square cursor-pointer transition-all duration-300 hover:bg-purple-500/20"
+            data-study-open={[
+              `num.loshu|${K.loshu(gridNum, count)}`,
+              `num.loshu-remedy|${K.number(gridNum)}`,
+              ...[1, 2, 3, 4].map((l) => `num.loshu-levels|${K.loshuLevel(gridNum, l)}`),
+            ].join(";")}
+          >
             <div className="flex-grow flex items-center justify-center">
                 {cell ? <span className="truncate font-decorative text-2xl">{cell}</span> : <span className="opacity-20 font-decorative text-2xl">{gridNum}</span>}
             </div>

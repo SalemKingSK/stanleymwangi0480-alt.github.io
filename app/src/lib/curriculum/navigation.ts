@@ -11,6 +11,8 @@ export interface StudyTarget {
   variant?: string;
   /** Birthday the target should be studied on; omitted = the open reading. */
   subject?: BirthInput;
+  /** Start reading the passage aloud once it is found (default true). */
+  play?: boolean;
   /** Set when the request was made (so stale ones can be ignored). */
   at: number;
 }

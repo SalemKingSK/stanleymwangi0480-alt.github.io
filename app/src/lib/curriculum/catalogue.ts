@@ -25,6 +25,7 @@ import { CONVERGENCE_CARDS } from "@/lib/cosmic-fate/convergence";
 import { yearDiveOracle } from "@/lib/cosmic-fate/oracle";
 import { analyzeNumber } from "@/lib/loshu-analysis";
 import { COMPOUNDS as PYN_COMPOUNDS } from "@/lib/numerology/chaldean-pyn-compounds";
+import { futureTexts } from "@/lib/zodiac/futures";
 
 // ── Modules (the five results tabs + the timing panels above them) ─────────
 
@@ -157,7 +158,8 @@ export const K = {
   sign: (s: string) => s,
   element: (el: string, sign: string) => `${el} ${sign}`,
   compat: (sign: string, partner: string) => `${sign} with ${partner}`,
-  future: (sign: string, year: string | number) => `${sign} · ${year}`,
+  /** A sign's forecast for a year ruled by `animal` (the text repeats every 12 years). */
+  future: (sign: string, animal: string) => `${sign} · ${animal} Year`,
   decan: (sign: string, n: number) => `${sign} · Decan ${n}`,
   stem: (stem: number, polarity: string, element: string) => `Stem ${stem} · ${polarity} ${element}`,
   branch: (animal: string, chinese: string) => `${animal} (${chinese})`,
@@ -282,8 +284,8 @@ export const FIELDS: FieldDef[] = [
     where: "Astrology › The Animal Oracle › Layer 3 › With the …", blurb: "Every animal paired with every animal — 144 bonds.",
     variants: (c) => Object.keys(c.insight.zodiacData?.compatibilities ?? {}).map((p) => K.compat(c.insight.sign, p)) },
   { id: "astro.future", module: A, topic: "The Animal Oracle", label: "Temporal Trajectory", kind: "chart", anchor: "astro.oracle",
-    where: "Astrology › The Animal Oracle › Layer 4 › a year", blurb: "Each animal's forecast for the coming years.",
-    variants: (c) => Object.keys(c.insight.zodiacData?.futures ?? {}).map((y) => K.future(c.insight.sign, y)) },
+    where: "Astrology › The Animal Oracle › Layer 4 › Temporal Trajectory", blurb: "Each sign's forecast for each of the twelve year animals.",
+    variants: (c) => Object.keys(futureTexts(c.insight.zodiacData?.futures)).map((animal) => K.future(c.insight.sign, animal)) },
   { id: "astro.decan", module: A, topic: "Deep Synthesis", label: "Decan", kind: "chart", anchor: "astro.synthesis",
     where: "Astrology › Deep Synthesis › decan card", blurb: "The 36 ten-degree decans of the Western zodiac.",
     variants: (c) => (c.synthesis.decan ? [K.decan(c.synthesis.decan.sign, c.synthesis.decan.decanNumber)] : []) },

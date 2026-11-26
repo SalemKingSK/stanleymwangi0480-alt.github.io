@@ -591,6 +591,8 @@ function MissingNumbers({
           <motion.div
             key={n}
             layout
+            aria-expanded={isOpen}
+            data-study-open={`num.missing-quick|${K.missing(n)}`}
             onClick={() => {
               setExpanded(isOpen ? null : n);
               setTab(0);

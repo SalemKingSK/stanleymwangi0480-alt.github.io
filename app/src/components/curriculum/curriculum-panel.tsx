@@ -15,6 +15,7 @@
 import * as React from "react";
 import { FIELDS, FIELD_BY_ID, MODULES, PRACTICE, chartVariants, partsOf, type FieldDef, type ModuleDef } from "@/lib/curriculum/catalogue";
 import { buildChart } from "@/lib/curriculum/chart";
+import { primeVoice } from "@/components/curriculum/study-focus";
 import { studyNav, sameBirth } from "@/lib/curriculum/navigation";
 import {
   allUnits,
@@ -206,6 +207,7 @@ export default function CurriculumPanel() {
   const study = React.useCallback(
     (field: FieldDef, variant: string, caseIndex?: number) => {
       const v = variant === PRACTICE ? undefined : variant;
+      primeVoice(); // inside the tap, so the voice may start once the passage is open
       if (caseIndex !== undefined && plan) {
         studyNav.request({ field: field.id, variant: v, subject: caseInput(plan.cases[caseIndex]) });
         return;
