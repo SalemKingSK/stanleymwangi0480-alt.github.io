@@ -9,8 +9,7 @@ import * as React from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { AccordionContentWithPlayer } from "@/components/profile-generator/accordion-content-with-player";
 import { K } from "@/lib/curriculum/catalogue";
-import type { HbAnimal } from "@/lib/handbook/types";
-import { animalMoon, animalPolarity, type ZgChapter, type Zodiacs } from "@/lib/handbook/zodiacs";
+import { animalPolarity, type ZgChapter, type Zodiacs } from "@/lib/handbook/zodiacs";
 import { BookTag, Passage, Title, YoursBadge, itemCls, triggerCls, yoursFirst } from "./handbook-oracle";
 
 const TAG = "Chinese Zodiacs";
@@ -18,7 +17,7 @@ const TAG = "Chinese Zodiacs";
 // ── The elements wheel ────────────────────────────────────────────────────
 
 const WHEEL: string[] = ["Wood", "Fire", "Earth", "Metal", "Water"];
-const COLORS: Record<string, string> = { Wood: "#4caf7d", Fire: "#e0603a", Earth: "#c9a14a", Metal: "#c8d0dc", Water: "#3a8ee0" };
+export const ELEMENT_COLORS: Record<string, string> = { Wood: "#4caf7d", Fire: "#e0603a", Earth: "#c9a14a", Metal: "#c8d0dc", Water: "#3a8ee0" };
 const CREATES: Record<string, string> = { Wood: "Fire", Fire: "Earth", Earth: "Metal", Metal: "Water", Water: "Wood" };
 const DESTROYS: Record<string, string> = { Wood: "Earth", Earth: "Water", Water: "Fire", Fire: "Metal", Metal: "Wood" };
 
@@ -60,7 +59,7 @@ export function ElementsWheel({ mode, element }: { mode: "creation" | "destructi
           const mine = e === element;
           return (
             <g key={e}>
-              <circle cx={p.x} cy={p.y} r={18} fill={`${COLORS[e]}33`} stroke={COLORS[e]} strokeWidth={mine ? 3 : 1.2} />
+              <circle cx={p.x} cy={p.y} r={18} fill={`${ELEMENT_COLORS[e]}33`} stroke={ELEMENT_COLORS[e]} strokeWidth={mine ? 3 : 1.2} />
               <text x={p.x} y={p.y + 3.5} textAnchor="middle" fontSize="9.5" fontWeight={mine ? 800 : 600} fill="#e8e6f0">{e}</text>
             </g>
           );
@@ -77,75 +76,55 @@ export function ElementsWheel({ mode, element }: { mode: "creation" | "destructi
   );
 }
 
-// ── Foundations layer ─────────────────────────────────────────────────────
+// ── Foundations (the book's passages, inside the always-on Foundations layer) ──
 
-const FOUND = "astro.zg.found";
+export const ZG_FOUND = "astro.zg.found";
 
-export function ZgFoundations({ z, sign, element, western }: { z: Zodiacs; sign: string; element: string; western: string }) {
-  const polarity = animalPolarity(sign);
-  const moon = animalMoon(western);
-  const natural = z.natural[sign as HbAnimal];
-  const yours: Record<string, string | undefined> = {
-    "Yang and Yin": `You: ${polarity}`,
-    "The Natural Elements of the Animals": natural ? `${sign}: ${natural.polarity} · ${natural.element}` : undefined,
-  };
+/** One Foundations passage from the book, as a collapsible of its own. */
+export function ZgFoundationPassage({ z, fkey }: { z: Zodiacs; fkey: string }) {
+  const f = z.foundations.find((x) => x.key === fkey);
+  if (!f?.text) return null;
   return (
-    <div className="space-y-3" data-handbook="foundations">
-      <div className="rounded-lg bg-white/5 px-3 py-2 text-[12px] text-slate-300">
-        Your chart in the book's terms: <span className="text-amber-100 font-semibold">{polarity} {element} {sign}</span>
-        {moon && <> in the <span className="text-amber-100 font-semibold">Moon of the {moon === "Rabbit" ? "Hare" : moon}</span> ({western})</>}.
-      </div>
+    <div className="pt-1" data-handbook="foundation">
       <Accordion type="single" collapsible className="w-full space-y-2">
-        {z.foundations.map((f) => {
-          if (f.key === "Meanings of the Elements") return null;
-          const diagram = f.key === "The Creation Cycle" ? "creation" : f.key === "The Destruction Cycle" ? "destruction" : null;
+        <Passage value={`zg-${f.key}`} title={<>📖 {f.heading}</>} text={f.text} field={ZG_FOUND} variant={f.key} />
+      </Accordion>
+    </div>
+  );
+}
+
+/** "Meanings of the Elements" from the book: the opening, then each element (the reader's first) with its Yang and Yin years. */
+export function ZgMeanings({ z, element, sign }: { z: Zodiacs; element: string; sign: string }) {
+  if (!z.meanings) return null;
+  const polarity = animalPolarity(sign);
+  return (
+    <div className="space-y-2 pt-1" data-handbook="meanings">
+      <BookTag>{TAG} · {z.meanings.heading}</BookTag>
+      {z.meanings.intro && <AccordionContentWithPlayer text={z.meanings.intro} study={{ field: ZG_FOUND, variant: "Meanings of the Elements" }} />}
+      <Accordion type="single" collapsible className="w-full space-y-2 mt-3">
+        {yoursFirst(z.meanings.items, element).map((m) => {
+          const variant = K.zgElementPeople(m.key);
           return (
-            <AccordionItem key={f.key} value={f.key} className={itemCls}>
-              <AccordionTrigger className={triggerCls} data-study-open={`${FOUND}|${f.key}`}>
-                <Title>{f.heading}{yours[f.key] ? <YoursBadge label={yours[f.key]} /> : null}</Title>
+            <AccordionItem key={m.key} value={m.key} className={itemCls}>
+              <AccordionTrigger className={triggerCls} data-study-open={`${ZG_FOUND}|${variant}`}>
+                <Title>
+                  <span style={{ color: ELEMENT_COLORS[m.key] }}>●</span> {m.heading}{m.key === element ? <YoursBadge label="Your element" /> : null}
+                </Title>
               </AccordionTrigger>
               <AccordionContent>
-                {diagram && <ElementsWheel mode={diagram} element={element} />}
-                <AccordionContentWithPlayer text={f.text} study={{ field: FOUND, variant: f.key }} />
+                <AccordionContentWithPlayer text={m.text} study={{ field: ZG_FOUND, variant, part: "main" }} />
+                <Accordion type="single" collapsible className="w-full space-y-2 mt-3">
+                  {(polarity === "Yin" ? [["yin", m.yin], ["yang", m.yang]] as const : [["yang", m.yang], ["yin", m.yin]] as const).map(([part, p]) =>
+                    p ? (
+                      <Passage key={part} value={part} title={p.heading} text={p.text} field={ZG_FOUND} variant={variant} part={part}
+                        yours={m.key === element && part === polarity.toLowerCase() ? "You" : false} />
+                    ) : null,
+                  )}
+                </Accordion>
               </AccordionContent>
             </AccordionItem>
           );
         })}
-        {z.meanings && (
-          <AccordionItem value="meanings" className={itemCls}>
-            <AccordionTrigger className={triggerCls} data-study-open={`${FOUND}|Meanings of the Elements`}>
-              <Title>{z.meanings.heading}<YoursBadge label={`You: ${polarity} ${element}`} /></Title>
-            </AccordionTrigger>
-            <AccordionContent>
-              {z.meanings.intro && <AccordionContentWithPlayer text={z.meanings.intro} study={{ field: FOUND, variant: "Meanings of the Elements" }} />}
-              <Accordion type="single" collapsible className="w-full space-y-2 mt-3">
-                {yoursFirst(z.meanings.items, element).map((m) => {
-                  const variant = K.zgElementPeople(m.key);
-                  return (
-                    <AccordionItem key={m.key} value={m.key} className={itemCls}>
-                      <AccordionTrigger className={triggerCls} data-study-open={`${FOUND}|${variant}`}>
-                        <Title>
-                          <span style={{ color: COLORS[m.key] }}>●</span> {m.heading}{m.key === element ? <YoursBadge label="Your element" /> : null}
-                        </Title>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <AccordionContentWithPlayer text={m.text} study={{ field: FOUND, variant, part: "main" }} />
-                        <Accordion type="single" collapsible className="w-full space-y-2 mt-3">
-                          {(polarity === "Yin" ? [["yin", m.yin], ["yang", m.yang]] as const : [["yang", m.yang], ["yin", m.yin]] as const).map(([part, p]) =>
-                            p ? (
-                              <Passage key={part} value={part} title={p.heading} text={p.text} field={FOUND} variant={variant} part={part}
-                                yours={m.key === element && part === polarity.toLowerCase() ? "You" : false} />
-                            ) : null,
-                          )}
-                        </Accordion>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            </AccordionContent>
-          </AccordionItem>
-        )}
       </Accordion>
     </div>
   );

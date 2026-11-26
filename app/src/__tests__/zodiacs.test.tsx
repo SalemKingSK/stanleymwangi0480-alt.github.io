@@ -175,7 +175,7 @@ describe("Chinese Zodiacs in the Oracle and the Curriculum", () => {
     const headers = Array.from(div.querySelectorAll<HTMLButtonElement>(".astro-acc-header"));
     expect(headers.map((h) => h.textContent!.replace(/▾/, ""))).toEqual([
       "Layer 1Animal Sign Totem", "Layer 2The Fire Influence", "Layer 3Compatibility Bonds", "Layer 4Temporal Trajectory",
-      "Layer 5Virtues, Vices & Personality", "Layer 6Love & Career", "Layer 7Foundations: Yang, Yin & the Elements",
+      "Layer 5Foundations: Yang, Yin & the Elements", "Layer 6Virtues, Vices & Personality", "Layer 7Love & Career",
     ]);
     await act(async () => headers[1].click());
     expect(div.querySelector("[data-handbook='zg-five'] [data-study-open]")!.getAttribute("data-study-open")).toBe("astro.zg.five|Fire Rat");
@@ -184,9 +184,14 @@ describe("Chinese Zodiacs in the Oracle and the Curriculum", () => {
     await act(async () => found().click());
     expect(div.textContent).toContain("Yang Fire Rat");
     expect(div.textContent).toContain("Moon of the Rooster");
-    const creation = div.querySelector<HTMLElement>("[data-study-open='astro.zg.found|The Creation Cycle']")!;
+    const creation = div.querySelector<HTMLElement>("[data-foundation='creation'] [data-study-open]")!;
+    expect(creation.getAttribute("data-study-open")).toBe("astro.found.creation|Fire;astro.zg.found|The Creation Cycle");
     await act(async () => creation.click());
     expect(div.querySelector("figure[aria-label='The Creation Cycle'] figcaption")!.textContent).toBe("Your Fire is fed by Wood and feeds Earth.");
+    // The personal reading first, then the book's own passage as a collapsible of its own.
+    const body = div.querySelector<HTMLElement>("[data-foundation='creation']")!;
+    expect(body.textContent).toContain("Your mother element: Wood");
+    expect(body.querySelector("[data-handbook='foundation'] [data-study-open]")!.getAttribute("data-study-open")).toBe("astro.zg.found|The Creation Cycle");
     await act(async () => root.unmount());
     __setZodiacsForTest(null);
   });

@@ -11,6 +11,7 @@
  * the sections (when tagging what they show) and by `variants(chart)` here, so
  * the two always agree.
  */
+import { foundationVariants, type SectionKey } from "@/lib/foundations/practice";
 import type { Chart } from "./chart";
 import { ALL_ARROW_DEFINITIONS } from "@/lib/arrow-definitions";
 import { resolveMonthData } from "@/lib/numerology/monthly-profiles";
@@ -304,6 +305,17 @@ function codexParts(entry: { layers: { id: string; title: string }[] } | null): 
 const codexNumberOf = (v: string) => codexNumber(Number(/Codex (\d+)/.exec(v)?.[1] ?? 0));
 const codexAnimalOf = (v: string) => codexAnimal(/^(\w+) Codex/.exec(v)?.[1] ?? "");
 
+const FOUND_DEFS: [SectionKey, string, string][] = [
+  ["horoscope", "Your Chinese Horoscope", "Your year, animal moon and animal hour — the outer, inner and first-impression layers of the chart."],
+  ["yinyang", "Yang and Yin", "Your polarity and the Yang–Yin balance of your year, moon, hour and Western sign."],
+  ["elements", "The Elements", "Your element and polarity, your sixty-year combination and how the coming years' elements meet yours."],
+  ["planets", "Elements and the Planets", "Your element's planet and how your Western ruling planet stands to it."],
+  ["creation", "The Creation Cycle", "The element that feeds you and the one you feed — in people, years and daily life."],
+  ["destruction", "The Destruction Cycle", "The element that overcomes you, the one you overcome, the go-between and the years to handle with care."],
+  ["natural", "The Natural Elements of the Animals", "Your animal's fixed element against your year's element."],
+  ["meanings", "Meanings of the Elements", "Your Heavenly Stem, your element's gifts and shadow, and its correspondences in practice."],
+];
+
 export const FIELDS: FieldDef[] = [
   // ── Astrology ────────────────────────────────────────────────────────────
   { id: "astro.totem", module: A, topic: "The Animal Oracle", label: "Animal Sign Totem", kind: "chart", anchor: "astro.oracle",
@@ -318,6 +330,15 @@ export const FIELDS: FieldDef[] = [
   { id: "astro.future", module: A, topic: "The Animal Oracle", label: "Temporal Trajectory", kind: "chart", anchor: "astro.oracle",
     where: "Astrology › The Animal Oracle › Layer 4 › Temporal Trajectory", blurb: "Each sign's forecast for each of the twelve year animals.",
     variants: (c) => Object.keys(futureTexts(c.insight.zodiacData?.futures)).map((animal) => K.future(c.insight.sign, animal)) },
+  // The Foundations, read for each birthday (lib/foundations) — always shown, with or without a book.
+  ...FOUND_DEFS.map(([k, label, blurb]): FieldDef => ({
+    id: `astro.found.${k}`, module: A, topic: "Foundations", label, kind: "chart", anchor: "astro.oracle",
+    where: `Astrology › The Animal Oracle › Foundations › ${label}`, blurb,
+    variants: (c) => {
+      if (!c.insight?.sign) return [];
+      return [foundationVariants({ day: c.day, month: c.month, year: c.year, sign: c.insight.sign, element: c.insight.element, western: c.insight.western_sign })[k]];
+    },
+  })),
   // The user's own handbook, loaded on the device (lib/handbook): word-for-word passages in the Oracle.
   { id: "astro.hb.five", module: A, topic: "My Handbook", label: "The Five Different Animals", kind: "chart", anchor: "astro.oracle", requires: "handbook",
     where: "Astrology › The Animal Oracle › Element layer › The Five Different …", blurb: "The handbook's portrait of each animal in each of the five elements — 60 passages.",

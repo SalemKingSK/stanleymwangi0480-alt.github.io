@@ -236,7 +236,10 @@ describe("handbook in the Animal Oracle and the Curriculum", () => {
     const insight = { name: "T", western_sign: "Aries", sign: "Rat", element: "Wood", month: 4, year: 1984, gender: "female", new_astrology_sign: "Aries/Rat", zodiacData: {}, signData: {} };
     await act(async () => root.render(<AstroDisplay insight={insight as never} />));
     expect(div.textContent).toContain("Load my Handbook");
-    expect(div.textContent).not.toContain("Layer 5");
+    // Only the built-in layers, ending with the Foundations read for this birthday.
+    expect(div.textContent).toContain("Layer 5");
+    expect(div.textContent).toContain("Foundations: Yang, Yin & the Elements");
+    expect(div.textContent).not.toContain("Layer 6");
     await act(async () => root.unmount());
   });
 });

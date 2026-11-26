@@ -8,9 +8,11 @@ import { ZOO } from '@/lib/cosmic-fate/zoo';
 import { K } from '@/lib/curriculum/catalogue';
 import { futureWindow } from '@/lib/zodiac/futures';
 import { useHandbook } from '@/lib/handbook/store';
+import { FoundationsLayer } from '@/components/foundations/foundations-layer';
+import { SECTION_ORDER as FOUND_KEYS } from '@/lib/foundations/practice';
 import type { HbAnimal } from '@/lib/handbook/types';
 import { HandbookLoader, HbFive, HbPartner, HbCompatIntro, HbCharacter, HbAscendants, HbMoon, HbSeasons, HbFamous } from '@/components/handbook/handbook-oracle';
-import { ZgFoundations, ZgCharacter, ZgLoveCareer, ZgFive, ZgYear, ZgFortune } from '@/components/handbook/zodiacs-oracle';
+import { ZgCharacter, ZgLoveCareer, ZgFive, ZgYear, ZgFortune } from '@/components/handbook/zodiacs-oracle';
 
 interface DiagnosticLayerProps {
   id: string;
@@ -153,6 +155,12 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
         </div>
       ),
     },
+    {
+      // Always shown: the Foundations read for this birthday (with the book's passages when it is loaded).
+      id: "found", title: "Foundations: Yang, Yin & the Elements", color: "#56b8c9", icon: <Orbit className="h-4 w-4" />,
+      studyOpen: hints(...FOUND_KEYS.map((k) => `astro.found.${k}`), zg && "astro.zg.found"),
+      content: <FoundationsLayer sign={sign} element={element} western={insight.western_sign} day={insight.day} month={insight.month} year={insight.year} zodiacs={zg} />,
+    },
   ];
   if (ch || zc) {
     layers.push({
@@ -176,12 +184,6 @@ export function AstroDisplay({ insight }: { insight: AstroInsightOutput }) {
       { id: "hb-seasons", title: "The Four Seasons", color: "#5fbf9a", icon: <Sun className="h-4 w-4" />, studyOpen: "astro.hb.season", content: <HbSeasons ch={ch} sign={sign} day={insight.day} month={insight.month} /> },
       { id: "hb-famous", title: "Famous People", color: "#e0c25a", icon: <Star className="h-4 w-4" />, studyOpen: "astro.hb.famous", content: <HbFamous ch={ch} sign={sign} element={element} /> },
     );
-  }
-  if (zg) {
-    layers.push({
-      id: "zg-found", title: "Foundations: Yang, Yin & the Elements", color: "#56b8c9", icon: <Orbit className="h-4 w-4" />, studyOpen: "astro.zg.found",
-      content: <ZgFoundations z={zg} sign={sign} element={element} western={insight.western_sign} />,
-    });
   }
 
   return (
