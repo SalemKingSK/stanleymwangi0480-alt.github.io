@@ -114,6 +114,8 @@ export interface YearForecast {
   /** "In 2026" paragraphs for each Foundations section. */
   sections: Record<"horoscope" | "yinyang" | "elements" | "planets" | "creation" | "destruction" | "natural" | "meanings", string>;
   months: MonthNote[];
+  /** Whether the year is behind, in force on, or ahead of today. */
+  when: "past" | "current" | "future";
   /** Curriculum variant: "Metal person · Fire year". */
   variant: string;
 }
@@ -215,8 +217,12 @@ export function yearForecast(b: Birth, year: number, now = new Date()): YearFore
   const starts = lny ? `${MONTHS[lny.month - 1]} ${lny.day}, ${year}` : `early ${year}`;
   const endD = nxt ? new Date(Date.UTC(year + 1, nxt.month - 1, nxt.day) - 86400000) : null;
   const ends = endD ? `${MONTHS[endD.getUTCMonth()]} ${endD.getUTCDate()}, ${year + 1}` : `early ${year + 1}`;
+  const cy = chineseZodiacYear(now.getDate(), now.getMonth() + 1, now.getFullYear());
+  const when: YearForecast["when"] = year < cy ? "past" : year > cy ? "future" : "current";
   const months = monthsOf(year, el, now);
-  const ahead = nextTwelveMonths(year, el, now);
+  // The year in force: the twelve months from today. Any other year: its own twelve months.
+  const ahead = when === "current" ? nextTwelveMonths(year, el, now) : months.map((m) => ({ ...m, now: false, past: false }));
+  const span = when === "current" ? "in the twelve ahead" : `of the ${year} year`;
 
   const headline = `${year} · ${name} — ${an(rating)} year for you`;
   const elWord = favourable(r) ? "one of your kind element years" : "one of your harder element years";
@@ -281,7 +287,7 @@ export function yearForecast(b: Birth, year: number, now = new Date()): YearFore
     favourable(r) && r !== "same"
       ? r === "feeds-you" ? `In ${year} the Creation Cycle runs in your favour: the year's ${p.element} is your mother element and feeds you directly.` : `In ${year} the Creation Cycle runs through you: your ${el} feeds the year's ${p.element}, so it is a year of giving out and creating.`
       : r === "same" ? `In ${year} the year shares your element — you stand at the same point of the Creation Cycle as the year itself.` : `In ${year} the Creation Cycle is not directly on your side, so look for its help elsewhere: ${FED_BY[el]} feeds you, and you can find it in the months, people and surroundings of ${FED_BY[el]}.`,
-    goodMonths.length ? `Your most supportive months in the twelve ahead (your own element, or the element that feeds you):\n${fmt(goodMonths)}` : "",
+    goodMonths.length ? `Your most supportive months ${span} (your own element, or the element that feeds you):\n${fmt(goodMonths)}` : "",
   ].filter(Boolean).join("\n\n");
 
   sec.destruction = [
@@ -290,7 +296,7 @@ export function yearForecast(b: Birth, year: number, now = new Date()): YearFore
       : r === "you-control"
         ? `**In ${year} you are the stronger side of the Destruction Cycle: ${el} overcomes ${p.element}.** You can win, but it costs effort; the go-between ${mediator(el)} keeps you from exhausting yourself.`
         : `**${year} does not set the Destruction Cycle against you**: ${p.element} neither overcomes your ${el} nor is overcome by it. The pressure, when it comes, comes from the months and people of ${CONTROLLED_BY[el]}.`,
-    hardMonths.length ? `Months in the twelve ahead to handle with care (${CONTROLLED_BY[el]}, the element that overcomes you):\n${fmt(hardMonths)}\nIn those weeks avoid starting big ventures, signing in haste or picking fights, and lean on ${mediator(CONTROLLED_BY[el])}.` : "",
+    hardMonths.length ? `Months ${span} to handle with care (${CONTROLLED_BY[el]}, the element that overcomes you):\n${fmt(hardMonths)}\nIn those weeks avoid starting big ventures, signing in haste or picking fights, and lean on ${mediator(CONTROLLED_BY[el])}.` : "",
   ].filter(Boolean).join("\n\n");
 
   sec.natural = [
@@ -310,6 +316,8 @@ export function yearForecast(b: Birth, year: number, now = new Date()): YearFore
 
   const text = [
     `### ${year}: the ${name} year (${starts} – ${ends})`,
+    when === "past" ? `You are looking back at ${year}. Read this as how the year stood for you then: it can explain what happened, and the same pattern returns whenever ${an(p.element)} year or the ${p.animal} comes round again.` : "",
+    when === "future" ? `You are looking ahead to ${year}. This is how the year is set to meet your chart, so you can plan for it well in advance.` : "",
     `**Verdict: ${rating}** ${"★".repeat(stars)}${"☆".repeat(5 - stars)} — ${summary}`,
     `### The elements: is ${year} kind to you?`,
     sec.elements,
@@ -322,14 +330,31 @@ export function yearForecast(b: Birth, year: number, now = new Date()): YearFore
     `### Heavenly Stems`,
     sec.meanings,
     `### Month by month`,
-    `Inside every Chinese year the solar months carry their own animals and elements, each starting around the beginning of a Western month. Here is how the next twelve months meet your ${el}:`,
+    `Inside every Chinese year the solar months carry their own animals and elements, each starting around the beginning of a Western month. Here is how ${when === "current" ? "the next twelve months meet" : when === "past" ? `the twelve months of ${year} met` : `the twelve months of ${year} will meet`} your ${el}:`,
     ahead.map((m) => `• ${m.animal} month (${m.label}) — ${m.element}: ${({ same: "your own element, good", "feeds-you": "feeds you, good", "you-feed": "draws on you, productive", "you-control": "you overcome it, hard work", "controls-you": "overcomes you, take care" } as Record<Relation, string>)[m.relation]}${m.now ? " ← now" : ""}`).join("\n"),
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 
   return {
     year, pillar: p, name, starts, ends, element: p.element, elementRelation: r, elementGood: favourable(r), bond, score, stars, rating,
-    headline, summary, text, sections: sec, months, variant: `${el} person · ${p.element} year`,
+    headline, summary, text, sections: sec, months, when, variant: `${el} person · ${p.element} year`,
   };
+}
+
+/** "Yang Fire Horse" for a Chinese year. */
+export function yearPillarName(year: number): string {
+  const p = yearPillar(year);
+  return `${p.polarity} ${p.element} ${p.animal}`;
+}
+
+/** The Chinese year in force on `now`. */
+export function chineseYearNow(now = new Date()): number {
+  return chineseZodiacYear(now.getDate(), now.getMonth() + 1, now.getFullYear());
+}
+
+/** The year in focus (default: the one in force on `now`) and the one after. */
+export function focusAndNext(b: Birth, year: number | undefined, now = new Date()): { current: YearForecast; next: YearForecast } {
+  const y = year ?? chineseYearNow(now);
+  return { current: yearForecast(b, y, now), next: yearForecast(b, y + 1, now) };
 }
 
 /** The Chinese year in force on `now`, and the one after. */

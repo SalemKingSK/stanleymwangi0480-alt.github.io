@@ -6,7 +6,7 @@
  */
 import { chineseZodiacYear, lunarNewYearDate, solarTermYear, stemBranchIndex, ZODIAC_ANIMALS, STEM_ELEMENTS } from "@/lib/astrology/chinese-calendar-math";
 import { favourable, mediator, relation, yearPillar, type Birth, type Relation } from "./core";
-import { currentAndNext, type YearForecast } from "./year";
+import { focusAndNext, type YearForecast } from "./year";
 export { favourable, mediator, relation, yearPillar, type Birth, type Relation } from "./core";
 import {
   ANIMAL_INFO, CONTROLLED_BY, CONTROLS, CONTROL_IMAGE, ELEMENTS, ELEMENT_ORDER, FED_BY, FEEDS, FEED_IMAGE, HOURS, MOON_NATURE, MOON_SIGN,
@@ -130,7 +130,7 @@ function yinyang(b: Birth, pol: Polarity): Reading {
   return { key: "yinyang", title: "Yang and Yin", badge: `You: ${pol}`, variant: `${pol} year${moonPol ? ` · ${moonPol} moon` : ""}`, text: out.join("\n\n") };
 }
 
-function elements(b: Birth, el: Element, pol: Polarity, now: Date): Reading {
+function elements(b: Birth, el: Element, pol: Polarity, cur: number): Reading {
   const zy = chineseZodiacYear(b.day, b.month, b.year);
   const first = pol === "Yang";
   const out: string[] = [];
@@ -140,9 +140,8 @@ function elements(b: Birth, el: Element, pol: Polarity, now: Date): Reading {
   out.push(`Your exact combination, the ${pol} ${el} ${b.sign}, comes round once every sixty years: before you in ${zy - 60}, and next in ${zy + 60}.`);
   const sameAnimal = [-24, -12, 12, 24, 36].map((d) => zy + d).map((y) => ({ y, ...yearPillar(y) }));
   out.push(`Other ${b.sign} years carry other elements, which is why ${b.sign}s differ so much from one another: ${sameAnimal.map((x) => `${x.y} ${x.element}`).join(", ")}.`);
-  out.push(`### Your element years ahead`);
+  out.push(`### Your element years from ${cur}`);
   out.push(`Each year has its own element too, and how it meets yours sets the tone of the year. Traditionally your own element, the one that feeds you and the one you feed are the kind years; the element that overcomes you and the one you overcome are the testing ones.`);
-  const cur = chineseZodiacYear(now.getDate(), now.getMonth() + 1, now.getFullYear());
   const rows: string[] = [];
   for (let y = cur; y < cur + 10; y++) {
     const yp = yearPillar(y);
@@ -214,7 +213,7 @@ function creation(b: Birth, el: Element): Reading {
   return { key: "creation", title: "The Creation Cycle", badge: `${mother} → ${el} → ${child}`, variant: el, text: out.join("\n\n") };
 }
 
-function destruction(b: Birth, el: Element, now: Date): Reading {
+function destruction(b: Birth, el: Element, cur: number): Reading {
   const over = CONTROLS[el], by = CONTROLLED_BY[el];
   const out: string[] = [];
   out.push(`The Destruction Cycle is the order in which the elements overcome one another: Wood drains Earth, Earth dams Water, Water puts out Fire, Fire melts Metal and Metal cuts Wood. It is not evil — it is the check that stops any one element from running riot — but it explains friction in people and in years.`);
@@ -222,8 +221,7 @@ function destruction(b: Birth, el: Element, now: Date): Reading {
   out.push(`• You overcome **${over}** — like ${CONTROL_IMAGE[el]}. You can master ${over} situations and people, but it takes effort, and you may wear them down without meaning to.\n• You are overcome by **${by}** — like ${CONTROL_IMAGE[by]}. ${by} people and ${by} years can press on you, dampen your style or set you hard tests.`);
   out.push(`### The go-between`);
   out.push(`Chinese tradition softens a destructive pair by adding the element that sits between them in the Creation Cycle. Between ${by} and you that is **${mediator(by)}** (${by} feeds ${mediator(by)}, which feeds ${el}). Between you and ${over} it is **${mediator(el)}**. Bringing that element in — a person, a colour, an activity — turns a clash into a flow.`);
-  out.push(`### Years to handle with care`);
-  const cur = chineseZodiacYear(now.getDate(), now.getMonth() + 1, now.getFullYear());
+  out.push(`### Years to handle with care from ${cur}`);
   const hard: string[] = [];
   for (let y = cur; y < cur + 12; y++) {
     const yp = yearPillar(y);
@@ -290,38 +288,43 @@ function meanings(b: Birth, el: Element, pol: Polarity): Reading {
   return { key: "meanings", title: "Meanings of the Elements", badge: `${pol} ${el} · ${stem.image}`, variant: `${pol} ${el}`, text: out.join("\n\n") };
 }
 
-/** The reading for the year in force now, with a look at the next one. */
+/** The reading for the year in focus (now, by default), with a look at the one after. */
 function thisYear(cur: YearForecast, next: YearForecast): Reading {
   const text = [
     cur.text,
-    `### Looking ahead: ${next.year}, the ${next.name} year`,
+    `### ${cur.when === "past" ? "The year after" : "Looking ahead"}: ${next.year}, the ${next.name} year`,
     `From ${next.starts}: **${next.rating}** ${"★".repeat(next.stars)}${"☆".repeat(5 - next.stars)} — ${next.summary}`,
     next.sections.elements.split("\n\n")[1] ?? "",
   ].filter(Boolean).join("\n\n");
   return {
-    key: "thisyear", title: `Your Year: ${cur.year} · ${cur.name}`, badge: `${cap(cur.rating)} ${"★".repeat(cur.stars)}`,
+    key: "thisyear", title: `Your Year: ${cur.year} · ${cur.name}${WHEN_TAG[cur.when]}`, badge: `${cap(cur.rating)} ${"★".repeat(cur.stars)}`,
     variant: cur.variant, text,
   };
 }
 
-/** Every Foundations reading for a birthday, each ending with what the current Chinese year means for it. */
-export function foundationsFor(b: Birth, opts: { now?: Date } = {}): Record<SectionKey, Reading> {
+const WHEN_TAG: Record<YearForecast["when"], string> = { past: " (looking back)", current: "", future: " (looking ahead)" };
+
+/**
+ * Every Foundations reading for a birthday, each ending with what the year in focus means for it.
+ * `year` is a Chinese year (the Temporal Focus); by default the one in force on `now`.
+ */
+export function foundationsFor(b: Birth, opts: { now?: Date; year?: number } = {}): Record<SectionKey, Reading> {
   const now = opts.now ?? new Date();
   const el = (ELEMENT_ORDER.includes(b.element as Element) ? b.element : "Wood") as Element;
   const pol = polarityOf(b.sign);
-  const { current, next } = currentAndNext({ ...b, element: el }, now);
+  const { current, next } = focusAndNext({ ...b, element: el }, opts.year, now);
   const base = {
     horoscope: horoscope(b, el, pol),
     yinyang: yinyang(b, pol),
-    elements: elements(b, el, pol, now),
+    elements: elements(b, el, pol, current.year),
     planets: planets(b, el),
     creation: creation(b, el),
-    destruction: destruction(b, el, now),
+    destruction: destruction(b, el, current.year),
     natural: natural(b, el, pol),
     meanings: meanings(b, el, pol),
   };
   for (const [k, r] of Object.entries(base) as [keyof typeof base, Reading][]) {
-    r.text = `${r.text}\n\n### In ${current.year}: the ${current.name} year\n\n${current.sections[k]}`;
+    r.text = `${r.text}\n\n### In ${current.year}: the ${current.name} year${WHEN_TAG[current.when]}\n\n${current.sections[k]}`;
   }
   return { thisyear: thisYear(current, next), ...base };
 }

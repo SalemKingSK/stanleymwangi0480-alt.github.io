@@ -125,6 +125,26 @@ describe("The current year read for a birthday", () => {
   });
 });
 
+describe("Temporal Focus on the Foundations", () => {
+  it("reads every section for a chosen past or future year", () => {
+    const c = chineseSignFor(12, 9, 1981);
+    const b = { day: 12, month: 9, year: 1981, sign: c.sign, element: c.element, western: "Virgo" };
+    const past = foundationsFor(b, { now: NOW, year: 2019 });
+    expect(past.thisyear.title).toBe("Your Year: 2019 · Yin Earth Pig (looking back)");
+    expect(past.thisyear.text).toContain("You are looking back at 2019");
+    expect(past.thisyear.text).toContain("the twelve months of 2019 met your Metal");
+    expect(past.thisyear.text).toContain("### The year after: 2020, the Yang Metal Rat year");
+    expect(past.elements.text).toContain("### Your element years from 2019");
+    expect(past.destruction.text).toContain("### Years to handle with care from 2019");
+    expect(past.creation.text).toContain("In 2019: the Yin Earth Pig year (looking back)");
+    // Earth feeds Metal: a kind year.
+    expect(past.thisyear.text).toContain("Earth feeds Metal: a nourishing year");
+    const future = foundationsFor(b, { now: NOW, year: 2030 });
+    expect(future.thisyear.text).toContain("You are looking ahead to 2030");
+    expect(foundationsFor(b, { now: NOW }).thisyear.title).toBe("Your Year: 2026 · Yang Fire Horse");
+  });
+});
+
 describe("Foundations layer", () => {
   beforeEach(() => localStorage.clear());
 
@@ -167,6 +187,25 @@ describe("Foundations layer", () => {
     });
     expect(sections[1].textContent).toContain("Hour of the Horse");
     expect(localStorage.getItem("mc-birth-hour:12-9-1981")).toBe("Horse");
+
+    // Temporal Focus: every section follows the chosen year; Today brings it back.
+    const focus = div.querySelector<HTMLElement>("[data-temporal-focus]")!;
+    expect(focus.textContent).toContain("This year: every section below is read for 2026 · Yang Fire Horse");
+    const yearInput = focus.querySelector<HTMLInputElement>("input")!;
+    await act(async () => {
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      set.call(yearInput, "2030");
+      yearInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => Array.from(focus.querySelectorAll("button")).find((b) => b.textContent === "Cast")!.click());
+    expect(focus.textContent).toContain("Looking ahead: every section below is read for 2030 · Yang Metal Dog");
+    // The verdict banner follows the chosen year.
+    expect(div.querySelector("[data-year-verdict]")!.textContent).toContain("2030 · Yang Metal Dog (looking ahead)");
+    expect(sections[1].textContent).toContain("In 2030: the Yang Metal Dog year (looking ahead)");
+    await act(async () => focus.querySelector<HTMLButtonElement>("[aria-label='Previous year']")!.click());
+    expect(focus.textContent).toContain("2029 · Yin Earth Rooster");
+    await act(async () => Array.from(focus.querySelectorAll("button")).find((b) => b.textContent === "Today")!.click());
+    expect(focus.textContent).toContain("read for 2026 · Yang Fire Horse");
     await act(async () => root.unmount());
     vi.useRealTimers();
   });
