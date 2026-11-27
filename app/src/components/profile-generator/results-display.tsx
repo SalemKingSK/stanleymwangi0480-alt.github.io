@@ -59,6 +59,7 @@ import {
   ScrollText,
 } from "lucide-react";
 import { AccordionContentWithPlayer } from "./accordion-content-with-player";
+import { currentAndNext, type YearForecast } from "@/lib/foundations/year";
 import InstallButton from "../InstallButton";
 import { ZOO } from "@/lib/cosmic-fate/zoo";
 import { buildCosmicProfile } from "@/lib/cosmic-synthesizer";
@@ -300,8 +301,31 @@ const SEVERITY_ORDER: Record<CosmicAlert["severity"], number> = {
   opportunity: 2,
   info: 3,
 };
-function generateAlerts(numerology: NumerologyData): CosmicAlert[] {
+/** The current Chinese year read against the Foundations (element cycles, Yang and Yin, animals, stems). */
+export function elementYearOf(insight: AstroInsightOutput, numerology: NumerologyData): YearForecast | null {
+  if (!insight?.sign || !insight?.element || !numerology.birthYear) return null;
+  try {
+    return currentAndNext({
+      day: numerology.birthDay, month: numerology.birthMonth, year: numerology.birthYear,
+      sign: insight.sign, element: insight.element, western: insight.western_sign,
+    }).current;
+  } catch {
+    return null;
+  }
+}
+export function generateAlerts(numerology: NumerologyData, elementYear?: YearForecast | null): CosmicAlert[] {
   const alerts: CosmicAlert[] = [];
+  // ── 0. The year in the five elements ─────────────────────────────────────
+  if (elementYear) {
+    const sev: CosmicAlert["severity"] =
+      elementYear.stars >= 4 ? "opportunity" : elementYear.stars === 3 ? "info" : elementYear.stars === 2 ? "caution" : "warning";
+    alerts.push({
+      id: "element-year",
+      severity: sev,
+      title: `${elementYear.year} ${elementYear.name} — ${elementYear.rating[0].toUpperCase()}${elementYear.rating.slice(1)} Year`,
+      message: elementYear.summary,
+    });
+  }
   const today = new Date();
   const todayDate = today.getDate();
   const todayMonth = today.getMonth() + 1;
@@ -641,21 +665,57 @@ function CosmicToast({
     </motion.div>
   );
 }
+// ── The year in the five elements: verdict + the full reading with Listen ─────
+const RATING_TONE: Record<YearForecast["rating"], string> = {
+  "very favourable": "#34d399", favourable: "#86efac", mixed: "#f1d98a", testing: "#fb923c", difficult: "#f87171",
+};
+export function ElementYearAlert({ forecast }: { forecast: YearForecast }) {
+  const [open, setOpen] = React.useState(false);
+  const tone = RATING_TONE[forecast.rating];
+  return (
+    <div data-element-year={forecast.rating} style={{ marginTop: "0.75rem", padding: "0.7rem 0.8rem", borderRadius: "0.7rem", border: `1px solid ${tone}55`, background: `${tone}10` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "0.5rem", flexWrap: "wrap" }}>
+        <span style={{ fontFamily: "'Cinzel',serif", fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", color: tone, fontWeight: 700 }}>
+          Your Year in the Five Elements · {forecast.year} {forecast.name}
+        </span>
+        <span style={{ fontSize: "0.72rem", color: tone, fontWeight: 700 }}>
+          {forecast.rating[0].toUpperCase() + forecast.rating.slice(1)} {"★".repeat(forecast.stars)}{"☆".repeat(5 - forecast.stars)}
+        </span>
+      </div>
+      <p style={{ margin: "0.35rem 0 0", fontSize: "0.74rem", lineHeight: 1.6, color: "rgba(235,228,255,0.88)", fontFamily: "'Cormorant Garamond',serif" }}>{forecast.summary}</p>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        data-study-open={`astro.found.thisyear|${forecast.variant}`}
+        style={{ marginTop: "0.45rem", background: "none", border: `1px solid ${tone}55`, borderRadius: 999, padding: "0.2rem 0.7rem", color: tone, fontSize: "0.66rem", fontFamily: "'Cinzel',serif", letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}
+      >
+        {open ? "Close the year reading" : "Read the full year reading"}
+      </button>
+      {open && (
+        <div style={{ marginTop: "0.6rem" }}>
+          <AccordionContentWithPlayer text={forecast.text} study={{ field: "astro.found.thisyear", variant: forecast.variant }} />
+        </div>
+      )}
+    </div>
+  );
+}
 // ── Archive panel — collapsible list of all alerts that have been shown ────────
 function CosmicAlertsArchive({
   seen,
+  elementYear,
   birthDay,
   birthMonth,
   birthYear,
 }: {
   seen: CosmicAlert[];
+  elementYear?: YearForecast | null;
   birthDay?: number;
   birthMonth?: number;
   birthYear?: number;
 }) {
   const [open, setOpen] = React.useState(false);
   const hasCompass = !!(birthDay && birthMonth);
-  if (seen.length === 0 && !hasCompass) return null;
+  if (seen.length === 0 && !hasCompass && !elementYear) return null;
   const BADGE_LABELS: Record<CosmicAlert["severity"], string> = {
     warning: "Warning",
     caution: "Caution",
@@ -735,6 +795,11 @@ function CosmicAlertsArchive({
                 marginTop: "0.08rem",
               }}
             >
+              {elementYear && (
+                <span style={{ color: RATING_TONE[elementYear.rating], fontStyle: "normal", fontWeight: 700 }}>
+                  {elementYear.year}: {elementYear.rating} {"★".repeat(elementYear.stars)} ·{" "}
+                </span>
+              )}
               {seen.length > 0
                 ? `${seen.length} signal${seen.length !== 1 ? "s" : ""}${hasCompass ? " · today's compass" : ""} · tap to read`
                 : "today's compass · tap to read"}
@@ -847,6 +912,7 @@ function CosmicAlertsArchive({
                 );
               })}
             </div>
+            {elementYear && <ElementYearAlert forecast={elementYear} />}
             {hasCompass && (
               <>
                 <div
@@ -889,11 +955,13 @@ function CosmicAlertsArchive({
 // ── Combined component: runs toasts + feeds archive ───────────────────────────
 function PersonalizedAlerts({
   alerts,
+  elementYear,
   birthDay,
   birthMonth,
   birthYear,
 }: {
   alerts: CosmicAlert[];
+  elementYear?: YearForecast | null;
   birthDay?: number;
   birthMonth?: number;
   birthYear?: number;
@@ -935,7 +1003,7 @@ function PersonalizedAlerts({
   }, []);
   return (
     <>
-      <CosmicAlertsArchive seen={seen} birthDay={birthDay} birthMonth={birthMonth} birthYear={birthYear} />
+      <CosmicAlertsArchive seen={seen} elementYear={elementYear} birthDay={birthDay} birthMonth={birthMonth} birthYear={birthYear} />
       <div
         style={{
           position: "fixed",
@@ -1952,7 +2020,8 @@ export function ResultsDisplay({
 }) {
   const [activeTab, setActiveTab] = React.useState("astro");
   const [showReveal, setShowReveal] = React.useState(true);
-  const alerts = React.useMemo(() => generateAlerts(numerology), [numerology]);
+  const elementYear = React.useMemo(() => elementYearOf(insight, numerology), [insight, numerology]);
+  const alerts = React.useMemo(() => generateAlerts(numerology, elementYear), [numerology, elementYear]);
   const synthesis = useSynthesis(insight, numerology);
   React.useEffect(() => {
     // Switching tabs replaces the text being read, so stop the reader.
@@ -2039,6 +2108,7 @@ export function ResultsDisplay({
           <PersonalizedAlerts
             key={`${insight.name}-${numerology.birthDay}-${numerology.birthMonth}-${numerology.birthYear}`}
             alerts={alerts}
+            elementYear={elementYear}
             birthDay={numerology.birthDay}
             birthMonth={numerology.birthMonth}
             birthYear={numerology.birthYear}

@@ -18,7 +18,7 @@ import { foundationsFor, SECTION_BOOK_KEY, SECTION_ORDER, type SectionKey } from
 export const FOUND_FIELD = (k: SectionKey) => `astro.found.${k}`;
 
 const ICON: Record<SectionKey, string> = {
-  horoscope: "🧭", yinyang: "☯", elements: "✦", planets: "🪐", creation: "🌱", destruction: "⚔", natural: "🐾", meanings: "💎",
+  thisyear: "📅", horoscope: "🧭", yinyang: "☯", elements: "✦", planets: "🪐", creation: "🌱", destruction: "⚔", natural: "🐾", meanings: "💎",
 };
 
 const hourKey = (d?: number, m?: number, y?: number) => `mc-birth-hour:${d ?? 0}-${m}-${y}`;
@@ -50,6 +50,27 @@ function HourPicker({ value, onChange }: { value: Animal | null; onChange: (a: A
   );
 }
 
+const RATING_COLOR: Record<string, string> = {
+  "Very favourable": "#34d399", Favourable: "#86efac", Mixed: "#f1d98a", Testing: "#fb923c", Difficult: "#f87171",
+};
+
+/** The year's verdict at a glance, above the sections. */
+function YearBanner({ reading }: { reading: { title: string; badge: string; text: string } }) {
+  const rating = reading.badge.replace(/\s*★+$/, "");
+  const stars = (reading.badge.match(/★/g) ?? []).length;
+  const color = RATING_COLOR[rating] ?? "#f1d98a";
+  const verdict = /\*\*Verdict:[^*]+\*\*[^—]*— (.+)/.exec(reading.text)?.[1] ?? "";
+  return (
+    <div className="rounded-xl px-3 py-2.5 border" style={{ borderColor: `${color}55`, background: `${color}12` }} data-year-verdict={rating.toLowerCase()}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="font-cinzel text-[0.72rem] uppercase tracking-widest" style={{ color }}>{reading.title.replace(/^Your Year: /, "")}</span>
+        <span className="text-[12px] font-bold" style={{ color }} aria-label={`${rating}, ${stars} of 5`}>{rating} {"★".repeat(stars)}{"☆".repeat(5 - stars)}</span>
+      </div>
+      {verdict && <p className="mt-1 text-[12px] leading-relaxed text-slate-200">{verdict}</p>}
+    </div>
+  );
+}
+
 export function FoundationsLayer({ sign, element, western, day, month, year, zodiacs }: {
   sign: string; element: string; western: string; day?: number; month: number; year: number; zodiacs?: Zodiacs | null;
 }) {
@@ -74,6 +95,7 @@ export function FoundationsLayer({ sign, element, western, day, month, year, zod
 
   return (
     <div className="space-y-3" data-foundations>
+      <YearBanner reading={readings.thisyear} />
       <div className="rounded-lg bg-white/5 px-3 py-2 text-[12px] text-slate-300">
         Your foundations: <span className="font-semibold" style={{ color: ELEMENT_COLORS[element] ?? "#f1d98a" }}>{readings.horoscope.badge}</span>
         {western && <> ({western})</>}. Each section below is read for you{z ? ", with your book's own passage after it" : ""}.
@@ -84,7 +106,7 @@ export function FoundationsLayer({ sign, element, western, day, month, year, zod
           const r = readings[k];
           const field = FOUND_FIELD(k);
           const bookKey = SECTION_BOOK_KEY[k];
-          const hasBook = !!z && (k === "meanings" ? !!z.meanings : !!z.foundations.find((f) => f.key === bookKey)?.text);
+          const hasBook = !!z && !!bookKey && (k === "meanings" ? !!z.meanings : !!z.foundations.find((f) => f.key === bookKey)?.text);
           const open = [`${field}|${r.variant}`, hasBook && (k === "meanings" ? `${ZG_FOUND}|Meanings of the Elements` : `${ZG_FOUND}|${bookKey}`)].filter(Boolean).join(";");
           return (
             <AccordionItem key={k} value={k} className={itemCls} data-foundation={k}>
@@ -97,7 +119,7 @@ export function FoundationsLayer({ sign, element, western, day, month, year, zod
                   {k === "creation" && <ElementsWheel mode="creation" element={element} />}
                   {k === "destruction" && <ElementsWheel mode="destruction" element={element} />}
                   <AccordionContentWithPlayer text={r.text} study={{ field, variant: r.variant }} />
-                  {hasBook && (k === "meanings" ? <ZgMeanings z={z!} element={element} sign={sign} /> : <ZgFoundationPassage z={z!} fkey={bookKey} />)}
+                  {hasBook && (k === "meanings" ? <ZgMeanings z={z!} element={element} sign={sign} /> : <ZgFoundationPassage z={z!} fkey={bookKey!} />)}
                 </div>
               </AccordionContent>
             </AccordionItem>

@@ -11,7 +11,8 @@
  * the sections (when tagging what they show) and by `variants(chart)` here, so
  * the two always agree.
  */
-import { foundationVariants, type SectionKey } from "@/lib/foundations/practice";
+import { foundationVariants, yearPillar, type SectionKey } from "@/lib/foundations/practice";
+const ELEMENTS5 = ["Wood", "Fire", "Earth", "Metal", "Water"];
 import type { Chart } from "./chart";
 import { ALL_ARROW_DEFINITIONS } from "@/lib/arrow-definitions";
 import { resolveMonthData } from "@/lib/numerology/monthly-profiles";
@@ -306,6 +307,7 @@ const codexNumberOf = (v: string) => codexNumber(Number(/Codex (\d+)/.exec(v)?.[
 const codexAnimalOf = (v: string) => codexAnimal(/^(\w+) Codex/.exec(v)?.[1] ?? "");
 
 const FOUND_DEFS: [SectionKey, string, string][] = [
+  ["thisyear", "Your Year in the Foundations", "How the current Chinese year — its element, polarity, animal and stem — meets your chart: the verdict, why, and what to do."],
   ["horoscope", "Your Chinese Horoscope", "Your year, animal moon and animal hour — the outer, inner and first-impression layers of the chart."],
   ["yinyang", "Yang and Yin", "Your polarity and the Yang–Yin balance of your year, moon, hour and Western sign."],
   ["elements", "The Elements", "Your element and polarity, your sixty-year combination and how the coming years' elements meet yours."],
@@ -334,10 +336,22 @@ export const FIELDS: FieldDef[] = [
   ...FOUND_DEFS.map(([k, label, blurb]): FieldDef => ({
     id: `astro.found.${k}`, module: A, topic: "Foundations", label, kind: "chart", anchor: "astro.oracle",
     where: `Astrology › The Animal Oracle › Foundations › ${label}`, blurb,
-    variants: (c) => {
-      if (!c.insight?.sign) return [];
-      return [foundationVariants({ day: c.day, month: c.month, year: c.year, sign: c.insight.sign, element: c.insight.element, western: c.insight.western_sign })[k]];
-    },
+    ...(k === "thisyear"
+      ? {
+          kind: "temporal" as const,
+          temporal: (b: { day: number; month: number; year: number }, now: Date) => {
+            const c = chineseSignFor(b.day, b.month, b.year);
+            const y = yearPillar(chineseSignFor(now.getDate(), now.getMonth() + 1, now.getFullYear()).zodiacYear);
+            return [`${c.element} person · ${y.element} year`];
+          },
+          universe: () => ELEMENTS5.flatMap((a) => ELEMENTS5.map((b) => `${a} person · ${b} year`)),
+        }
+      : {
+          variants: (c: Chart) => {
+            if (!c.insight?.sign) return [];
+            return [foundationVariants({ day: c.day, month: c.month, year: c.year, sign: c.insight.sign, element: c.insight.element, western: c.insight.western_sign })[k]];
+          },
+        }),
   })),
   // The user's own handbook, loaded on the device (lib/handbook): word-for-word passages in the Oracle.
   { id: "astro.hb.five", module: A, topic: "My Handbook", label: "The Five Different Animals", kind: "chart", anchor: "astro.oracle", requires: "handbook",

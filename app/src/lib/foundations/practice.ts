@@ -5,23 +5,16 @@
  * for one birthday, in plain words.
  */
 import { chineseZodiacYear, lunarNewYearDate, solarTermYear, stemBranchIndex, ZODIAC_ANIMALS, STEM_ELEMENTS } from "@/lib/astrology/chinese-calendar-math";
+import { favourable, mediator, relation, yearPillar, type Birth, type Relation } from "./core";
+import { currentAndNext, type YearForecast } from "./year";
+export { favourable, mediator, relation, yearPillar, type Birth, type Relation } from "./core";
 import {
   ANIMAL_INFO, CONTROLLED_BY, CONTROLS, CONTROL_IMAGE, ELEMENTS, ELEMENT_ORDER, FED_BY, FEEDS, FEED_IMAGE, HOURS, MOON_NATURE, MOON_SIGN,
   PLANET_ELEMENT, POLARITY, STEMS, WESTERN, type Animal, type Element, type Polarity,
 } from "./data";
 
-export interface Birth {
-  day: number;
-  month: number;
-  year: number;
-  sign: string;
-  element: string;
-  western: string;
-  /** Animal of the birth hour, when the reader has chosen it. */
-  hour?: Animal | null;
-}
 
-export type SectionKey = "horoscope" | "yinyang" | "elements" | "planets" | "creation" | "destruction" | "natural" | "meanings";
+export type SectionKey = "thisyear" | "horoscope" | "yinyang" | "elements" | "planets" | "creation" | "destruction" | "natural" | "meanings";
 
 export interface Reading {
   key: SectionKey;
@@ -50,21 +43,7 @@ export function animalMoonOf(western: string): Animal | null {
   return MOON_SIGN[western] ?? null;
 }
 
-/** Element and polarity of a Chinese year (from its Heavenly Stem). */
-export function yearPillar(year: number): { element: Element; polarity: Polarity; animal: Animal } {
-  const { stem, branch } = stemBranchIndex(year);
-  return { element: STEM_ELEMENTS[Math.floor(stem / 2)] as Element, polarity: stem % 2 === 0 ? "Yang" : "Yin", animal: ZODIAC_ANIMALS[branch] as Animal };
-}
 
-export type Relation = "same" | "feeds-you" | "you-feed" | "you-control" | "controls-you";
-/** How element `other` stands to element `mine`. */
-export function relation(mine: Element, other: Element): Relation {
-  if (mine === other) return "same";
-  if (FEEDS[other] === mine) return "feeds-you";
-  if (FEEDS[mine] === other) return "you-feed";
-  if (CONTROLS[mine] === other) return "you-control";
-  return "controls-you";
-}
 const REL_LABEL: Record<Relation, string> = {
   same: "your own element — lucky and familiar",
   "feeds-you": "it feeds you — supportive",
@@ -72,11 +51,7 @@ const REL_LABEL: Record<Relation, string> = {
   "you-control": "you overcome it — rewards come, but only through effort",
   "controls-you": "it overcomes you — pressure and tests",
 };
-/** The traditional verdict on a year for a person of `mine`: own, mother and child years favour you; the two destruction links do not. */
-export const favourable = (r: Relation) => r === "same" || r === "feeds-you" || r === "you-feed";
 
-/** Element of the "go-between": it is fed by the controller and feeds the controlled, so it turns conflict into flow. */
-export const mediator = (controller: Element): Element => FEEDS[controller];
 
 function listAnd(xs: string[]): string {
   return xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
@@ -315,12 +290,27 @@ function meanings(b: Birth, el: Element, pol: Polarity): Reading {
   return { key: "meanings", title: "Meanings of the Elements", badge: `${pol} ${el} · ${stem.image}`, variant: `${pol} ${el}`, text: out.join("\n\n") };
 }
 
-/** Every Foundations reading for a birthday. */
+/** The reading for the year in force now, with a look at the next one. */
+function thisYear(cur: YearForecast, next: YearForecast): Reading {
+  const text = [
+    cur.text,
+    `### Looking ahead: ${next.year}, the ${next.name} year`,
+    `From ${next.starts}: **${next.rating}** ${"★".repeat(next.stars)}${"☆".repeat(5 - next.stars)} — ${next.summary}`,
+    next.sections.elements.split("\n\n")[1] ?? "",
+  ].filter(Boolean).join("\n\n");
+  return {
+    key: "thisyear", title: `Your Year: ${cur.year} · ${cur.name}`, badge: `${cap(cur.rating)} ${"★".repeat(cur.stars)}`,
+    variant: cur.variant, text,
+  };
+}
+
+/** Every Foundations reading for a birthday, each ending with what the current Chinese year means for it. */
 export function foundationsFor(b: Birth, opts: { now?: Date } = {}): Record<SectionKey, Reading> {
   const now = opts.now ?? new Date();
   const el = (ELEMENT_ORDER.includes(b.element as Element) ? b.element : "Wood") as Element;
   const pol = polarityOf(b.sign);
-  return {
+  const { current, next } = currentAndNext({ ...b, element: el }, now);
+  const base = {
     horoscope: horoscope(b, el, pol),
     yinyang: yinyang(b, pol),
     elements: elements(b, el, pol, now),
@@ -330,6 +320,10 @@ export function foundationsFor(b: Birth, opts: { now?: Date } = {}): Record<Sect
     natural: natural(b, el, pol),
     meanings: meanings(b, el, pol),
   };
+  for (const [k, r] of Object.entries(base) as [keyof typeof base, Reading][]) {
+    r.text = `${r.text}\n\n### In ${current.year}: the ${current.name} year\n\n${current.sections[k]}`;
+  }
+  return { thisyear: thisYear(current, next), ...base };
 }
 
 /** Curriculum variants (no birth hour). */
@@ -339,7 +333,7 @@ export function foundationVariants(b: Birth, now = new Date()): Record<SectionKe
 }
 
 /** The book section each reading sits with (FOUNDATION_KEYS). */
-export const SECTION_BOOK_KEY: Record<SectionKey, string> = {
+export const SECTION_BOOK_KEY: Partial<Record<SectionKey, string>> = {
   horoscope: "Your Chinese Horoscope",
   yinyang: "Yang and Yin",
   elements: "The Elements",
@@ -349,4 +343,4 @@ export const SECTION_BOOK_KEY: Record<SectionKey, string> = {
   natural: "The Natural Elements of the Animals",
   meanings: "Meanings of the Elements",
 };
-export const SECTION_ORDER: SectionKey[] = ["horoscope", "yinyang", "elements", "planets", "creation", "destruction", "natural", "meanings"];
+export const SECTION_ORDER: SectionKey[] = ["thisyear", "horoscope", "yinyang", "elements", "planets", "creation", "destruction", "natural", "meanings"];
