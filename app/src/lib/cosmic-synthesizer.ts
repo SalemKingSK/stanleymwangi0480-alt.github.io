@@ -15,15 +15,16 @@
 
 import type { AstroInsightOutput, NumerologyData } from '@/components/profile-generator/types';
 import { computePersonalYearNumber, reduceNum } from '@/lib/numerology/personal-year-full';
+import { appNow } from "@/lib/time/focus";
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
 function getCurrentPersonalYear(birthDay: number, birthMonth: number): number {
-  return computePersonalYearNumber(birthDay, birthMonth, new Date().getFullYear());
+  return computePersonalYearNumber(birthDay, birthMonth, appNow().getFullYear());
 }
 
 function getCurrentPersonalMonth(py: number): number {
-  return reduceNum(py + (new Date().getMonth() + 1));
+  return reduceNum(py + (appNow().getMonth() + 1));
 }
 
 // ─── PHRASE BANKS ─────────────────────────────────────────────────────────────
@@ -217,7 +218,7 @@ const CHINESE_YEAR_RELATION: Record<string, string> = {
 // ─── SYNTHESIS FUNCTION ───────────────────────────────────────────────────────
 
 function getChineseYearRelation(sign: string): string {
-  const now = new Date().getFullYear();
+  const now = appNow().getFullYear();
   const SIGNS = ['Rat','Ox','Tiger','Rabbit','Dragon','Snake','Horse','Goat','Monkey','Rooster','Dog','Pig'];
   const REF_YEAR = 1924; // Rat year
   const currentSignIdx = ((now - REF_YEAR) % 12 + 12) % 12;

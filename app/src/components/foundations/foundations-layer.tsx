@@ -12,8 +12,7 @@ import { Passage, Title, YoursBadge, itemCls, triggerCls } from "@/components/ha
 import { ElementsWheel, ELEMENT_COLORS, ZG_FOUND, ZgFoundationPassage, ZgMeanings } from "@/components/handbook/zodiacs-oracle";
 import type { Zodiacs } from "@/lib/handbook/zodiacs";
 import { HOURS, type Animal } from "@/lib/foundations/data";
-import { chineseYearNow, yearPillarName } from "@/lib/foundations/year";
-import { chineseZodiacYear } from "@/lib/astrology/chinese-calendar-math";
+import { useFocusKey } from "@/lib/time/focus";
 import { foundationsFor, SECTION_BOOK_KEY, SECTION_ORDER, type SectionKey } from "@/lib/foundations/practice";
 
 /** Curriculum field of each section. */
@@ -73,47 +72,6 @@ function YearBanner({ reading }: { reading: { title: string; badge: string; text
   );
 }
 
-/** Pick the year the Foundations are read for: step, type, or go back to today. */
-function TemporalFocus({ value, today, min, max, onChange }: { value: number; today: number; min: number; max: number; onChange: (y: number) => void }) {
-  const [input, setInput] = React.useState(String(value));
-  React.useEffect(() => setInput(String(value)), [value]);
-  const clamp = (y: number) => Math.min(max, Math.max(min, y));
-  const cast = () => {
-    const y = parseInt(input, 10);
-    if (Number.isFinite(y)) onChange(clamp(y));
-    else setInput(String(value));
-  };
-  const btn = "h-8 rounded-md border border-primary/25 px-2 text-[11px] font-bold uppercase tracking-wider text-primary/85 hover:bg-primary/10 disabled:opacity-30";
-  const when = value < today ? "Looking back" : value > today ? "Looking ahead" : "This year";
-  return (
-    <div className="rounded-lg bg-slate-950/60 border border-primary/20 px-3 py-2" data-no-study-open data-temporal-focus>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/70">🗓 Temporal Focus</span>
-        <button type="button" className={btn} onClick={() => onChange(clamp(value - 1))} disabled={value <= min} aria-label="Previous year">◀</button>
-        <input
-          type="number"
-          inputMode="numeric"
-          min={min}
-          max={max}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") cast(); }}
-          onBlur={cast}
-          aria-label="Year in focus"
-          className="w-20 h-8 rounded-md bg-black/40 border border-primary/25 px-2 text-[13px] font-bold text-white"
-        />
-        <button type="button" className={btn} onClick={() => onChange(clamp(value + 1))} disabled={value >= max} aria-label="Next year">▶</button>
-        <button type="button" className={btn} onClick={cast}>Cast</button>
-        {value !== today && <button type="button" className={btn} onClick={() => onChange(today)}>Today</button>}
-      </div>
-      <p className="mt-1 text-[11px] text-slate-400">
-        {when}: every section below is read for <span className="text-amber-100 font-semibold">{value} · {yearPillarName(value)}</span>
-        {value === today ? " (the year in force today)." : ` — today's year is ${today}.`}
-      </p>
-    </div>
-  );
-}
-
 export function FoundationsLayer({ sign, element, western, day, month, year, zodiacs }: {
   sign: string; element: string; western: string; day?: number; month: number; year: number; zodiacs?: Zodiacs | null;
 }) {
@@ -128,23 +86,20 @@ export function FoundationsLayer({ sign, element, western, day, month, year, zod
     } catch { /* private mode */ }
   };
 
-  // Temporal Focus: the Chinese year every section is read for (the year in force today by default).
-  const today = chineseYearNow();
-  const minYear = chineseZodiacYear(day ?? 15, month, year);
-  const [focus, setFocus] = React.useState(today);
-  React.useEffect(() => setFocus(chineseYearNow()), [key]);
+  // The app-wide Focus Date (today by default) decides the year every section is read for.
+  const focusKey = useFocusKey();
 
   // Older saved readings may lack the day: the middle of the month never falls on a new-year cusp.
   const readings = React.useMemo(
-    () => foundationsFor({ day: day ?? 15, month, year, sign, element, western, hour }, { year: focus }),
-    [day, month, year, sign, element, western, hour, focus],
+    () => foundationsFor({ day: day ?? 15, month, year, sign, element, western, hour }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [day, month, year, sign, element, western, hour, focusKey],
   );
   const z = zodiacs ?? null;
   const twelve = z?.foundations.find((f) => f.key === "The Twelve Animals");
 
   return (
     <div className="space-y-3" data-foundations>
-      <TemporalFocus value={focus} today={today} min={minYear} max={2099} onChange={setFocus} />
       <YearBanner reading={readings.thisyear} />
       <div className="rounded-lg bg-white/5 px-3 py-2 text-[12px] text-slate-300">
         Your foundations: <span className="font-semibold" style={{ color: ELEMENT_COLORS[element] ?? "#f1d98a" }}>{readings.horoscope.badge}</span>

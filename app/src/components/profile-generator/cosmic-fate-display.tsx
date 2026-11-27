@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { AccordionContentWithPlayer } from './accordion-content-with-player';
 import { CosmicRiskScanner } from './cosmic-risk-scanner';
+import { appNow } from "@/lib/time/focus";
 
 // Helper to reduce numbers
 const reduce = (n: number): number => {
@@ -41,8 +42,8 @@ export function CosmicFateDisplay({ insight, numerology }: { insight: AstroInsig
   const [codexSign, setCodexSign] = useState('Rat');
   
   // Year Selector State - UNLOCKED
-  const [readYear, setReadYear] = useState(new Date().getFullYear());
-  const today = new Date();
+  const [readYear, setReadYear] = useState(appNow().getFullYear());
+  const today = appNow();
 
   const { birthDay: d, birthMonth: m, birthYear: by } = numerology;
   const birthSign = insight.sign;
@@ -360,13 +361,13 @@ export function CosmicFateDisplay({ insight, numerology }: { insight: AstroInsig
             <Input 
               type="number"
               value={readYear}
-              onChange={(e) => setReadYear(parseInt(e.target.value) || new Date().getFullYear())}
+              onChange={(e) => setReadYear(parseInt(e.target.value) || appNow().getFullYear())}
               className="w-24 h-9 bg-black/40 border-white/10 text-white font-bold"
             />
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => setReadYear(new Date().getFullYear())}
+              onClick={() => setReadYear(appNow().getFullYear())}
               className="h-9 border-white/10 text-[11px] uppercase font-bold text-white/70 hover:bg-white/5"
             >
               <RotateCcw className="h-3 w-3 mr-2" /> Today

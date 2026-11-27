@@ -10,6 +10,7 @@ import { ANIMALS } from '@/lib/cosmic-fate/constants';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AccordionContentWithPlayer } from './accordion-content-with-player';
 import { computePersonalYearNumber } from '@/lib/numerology/personal-year-full';
+import { appNow } from "@/lib/time/focus";
 
 /**
  * HELPER: Reduce number to single digit (Pythagorean)
@@ -97,7 +98,7 @@ interface ZodiacSectionProps {
 }
 
 export function ZodiacSection({ birthDay, birthMonth, birthYear }: ZodiacSectionProps) {
-  const [readYear] = useState(new Date().getFullYear());
+  const [readYear] = useState(appNow().getFullYear());
   const [selectedYear, setSelectedYear] = useState<any>(null);
 
   const birthSign = useMemo(() => getAnimalForDate(birthDay, birthMonth, birthYear), [birthDay, birthMonth, birthYear]);

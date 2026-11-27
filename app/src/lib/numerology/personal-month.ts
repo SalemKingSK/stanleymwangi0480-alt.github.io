@@ -8,6 +8,7 @@
  */
 
 import { getPersonalYearAnalysis } from '@/lib/numerology/personal-year-full';
+import { appNow } from "@/lib/time/focus";
 
 export interface PersonalMonthResult {
   personalYear: number;
@@ -67,7 +68,7 @@ export function getPersonalMonth(birthDay: number, birthMonth: number): Personal
   // pre-reduce-each-component formula — keeps this in sync with the
   // Personal Year section instead of silently drifting from it.
   const py = getPersonalYearAnalysis(birthDay, birthMonth).year;
-  const pm = reduceNum(py + (new Date().getMonth() + 1));
+  const pm = reduceNum(py + (appNow().getMonth() + 1));
   return { personalYear: py, personalMonth: pm, ...(PM_MEANINGS[pm] || { title: `Personal Month ${pm}`, interpretation: `Personal Month ${pm} carries its own unique energy within the Personal Year ${py} cycle.` }) };
 }
 

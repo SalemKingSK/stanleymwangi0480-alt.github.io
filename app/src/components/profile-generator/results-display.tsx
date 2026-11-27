@@ -2,6 +2,7 @@ import { StudyScope, StudyBlock } from "@/lib/curriculum/study-scope";
 import { studyNav } from "@/lib/curriculum/navigation";
 import { revealTop } from "@/lib/reveal-top";
 import { useStudyFocus, StudyBanner, StudyToasts, type FateFocus } from "@/components/curriculum/study-focus";
+import { appNow } from "@/lib/time/focus";
 /**
  * MYSTIQUE COMPASS — Premium Results Display
  */
@@ -60,6 +61,8 @@ import {
 } from "lucide-react";
 import { AccordionContentWithPlayer } from "./accordion-content-with-player";
 import { currentAndNext, type YearForecast } from "@/lib/foundations/year";
+import { useFocusKey, isFocused } from "@/lib/time/focus";
+import { FocusDateBar } from "@/components/time/focus-date-bar";
 import InstallButton from "../InstallButton";
 import { ZOO } from "@/lib/cosmic-fate/zoo";
 import { buildCosmicProfile } from "@/lib/cosmic-synthesizer";
@@ -91,10 +94,10 @@ function reducePsychic(n: number): number {
   return val || 9;
 }
 function getPersonalYear(d: number, m: number): number {
-  return computePersonalYearNumber(d, m, new Date().getFullYear());
+  return computePersonalYearNumber(d, m, appNow().getFullYear());
 }
 function getPersonalMonth(py: number): number {
-  return reduceNum(py + (new Date().getMonth() + 1));
+  return reduceNum(py + (appNow().getMonth() + 1));
 }
 function ordinal(n: number): string {
   if (n > 3 && n < 21) return `${n}th`;
@@ -326,7 +329,7 @@ export function generateAlerts(numerology: NumerologyData, elementYear?: YearFor
       message: elementYear.summary,
     });
   }
-  const today = new Date();
+  const today = appNow();
   const todayDate = today.getDate();
   const todayMonth = today.getMonth() + 1;
   const todayDay = [
@@ -937,12 +940,12 @@ function CosmicAlertsArchive({
                   }}
                 >
                   <CalendarDays size={12} />
-                  Today's Compass
+                  {isFocused() ? `Compass · ${appNow().toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}` : "Today's Compass"}
                 </div>
                 <TodayCompassInline
                   birthDay={birthDay!}
                   birthMonth={birthMonth!}
-                  birthYear={birthYear ?? new Date().getFullYear() - 30}
+                  birthYear={birthYear ?? appNow().getFullYear() - 30}
                 />
               </>
             )}
@@ -2020,8 +2023,12 @@ export function ResultsDisplay({
 }) {
   const [activeTab, setActiveTab] = React.useState("astro");
   const [showReveal, setShowReveal] = React.useState(true);
-  const elementYear = React.useMemo(() => elementYearOf(insight, numerology), [insight, numerology]);
-  const alerts = React.useMemo(() => generateAlerts(numerology, elementYear), [numerology, elementYear]);
+  // The Focus Date (today by default): every date-based reading below follows it.
+  const focusKey = useFocusKey();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const elementYear = React.useMemo(() => elementYearOf(insight, numerology), [insight, numerology, focusKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const alerts = React.useMemo(() => generateAlerts(numerology, elementYear), [numerology, elementYear, focusKey]);
   const synthesis = useSynthesis(insight, numerology);
   React.useEffect(() => {
     // Switching tabs replaces the text being read, so stop the reader.
@@ -2104,9 +2111,11 @@ export function ResultsDisplay({
             onTabClick={setActiveTab}
             activeTab={activeTab}
           />
+          {/* ── Focus Date: read the whole app as of another day (today by default) ── */}
+          <FocusDateBar />
           {/* ── Cosmic Alerts + Today's Compass (permanent, above all tabs) ── */}
           <PersonalizedAlerts
-            key={`${insight.name}-${numerology.birthDay}-${numerology.birthMonth}-${numerology.birthYear}`}
+            key={`${insight.name}-${numerology.birthDay}-${numerology.birthMonth}-${numerology.birthYear}-${focusKey}`}
             alerts={alerts}
             elementYear={elementYear}
             birthDay={numerology.birthDay}
@@ -2115,9 +2124,10 @@ export function ResultsDisplay({
           />
           {/* ── Temporal Prediction Engine (permanent, above all tabs) ── */}
           <TemporalPredictionPanel
+            key={focusKey}
             birthDay={numerology.birthDay}
             birthMonth={numerology.birthMonth}
-            birthYear={numerology.birthYear || new Date().getFullYear() - 30}
+            birthYear={numerology.birthYear || appNow().getFullYear() - 30}
           />
           {/* ── Soul Resonance (permanent, above all tabs) ── */}
           {history.length >= 2 && (
@@ -2127,7 +2137,7 @@ export function ResultsDisplay({
               subtitle="Compatibility via Cheiro harmony, Lo Shu, personal-year sync & zodiac rhythm"
               icon={<Users size={16} />}
             >
-              <SoulResonancePanel history={history} />
+              <SoulResonancePanel key={focusKey} history={history} />
             </CollapsibleSection>
             </div>
           )}
@@ -2137,7 +2147,7 @@ export function ResultsDisplay({
           </div>
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeTab}
+              key={`${activeTab}-${focusKey}`}
               initial={{ opacity: 0, y: 10, scale: 0.99 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.99 }}

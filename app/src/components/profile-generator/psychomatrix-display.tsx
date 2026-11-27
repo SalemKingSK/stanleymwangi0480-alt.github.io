@@ -30,6 +30,7 @@ import { calculateDynamicPotentials } from '@/lib/numerology/dynamic-engine';
 import { AccordionContentWithPlayer } from './accordion-content-with-player';
 import { computePersonalYearNumber } from '@/lib/numerology/personal-year-full';
 import { detectTransitions, type DetectedTransition, type MatrixState, type TransitionAdvisory } from '@/lib/transitions/engine';
+import { appNow } from "@/lib/time/focus";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -70,7 +71,7 @@ function ScalePill({ scale }: { scale: string }) {
 }
 
 function getPersonalYear(d: number, m: number): number {
-  return computePersonalYearNumber(d, m, new Date().getFullYear());
+  return computePersonalYearNumber(d, m, appNow().getFullYear());
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

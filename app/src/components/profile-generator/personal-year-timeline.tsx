@@ -3,6 +3,7 @@ import { K } from "@/lib/curriculum/catalogue";
 import React, { useMemo, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AccordionContentWithPlayer } from './accordion-content-with-player';
+import { appNow } from "@/lib/time/focus";
 
 // ── PY colour palette ──────────────────────────────────────────────────────────
 // Matches the wave chart's golden theme. Peaks warm, troughs cool.
@@ -176,7 +177,7 @@ export function PersonalYearTimeline({ birthDay, birthMonth, birthYear }: Person
   const scrollStartLeft = useRef(0);
 
   const entries: TimelineEntry[] = useMemo(() => {
-    const now = new Date();
+    const now = appNow();
     const currentYear = now.getFullYear();
     const worldYear = String(currentYear).split('').reduce((a, c) => a + +c, 0);
     const birthSum = reduceNum(birthDay) + reduceNum(birthMonth);

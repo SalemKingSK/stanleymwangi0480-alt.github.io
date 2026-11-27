@@ -1,3 +1,4 @@
+import { appNow } from "@/lib/time/focus";
 /**
  * The Temporal Trajectory: each sign's forecast for each year of the 12-year cycle.
  *
@@ -37,7 +38,7 @@ export interface FutureYear {
 }
 
 /** `count` consecutive years from `from` (default: this year and the eleven after it). */
-export function futureWindow(futures: FuturesRecord | null | undefined, from = new Date().getFullYear(), count = 12): FutureYear[] {
+export function futureWindow(futures: FuturesRecord | null | undefined, from = appNow().getFullYear(), count = 12): FutureYear[] {
   const texts = futureTexts(futures);
   const out: FutureYear[] = [];
   for (let year = from; year < from + count; year++) {

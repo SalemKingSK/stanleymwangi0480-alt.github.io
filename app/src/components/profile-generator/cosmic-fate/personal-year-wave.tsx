@@ -3,6 +3,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { PERSONAL_YEARS, CAT_META, RELATIONS, ANIMALS } from '@/lib/cosmic-fate/constants';
+import { appNow } from "@/lib/time/focus";
 
 interface Props {
   day: number;
@@ -46,7 +47,7 @@ export const PersonalYearWave: React.FC<Props> = ({ day, month, year, birthSign 
     const gW = W - PAD.l - PAD.r;
     const gH = H - PAD.t - PAD.b;
 
-    const curYear = new Date().getFullYear();
+    const curYear = appNow().getFullYear();
     const range = 20;
     const yrs: number[] = [];
     const pvs: number[] = [];

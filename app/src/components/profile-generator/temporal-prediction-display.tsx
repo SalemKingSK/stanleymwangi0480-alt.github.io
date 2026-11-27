@@ -1,5 +1,6 @@
 import { StudyBlock } from "@/lib/curriculum/study-scope";
 import { timingFieldForTitle } from "@/lib/curriculum/catalogue";
+import { appNow } from "@/lib/time/focus";
 /**
  * MYSTIQUE COMPASS — Temporal Prediction Display
  * Integrates the 14-Layer Temporal Prediction Engine v2
@@ -342,8 +343,8 @@ const PM_SHORT_LOCAL: Record<number, string> = {
 };
 
 function MonthlyGrid({ birthDay, birthMonth, birthYear }: { birthDay: number; birthMonth: number; birthYear: number }) {
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
+  const currentYear = appNow().getFullYear();
+  const currentMonth = appNow().getMonth() + 1;
   const months = generateMonthlyBreakdown(birthDay, birthMonth, birthYear, currentYear);
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const [selectedMonth, setSelectedMonth] = React.useState<number>(currentMonth);
@@ -436,7 +437,7 @@ function MonthlyGrid({ birthDay, birthMonth, birthYear }: { birthDay: number; bi
 
 // ─── Multi-Year Bar Chart (clickable) ────────────────────────────────────────
 function MultiYearChart({ birthDay, birthMonth, birthYear }: { birthDay: number; birthMonth: number; birthYear: number }) {
-  const currentYear = new Date().getFullYear();
+  const currentYear = appNow().getFullYear();
   const data = generateMultiYearForecast(birthDay, birthMonth, birthYear, currentYear - 1, 7);
   const [selectedYear, setSelectedYear] = React.useState<number>(currentYear);
 
@@ -793,12 +794,12 @@ function TemporalPredictionInner({
       </TemporalSection>
 
       {/* ── Domain Forecasts ─────────────────────────────── */}
-      <TemporalSection icon="🌐" title="Life Domain Forecasts" subtitle={`Personal Year ${meta.personalYear} · ${new Date().getFullYear()}`}>
+      <TemporalSection icon="🌐" title="Life Domain Forecasts" subtitle={`Personal Year ${meta.personalYear} · ${appNow().getFullYear()}`}>
         <DomainSection domains={domains} />
       </TemporalSection>
 
       {/* ── Monthly Breakdown ─────────────────────────────── */}
-      <TemporalSection icon="📅" title={`Monthly Rhythm · ${new Date().getFullYear()}`} subtitle="Personal Month by month with opportunity windows">
+      <TemporalSection icon="📅" title={`Monthly Rhythm · ${appNow().getFullYear()}`} subtitle="Personal Month by month with opportunity windows">
         <MonthlyGrid birthDay={birthDay} birthMonth={birthMonth} birthYear={birthYear} />
       </TemporalSection>
 

@@ -17,6 +17,7 @@ import { tierOf, unitCount, TIERS } from "@/lib/curriculum/progress";
 import { revealTop } from "@/lib/reveal-top";
 import { readAloud } from "@/lib/read-aloud/engine";
 import { neuralVoice } from "@/lib/read-aloud/neural-voice";
+import { appNow } from "@/lib/time/focus";
 
 const esc = (v: string) => (typeof CSS !== "undefined" && CSS.escape ? CSS.escape(v) : v.replace(/["\\]/g, "\\$&"));
 const wait = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
@@ -195,7 +196,7 @@ export async function nextLesson(after?: { field: string; variant?: string }): P
   if (!subject) return null;
   const chart = await buildChart(subject);
   const scheme = syllabus.get();
-  const now = new Date();
+  const now = appNow();
   const units: { field: FieldDef; variant: string }[] = [];
   for (const f of FIELDS) {
     if (f.kind === "library") continue; // hundreds of entries each — studied from the Syllabus

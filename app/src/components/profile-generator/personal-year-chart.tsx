@@ -30,6 +30,7 @@ import {
 import annotationPlugin from "chartjs-plugin-annotation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { PersonalYearData } from "./types";
+import { appNow } from "@/lib/time/focus";
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -102,7 +103,7 @@ export const PersonalYearChart: React.FC<PersonalYearChartProps> = ({
   const dragDelta = useRef(0);
   // Build full 51-year dataset once per birth data change
   const { fullData, currentYearIdxInFull } = useMemo(() => {
-    const now = new Date();
+    const now = appNow();
     const currentYear = now.getFullYear();
     const fullData: PersonalYearData[] = [];
     for (let i = -HALF_RANGE; i <= HALF_RANGE; i++) {

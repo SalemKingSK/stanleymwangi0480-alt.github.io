@@ -12,6 +12,7 @@
  * the two always agree.
  */
 import { foundationVariants, yearPillar, type SectionKey } from "@/lib/foundations/practice";
+import { appNow } from "@/lib/time/focus";
 const ELEMENTS5 = ["Wood", "Fire", "Earth", "Metal", "Water"];
 import type { Chart } from "./chart";
 import { ALL_ARROW_DEFINITIONS } from "@/lib/arrow-definitions";
@@ -617,7 +618,7 @@ export const FIELDS: FieldDef[] = [
   { id: "num.universal-year", module: N, topic: "Living Numbers", label: "Universal Year", kind: "temporal", anchor: "num.synthesis",
     where: "Numerology › Deep Synthesis › Universal Year", blurb: "The collective year everyone shares.",
     temporal: (_b, now) => [`Universal Year ${now.getFullYear()}`],
-    universe: () => [`Universal Year ${new Date().getFullYear()}`] },
+    universe: () => [`Universal Year ${appNow().getFullYear()}`] },
   { id: "num.precedent", module: N, topic: "Living Numbers", label: "Precedent Ledger", kind: "practice", anchor: "num.precedent",
     where: "Numerology › Precedent Ledger", blurb: "How this year's historical precedents actually turned out." },
   { id: "num.meanings", module: N, topic: "Number Lore", label: "Number Meanings Reference", kind: "library", anchor: "num.meanings",
@@ -759,7 +760,7 @@ export function partsOf(field: FieldDef, variant: string): PartDef[] {
 }
 
 /** Variants a chart shows for a field ([] when the chart doesn't show it). */
-export function chartVariants(field: FieldDef, chart: Chart, now = new Date(), opts: { all?: boolean } = {}): string[] {
+export function chartVariants(field: FieldDef, chart: Chart, now = appNow(), opts: { all?: boolean } = {}): string[] {
   if (!opts.all && !fieldAvailable(field)) return [];
   try {
     if (field.kind === "practice") return [PRACTICE];
@@ -772,7 +773,7 @@ export function chartVariants(field: FieldDef, chart: Chart, now = new Date(), o
 }
 
 /** Personal-year number used by the timing fields and suggestions. */
-export function currentPersonalYear(day: number, month: number, now = new Date()): number {
+export function currentPersonalYear(day: number, month: number, now = appNow()): number {
   return computePersonalYearNumber(day, month, now.getFullYear());
 }
 

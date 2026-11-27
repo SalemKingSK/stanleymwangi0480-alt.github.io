@@ -5,10 +5,11 @@ import { AlertTriangle, TrendingUp, TrendingDown, Minus,
 import { detectTransitions, type DetectedTransition, type MatrixState, type TransitionAdvisory } from '@/lib/transitions/engine';
 import type { NumerologyData } from './types';
 import { computePersonalYearNumber } from '@/lib/numerology/personal-year-full';
+import { appNow } from "@/lib/time/focus";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function getPersonalYear(d: number, m: number): number {
-  return computePersonalYearNumber(d, m, new Date().getFullYear());
+  return computePersonalYearNumber(d, m, appNow().getFullYear());
 }
 
 const URGENCY_CONFIG = {

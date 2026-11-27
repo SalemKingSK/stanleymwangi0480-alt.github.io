@@ -1,3 +1,4 @@
+import { appNow } from "@/lib/time/focus";
 /**
  * Pinnacle & Challenge stages as the Numerology tab's "Pinnacles & Challenges"
  * section shows them (moved here so the Curriculum can list them too).
@@ -82,7 +83,7 @@ export function calcStages(lp: number, d: number, m: number, y: number): Stage[]
   const c3 = Math.abs(c1 - c2);
   const c4 = Math.abs(mR - yR);
 
-  const age = new Date().getFullYear() - y;
+  const age = appNow().getFullYear() - y;
   return [
     { stage: 1, label: "First Pinnacle",  ages: `0–${firstEnd}`,                 p: p1, c: c1, rawP: rawP1, active: age < firstEnd },
     { stage: 2, label: "Second Pinnacle", ages: `${firstEnd}–${firstEnd + 9}`,   p: p2, c: c2, rawP: rawP2, active: age >= firstEnd && age < firstEnd + 9 },

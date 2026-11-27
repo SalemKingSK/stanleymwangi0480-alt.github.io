@@ -19,6 +19,7 @@ import { AccordionContentWithPlayer } from './accordion-content-with-player';
 import { K } from '@/lib/curriculum/catalogue';
 import { studyAttrs } from '@/lib/curriculum/study-scope';
 import { GraduationCap } from 'lucide-react';
+import { appNow } from "@/lib/time/focus";
 
 const CurriculumPanel = React.lazy(() => import('@/components/curriculum/curriculum-panel'));
 
@@ -112,8 +113,8 @@ const [activeTab, setActiveTab] = useState(focusTab || 'synthesis');
 React.useEffect(() => {
 if (focusTab) setActiveTab(focusTab);
 }, [focusTab, focusKey]);
-const [readYear, setReadYear] = useState(new Date().getFullYear());
-const [inputYear, setInputYear] = useState(new Date().getFullYear().toString());
+const [readYear, setReadYear] = useState(appNow().getFullYear());
+const [inputYear, setInputYear] = useState(appNow().getFullYear().toString());
 const [selectedZodiacYear, setSelectedZodiacYear] = useState<any>(null);
 const [diveSubTab, setDiveSubTab] = useState('ov');
 
@@ -125,7 +126,7 @@ const py = reduceMN(birthMonth + birthDay + String(readYear).split('').reduce((a
 const uy = reduce(readYear);
 const lp = reduce(reduce(birthMonth) + reduce(birthDay) + reduce(birthYear));
 const bv = reduce(birthDay);
-const today = new Date();
+const today = appNow();
 const currentMonthIndex = today.getMonth() + 1;
 const pm = reduce(py + currentMonthIndex);
 
@@ -549,7 +550,7 @@ className="h-9 border-primary/20 text-[11px] uppercase font-bold text-primary/80
 variant="ghost" 
 size="sm"
 onClick={() => {
-const now = new Date().getFullYear();
+const now = appNow().getFullYear();
 setReadYear(now);
 setInputYear(now.toString());
 }}

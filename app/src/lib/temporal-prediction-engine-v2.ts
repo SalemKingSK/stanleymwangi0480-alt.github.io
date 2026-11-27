@@ -171,6 +171,7 @@ export interface TemporalPredictionV2 {
 import { buildPersonalYearDualEssenceSynthesis } from "@/lib/numerology/personal-year-synthesis";
 import { lookupCompound } from "@/lib/numerology/chaldean-pyn-compounds";
 import { computeRawPersonalYear, computeRawPersonalYearClassic } from "@/lib/numerology/personal-year-full";
+import { appNow } from "@/lib/time/focus";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -789,7 +790,7 @@ function generateDailyForecast(
   birthDay: number, birthMonth: number, birthYear: number,
   targetDate?: Date
 ): DailyForecast {
-  const d = targetDate || new Date();
+  const d = targetDate || appNow();
   const cd = d.getDate(), cm = d.getMonth() + 1, cy = d.getFullYear();
 
   const py = calcPersonalYear(birthDay, birthMonth, cy);
@@ -1124,7 +1125,7 @@ export function generateTemporalPrediction(
   readYear?: number,
   readMonth?: number
 ): TemporalPredictionV2 {
-  const now = new Date();
+  const now = appNow();
   const cy = readYear  ?? now.getFullYear();
   const cm = readMonth ?? now.getMonth() + 1;
 
@@ -1341,7 +1342,7 @@ export function generateNotificationBatch(
   birthDay: number, birthMonth: number, birthYear: number,
   daysAhead = 7
 ): DailyForecast[] {
-  const today = new Date();
+  const today = appNow();
   return Array.from({ length: daysAhead }, (_, i) => {
     const d = new Date(today);
     d.setDate(today.getDate() + i);

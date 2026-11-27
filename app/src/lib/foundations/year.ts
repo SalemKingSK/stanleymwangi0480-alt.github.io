@@ -11,6 +11,7 @@ import {
   type Animal, type Element, type Polarity,
 } from "./data";
 import { favourable, mediator, relation, yearPillar, type Birth, type Relation } from "./core";
+import { appNow } from "@/lib/time/focus";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const an = (w: string) => (/^[AEIOU]/.test(w) ? `an ${w}` : `a ${w}`);
@@ -193,7 +194,7 @@ function bondText(sign: string, ya: Animal, year: number): string {
 }
 
 /** How a Chinese year meets this birthday. */
-export function yearForecast(b: Birth, year: number, now = new Date()): YearForecast {
+export function yearForecast(b: Birth, year: number, now = appNow()): YearForecast {
   const el = b.element as Element;
   const sign = b.sign as Animal;
   const p = yearPillar(year);
@@ -347,18 +348,18 @@ export function yearPillarName(year: number): string {
 }
 
 /** The Chinese year in force on `now`. */
-export function chineseYearNow(now = new Date()): number {
+export function chineseYearNow(now = appNow()): number {
   return chineseZodiacYear(now.getDate(), now.getMonth() + 1, now.getFullYear());
 }
 
 /** The year in focus (default: the one in force on `now`) and the one after. */
-export function focusAndNext(b: Birth, year: number | undefined, now = new Date()): { current: YearForecast; next: YearForecast } {
+export function focusAndNext(b: Birth, year: number | undefined, now = appNow()): { current: YearForecast; next: YearForecast } {
   const y = year ?? chineseYearNow(now);
   return { current: yearForecast(b, y, now), next: yearForecast(b, y + 1, now) };
 }
 
 /** The Chinese year in force on `now`, and the one after. */
-export function currentAndNext(b: Birth, now = new Date()): { current: YearForecast; next: YearForecast } {
+export function currentAndNext(b: Birth, now = appNow()): { current: YearForecast; next: YearForecast } {
   const cy = chineseZodiacYear(now.getDate(), now.getMonth() + 1, now.getFullYear());
   return { current: yearForecast(b, cy, now), next: yearForecast(b, cy + 1, now) };
 }

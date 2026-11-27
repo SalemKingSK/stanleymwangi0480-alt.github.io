@@ -7,6 +7,7 @@
 import { chineseZodiacYear, lunarNewYearDate, solarTermYear, stemBranchIndex, ZODIAC_ANIMALS, STEM_ELEMENTS } from "@/lib/astrology/chinese-calendar-math";
 import { favourable, mediator, relation, yearPillar, type Birth, type Relation } from "./core";
 import { focusAndNext, type YearForecast } from "./year";
+import { appNow } from "@/lib/time/focus";
 export { favourable, mediator, relation, yearPillar, type Birth, type Relation } from "./core";
 import {
   ANIMAL_INFO, CONTROLLED_BY, CONTROLS, CONTROL_IMAGE, ELEMENTS, ELEMENT_ORDER, FED_BY, FEEDS, FEED_IMAGE, HOURS, MOON_NATURE, MOON_SIGN,
@@ -309,7 +310,7 @@ const WHEN_TAG: Record<YearForecast["when"], string> = { past: " (looking back)"
  * `year` is a Chinese year (the Temporal Focus); by default the one in force on `now`.
  */
 export function foundationsFor(b: Birth, opts: { now?: Date; year?: number } = {}): Record<SectionKey, Reading> {
-  const now = opts.now ?? new Date();
+  const now = opts.now ?? appNow();
   const el = (ELEMENT_ORDER.includes(b.element as Element) ? b.element : "Wood") as Element;
   const pol = polarityOf(b.sign);
   const { current, next } = focusAndNext({ ...b, element: el }, opts.year, now);
@@ -330,7 +331,7 @@ export function foundationsFor(b: Birth, opts: { now?: Date; year?: number } = {
 }
 
 /** Curriculum variants (no birth hour). */
-export function foundationVariants(b: Birth, now = new Date()): Record<SectionKey, string> {
+export function foundationVariants(b: Birth, now = appNow()): Record<SectionKey, string> {
   const r = foundationsFor({ ...b, hour: null }, { now });
   return Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v.variant])) as Record<SectionKey, string>;
 }

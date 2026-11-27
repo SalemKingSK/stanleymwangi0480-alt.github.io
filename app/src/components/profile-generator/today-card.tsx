@@ -2,6 +2,7 @@ import * as React from "react";
 import { CalendarDays } from "lucide-react";
 import type { AstroInsightInput } from "./types";
 import type { StoredSoul } from "./archivum-ui";
+import { appNow } from "@/lib/time/focus";
 
 // A small, dependency-free "Today for you" card for the landing screen.
 // It reads the pinned (or most recent) soul from the Archivum and shows the
@@ -18,7 +19,7 @@ const reduceNum = (n: number): number => {
   return v;
 };
 
-export function personalNumbers(day: number, month: number, date = new Date()) {
+export function personalNumbers(day: number, month: number, date = appNow()) {
   const cm = date.getMonth() + 1;
   const personalYear = reduceNum(day + month + digitSum(date.getFullYear()));
   const personalMonth = reduceNum(personalYear + cm);
@@ -58,7 +59,7 @@ export function TodayCard({
   const month = Number(soul.month);
   const { personalYear, personalMonth, personalDay } = personalNumbers(day, month);
   const firstName = String(soul.name).trim().split(/\s+/)[0];
-  const today = new Date().toLocaleDateString(undefined, {
+  const today = appNow().toLocaleDateString(undefined, {
     weekday: "long",
     day: "numeric",
     month: "long",

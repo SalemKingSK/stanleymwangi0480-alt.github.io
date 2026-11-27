@@ -20,6 +20,7 @@ import {
 } from "@/lib/numerology/synthesis/dominance-hierarchy-engine";
 import { calculateDynamicPotentials } from "@/lib/numerology/dynamic-engine";
 import { detectTransitions, type DetectedTransition } from "@/lib/transitions/engine";
+import { appNow } from "@/lib/time/focus";
 
 export interface BirthInput {
   name: string;
@@ -44,7 +45,7 @@ export interface Chart extends BirthInput {
 
 /** Same Personal Year the Psychomatrix tab uses for its transitions. */
 function psychomatrixPersonalYear(d: number, m: number): number {
-  const y = new Date().getFullYear();
+  const y = appNow().getFullYear();
   let s = d + m + String(y).split("").reduce((a, c) => a + +c, 0);
   while (s > 9 && s !== 11 && s !== 22 && s !== 33) s = String(s).split("").reduce((a, c) => a + +c, 0);
   return s;

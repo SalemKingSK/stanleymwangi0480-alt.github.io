@@ -24,6 +24,7 @@ import { resolveMonthData } from "@/lib/numerology/monthly-profiles";
 import { calculateDynamicPotentials } from "@/lib/numerology/dynamic-engine";
 import { generateDailyForecast } from "@/lib/temporal-prediction-engine-v2";
 import { buildTodayTimingGuidance } from "./engagement-tools";
+import { appNow } from "@/lib/time/focus";
 interface PdfExportButtonProps {
   insight: AstroInsightOutput;
   numerology: NumerologyData;
@@ -1325,7 +1326,7 @@ Johari growth-tension dates: ${timingGuidance.johariGrowthDates.join(", ") || "â
     sectionHeader("Nine-Year Personal Year Forecast (Full)");
     pyears.forEach((py) => {
       checkBreak(30);
-      const isCurrent = new Date().getFullYear() === py.year;
+      const isCurrent = appNow().getFullYear() === py.year;
       doc.setFillColor(
         isCurrent ? 30 : 12,
         isCurrent ? 14 : 5,

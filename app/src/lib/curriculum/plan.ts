@@ -5,6 +5,7 @@
  */
 import { FIELDS, PRACTICE, fieldAvailable, type FieldDef } from "./catalogue";
 import type { BirthInput } from "./chart";
+import { appNow } from "@/lib/time/focus";
 
 export interface PlanCase {
   /** Name */
@@ -52,7 +53,7 @@ function stillCurrent(field: FieldDef, variant: string, now: Date): boolean {
 const natural = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
 /** Every unit of a field, in natural order. */
-export function fieldUniverse(field: FieldDef, plan: CurriculumPlan, now = new Date()): string[] {
+export function fieldUniverse(field: FieldDef, plan: CurriculumPlan, now = appNow()): string[] {
   if (!fieldAvailable(field)) return [];
   let list: string[];
   if (field.kind === "practice") list = [PRACTICE];
@@ -62,7 +63,7 @@ export function fieldUniverse(field: FieldDef, plan: CurriculumPlan, now = new D
   return list.filter((v) => stillCurrent(field, v, now));
 }
 
-export function allUnits(plan: CurriculumPlan, now = new Date()): SyllabusUnit[] {
+export function allUnits(plan: CurriculumPlan, now = appNow()): SyllabusUnit[] {
   return FIELDS.flatMap((field) => fieldUniverse(field, plan, now).map((variant) => ({ field, variant })));
 }
 
@@ -92,14 +93,14 @@ function temporalIndex(plan: CurriculumPlan, now: Date): Map<string, Map<string,
  * Case studies that show a unit. Library and practice units can be studied on
  * any chart, so none are listed for them (the current reading will do).
  */
-export function casesForUnit(plan: CurriculumPlan, field: FieldDef, variant: string, now = new Date()): number[] {
+export function casesForUnit(plan: CurriculumPlan, field: FieldDef, variant: string, now = appNow()): number[] {
   if (field.kind === "chart") return plan.fields[field.id]?.[variant] ?? [];
   if (field.kind === "temporal") return temporalIndex(plan, now).get(field.id)?.get(variant) ?? [];
   return [];
 }
 
 /** Units each case study teaches (chart + temporal fields). */
-export function unitsOfCase(plan: CurriculumPlan, index: number, now = new Date()): SyllabusUnit[] {
+export function unitsOfCase(plan: CurriculumPlan, index: number, now = appNow()): SyllabusUnit[] {
   const out: SyllabusUnit[] = [];
   for (const field of FIELDS) {
     if (!fieldAvailable(field)) continue;

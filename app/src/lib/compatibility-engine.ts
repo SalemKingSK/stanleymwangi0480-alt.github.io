@@ -37,6 +37,7 @@ import { getChineseZodiacSign, getWesternZodiacSign } from "@/lib/astrology";
 import { famousBirthdays, type FamousPerson } from "@/lib/famous-birthdays";
 import { zodiacData } from "@/lib/zodiac";
 import { NEW_ASTROLOGY_DATA } from "@/lib/new-astrology";
+import { appNow } from "@/lib/time/focus";
  
 // ---------------------------------------------------------------------
 // Types
@@ -556,7 +557,7 @@ function pyInteractionNarrative(aName: string, aArch: PYArchetype, bName: string
   return `${aName} is moving as ${aArch.label} this year (${aArch.verb}), while ${bName} is moving as ${bArch.label} (${bArch.verb}). The pairing works best when each role is consciously divided rather than silently assumed.`;
 }
  
-export function analyzePYInteraction(a: SoulVitals, b: SoulVitals, targetYear = new Date().getFullYear()): PYInteractionAnalysis {
+export function analyzePYInteraction(a: SoulVitals, b: SoulVitals, targetYear = appNow().getFullYear()): PYInteractionAnalysis {
   const aDirect = buildPYReading(computeRawPersonalYear(a.day, a.month, targetYear));
   const aClassic = buildPYReading(computeRawPersonalYearClassic(a.day, a.month, targetYear));
   const bDirect = buildPYReading(computeRawPersonalYear(b.day, b.month, targetYear));
@@ -857,7 +858,7 @@ function codifySuzanneWhite(
   };
 }
 
-export function generateSoulResonance(a: SoulVitals, b: SoulVitals, targetYear = new Date().getFullYear()): SoulResonanceReport {
+export function generateSoulResonance(a: SoulVitals, b: SoulVitals, targetYear = appNow().getFullYear()): SoulResonanceReport {
   const psychicHarmony = cheiroHarmony(a.psychic, b.psychic);
   const destinyHarmony = cheiroHarmony(a.destiny, b.destiny);
   const lifePathHarmony = cheiroHarmony(a.lifePath, b.lifePath);
@@ -1069,7 +1070,7 @@ function compoundLabel(raw: number): string {
  
 export function getFamousPersonalYearMatches(
   subject: { day: number; month: number; year: number; name?: string },
-  targetYear = new Date().getFullYear(),
+  targetYear = appNow().getFullYear(),
   limit = 12,
 ): FamousPersonalYearMatch[] {
   const directRaw = computeRawPersonalYear(subject.day, subject.month, targetYear);
@@ -1114,7 +1115,7 @@ export function getFamousPersonalYearMatches(
  
 export function getFamousSoulWeather(
   subject: { day: number; month: number; year: number; name?: string },
-  targetYear = new Date().getFullYear(),
+  targetYear = appNow().getFullYear(),
   limit = 8,
 ): FamousPersonalYearMatch[] {
   return getFamousPersonalYearMatches(subject, targetYear, limit);
@@ -1126,7 +1127,7 @@ export function getFamousSoulWeather(
 // so the dashboard has something richer than "PY {number}" to render.
 // ---------------------------------------------------------------------
  
-export function buildSoulWeatherReport(soul: SoulVitals, targetYear = new Date().getFullYear()): SoulWeatherReport {
+export function buildSoulWeatherReport(soul: SoulVitals, targetYear = appNow().getFullYear()): SoulWeatherReport {
   const direct = buildPYReading(computeRawPersonalYear(soul.day, soul.month, targetYear));
   const classic = buildPYReading(computeRawPersonalYearClassic(soul.day, soul.month, targetYear));
   const age = typeof soul.year === "number" && !Number.isNaN(soul.year) ? targetYear - soul.year : null;

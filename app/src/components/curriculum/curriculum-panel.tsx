@@ -42,6 +42,7 @@ import {
   unitLast,
   unitWho,
 } from "@/lib/curriculum/progress";
+import { appNow } from "@/lib/time/focus";
 
 type View = "path" | "syllabus" | "cases" | "reading" | "progress";
 
@@ -189,7 +190,7 @@ function Ring({ value, total, size = 64, color = "#d4af37", label }: { value: nu
 export default function CurriculumPanel() {
   const { plan, error } = usePlan();
   const scheme = useSyllabus();
-  const now = React.useMemo(() => new Date(), []);
+  const now = React.useMemo(() => appNow(), []);
   const reading = useReadingUnits(now);
   const [view, setView] = React.useState<View>("path");
   const [openUnit, setOpenUnit] = React.useState<SyllabusUnit | null>(null);

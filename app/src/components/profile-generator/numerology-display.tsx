@@ -40,6 +40,7 @@ import { FateChambers } from "./fate-chambers";
 import { CoreVibrations } from "./core-vibrations";
 import { PinnaclesSection } from "./pinnacles-section";
 import { Button } from "@/components/ui/button";
+import { appNow } from "@/lib/time/focus";
 
 function parseProbabilityItem(item: string): { label: string; percent: number } | null {
   const match = item.match(/^(.*?)\s+(\d{1,3})%$/);
@@ -109,7 +110,7 @@ function reduceNum(n: number): number {
   // Challenge of 0 was incorrectly coerced to 9. Removed the fallback.
 }
 function personalYearNow(d: number, m: number) {
-  const yr = new Date().getFullYear();
+  const yr = appNow().getFullYear();
   const ySum = String(yr)
     .split("")
     .reduce((a, c) => a + +c, 0);
@@ -133,7 +134,7 @@ function calcPinnacles(lp: number, d: number, m: number, y: number) {
   const c2 = reduceNum(Math.abs(reduceNum(d) - yearDigits(y)));
   const c3 = reduceNum(Math.abs(c1 - c2));
   const c4 = reduceNum(Math.abs(reduceNum(m) - yearDigits(y)));
-  const age = new Date().getFullYear() - y;
+  const age = appNow().getFullYear() - y;
   return [
     {
       stage: 1,
@@ -396,7 +397,7 @@ function ThisYearBanner({
   birthDay: number;
   birthMonth: number;
 }) {
-  const today = new Date();
+  const today = appNow();
   const py = personalYearNow(birthDay, birthMonth);
   const pm = reduceNum(py + today.getMonth() + 1);
   const pd = reduceNum(py + today.getDate() + today.getMonth() + 1);

@@ -14,6 +14,7 @@ import {
   buildPersonalYearDualEssenceSynthesis,
   type PersonalYearDualEssenceSynthesis,
 } from "@/lib/numerology/personal-year-synthesis";
+import { appNow } from "@/lib/time/focus";
 export interface PersonalYearResult {
   year: number;
   rawYear: number; // unreduced compound total (e.g. 28 + 2 + 8 = 38), before final reduction
@@ -275,7 +276,7 @@ export function getPersonalYearAnalysis(
   birthDay: number,
   birthMonth: number,
   birthYear?: number,
-  targetYear: number = new Date().getFullYear(),
+  targetYear: number = appNow().getFullYear(),
 ): PersonalYearResult {
   const y = targetYear;
   const yearDigitSum = digitSumOnce(y); // e.g. 2024 -> 2+0+2+4 = 8 (single pass over the year's own digits — this isn't "pre-reducing a component," it's just how a 4-digit year is turned into a number to add in the first place)
@@ -342,7 +343,7 @@ export function getPersonalYearAnalysis(
   };
 }
 export function getUniversalYear(): UniversalYearResult {
-  const y = new Date().getFullYear();
+  const y = appNow().getFullYear();
   const uy = reduceNum(
     String(y)
       .split("")

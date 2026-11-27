@@ -59,6 +59,7 @@ import {
   type StoredSoul,
 } from "./archivum-ui";
 import { trackEvent } from "@/lib/usage-tracker";
+import { appNow } from "@/lib/time/focus";
 export { ArchivumActions, ImportExportButtons };
 export type { StoredSoul };
 const HARMONY: Record<number, number[]> = {
@@ -286,7 +287,7 @@ export function buildTodayTimingGuidance(
   const cheiro = cheiroPsychicNumbers[p];
   const johariPsychic = JOHARI_RELATIONS[p];
   const johariDestiny = JOHARI_RELATIONS[reduceSingle(d)];
-  const today = new Date();
+  const today = appNow();
   const todayNum = reduceSingle(today.getDate());
   const currentAge =
     today.getFullYear() -
@@ -524,7 +525,7 @@ export function TodaySurface({
         : [],
     [primarySoul],
   );
-  const year = new Date().getFullYear();
+  const year = appNow().getFullYear();
   const timing = React.useMemo(
     () => (primarySoul ? buildTodayTimingGuidance(primarySoul) : null),
     [primarySoul],
@@ -723,7 +724,7 @@ export function TodaySurface({
 }
  
 function FamousPersonalYearMirrors({ soul }: { soul: StoredSoul }) {
-  const targetYear = new Date().getFullYear();
+  const targetYear = appNow().getFullYear();
   const mirrors = React.useMemo(() => getFamousSoulWeather(soul, targetYear, 8), [soul, targetYear]);
   if (!mirrors.length) return null;
   return (
@@ -792,7 +793,7 @@ export function SoulWeatherDashboard({
   history: StoredSoul[];
   onLoad: (s: AstroInsightInput) => void;
 }) {
-  const year = new Date().getFullYear();
+  const year = appNow().getFullYear();
   return (
     <Panel
       title="Soul Weather"
@@ -1104,22 +1105,22 @@ function buildRelationshipAnalysis(
   const aPY = computePersonalYearNumber(
     a.day,
     a.month,
-    new Date().getFullYear(),
+    appNow().getFullYear(),
   );
   const bPY = computePersonalYearNumber(
     b.day,
     b.month,
-    new Date().getFullYear(),
+    appNow().getFullYear(),
   );
   const aNextPY = computePersonalYearNumber(
     a.day,
     a.month,
-    new Date().getFullYear() + 1,
+    appNow().getFullYear() + 1,
   );
   const bNextPY = computePersonalYearNumber(
     b.day,
     b.month,
-    new Date().getFullYear() + 1,
+    appNow().getFullYear() + 1,
   );
   const cheiroPsychic = sameOrHarmonious(aPsychic, bPsychic);
   const cheiroDestiny = sameOrHarmonious(aDestiny, bDestiny);
@@ -1372,7 +1373,7 @@ function buildRelationshipAnalysis(
       detail: `Current personal years differ: ${a.name} is in ${seasonA}, ${b.name} is in ${seasonB}.`,
       systems: ["Personal Year"],
     });
-  const currentYear = new Date().getFullYear();
+  const currentYear = appNow().getFullYear();
   const aComp = getCompoundTone(a, currentYear),
     bComp = getCompoundTone(b, currentYear);
   if (aComp && bComp)
@@ -3294,7 +3295,7 @@ export async function shareReadingCard(
   const py = computePersonalYearNumber(
     numerology.birthDay,
     numerology.birthMonth,
-    new Date().getFullYear(),
+    appNow().getFullYear(),
   );
   const text = `${title}\nLife Path ${numerology.destinyNum} · Personal Year ${py} · ${insight.new_astrology_sign}\nGet your own free reading:`;
   const params = new URLSearchParams({

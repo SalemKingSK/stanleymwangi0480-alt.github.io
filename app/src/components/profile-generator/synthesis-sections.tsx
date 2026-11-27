@@ -59,6 +59,7 @@ import { calculatePsychomatrix } from "@/lib/numerology/data/psychomatrixData";
 import { createPersonalizedPsychomatrixReport } from "@/lib/numerology/psychomatrix-synthesis";
 import type { PersonalizedPsychomatrixReport } from "@/lib/numerology/psychomatrix-synthesis";
 import { FourPlanesChart } from "./four-planes-chart";
+import { appNow, useFocusKey } from "@/lib/time/focus";
 function SH({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-3 mb-4 mt-6">
@@ -1121,7 +1122,7 @@ export function SynthesisNumerologySections({
             <AccordionContent className="px-4 pb-4">
               <AccordionContentWithPlayer
                 text={synthesis.universalYear.interpretation}
- study={{ field: "num.universal-year", variant: `Universal Year ${new Date().getFullYear()}` }} />
+ study={{ field: "num.universal-year", variant: `Universal Year ${appNow().getFullYear()}` }} />
             </AccordionContent>
           </AccordionItem>
         )}
@@ -2098,10 +2099,13 @@ export function useSynthesis(
   insight: AstroInsightOutput | null,
   numerology: NumerologyData | null,
 ): SynthesisResult | null {
+  // Re-read when the Focus Date changes (personal years, ages and cycles depend on it).
+  const focusKey = useFocusKey();
   return React.useMemo(() => {
     if (!insight || !numerology) return null;
     return computeSynthesis(numerology, insight);
-  }, [insight, numerology]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insight, numerology, focusKey]);
 }
 export function NumberMeaningsSection() {
   const meanings = React.useMemo(() => getNumberMeanings(), []);
