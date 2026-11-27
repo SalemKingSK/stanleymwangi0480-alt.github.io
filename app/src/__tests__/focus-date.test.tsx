@@ -44,22 +44,17 @@ describe("Focus Date", () => {
     expect(isFocused()).toBe(false);
   });
 
-  it("re-reads the year verdict and the alerts for the chosen day", async () => {
+  it("re-reads the alerts for the chosen day", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(TODAY);
-    const { elementYearOf, generateAlerts } = await import("@/components/profile-generator/results-display");
+    const { generateAlerts } = await import("@/components/profile-generator/results-display");
     const numerology = { birthDay: 12, birthMonth: 9, birthYear: 1981, numberCounts: { "8": 1 } };
-    const insight = { sign: "Rooster", element: "Metal", western_sign: "Virgo" };
-    expect(elementYearOf(insight as never, numerology as never)!.year).toBe(2026);
-    // 2028 is a Yang Earth Monkey year: Earth feeds Metal.
-    setFocusDay({ year: 2028, month: 6, day: 1 });
-    const fy = elementYearOf(insight as never, numerology as never)!;
-    expect(fy.name).toBe("Yang Earth Monkey");
-    expect(fy.elementGood).toBe(true);
-    expect(generateAlerts(numerology as never, fy).find((a) => a.id === "element-year")!.title).toContain("2028 Yang Earth Monkey");
-    // A day before the 2028 lunar new year (26 January) still belongs to 2027.
-    setFocusDay({ year: 2028, month: 1, day: 20 });
-    expect(elementYearOf(insight as never, numerology as never)!.year).toBe(2027);
+    const ids = () => generateAlerts(numerology as never).map((a) => `${a.id}:${a.title}`).join("|");
+    const today = ids();
+    // The year-in-the-elements verdict is gone from the alerts.
+    expect(today).not.toContain("element-year");
+    setFocusDay({ year: 2031, month: 9, day: 12 });
+    expect(ids()).not.toBe(today);
   });
 
   it("has a bar that steps by day and year and returns to today", async () => {
